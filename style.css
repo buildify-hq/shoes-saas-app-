@@ -6,14 +6,14 @@
     --card-hover: #334155;
     --text-light: #F8FAFC;
     --text-muted: #94A3B8; 
-    --primary: #3B82F6; 
+    --primary: #1D4ED8; /* नवीन डीप ब्लू रंग */
     --success: #10B981;
     --danger: #EF4444; 
     --warning: #F59E0B; 
     --purple: #8B5CF6; 
     --border-color: #334155;
     --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    --glow-primary: 0 0 15px rgba(59, 130, 246, 0.4);
+    --glow-primary: 0 0 15px rgba(29, 78, 216, 0.4);
     --glow-success: 0 0 15px rgba(16, 185, 129, 0.4);
     --input-bg: #0B1120;
     --header-bg: rgba(30, 41, 59, 0.95);
@@ -87,7 +87,7 @@ input, select, textarea {
     font-family: 'Poppins', sans-serif;
     transition: 0.2s; 
 }
-input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); background: var(--card-dark); }
+input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2); background: var(--card-dark); }
 label { display: block; text-align: left; font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; letter-spacing: 0.3px; }
 
 /* 🛠️ बटणं */
@@ -107,7 +107,7 @@ button {
 }
 button:active { transform: scale(0.96); }
 button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-.btn-primary { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; box-shadow: var(--glow-primary); margin-top: 5px; }
+.btn-primary { background: linear-gradient(135deg, #1D4ED8, #1E40AF); color: white; box-shadow: var(--glow-primary); margin-top: 5px; }
 .btn-success { background: linear-gradient(135deg, #10B981, #059669); color: white; box-shadow: var(--glow-success); }
 .btn-warning { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); }
 .btn-danger { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
@@ -133,7 +133,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 /* 🛠️ कार्ड्स */
 .app-card { background: var(--card-dark); border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
 .sub-card { background: var(--input-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); }
-.broadcast-box { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); color: var(--primary); padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.broadcast-box { background: rgba(29, 78, 216, 0.1); border: 1px solid var(--primary); color: var(--primary); padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .target-card { padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--success); background: var(--card-dark); }
 .progress-bg { background: var(--input-bg); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color); }
 .progress-bar { height: 100%; width: 0%; background: var(--success); transition: width 0.5s ease-in-out; }
@@ -234,4 +234,4 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 [data-theme="light"] #stockSearch {
     background: var(--card-dark);
     border: 1px solid var(--border-color);
-}
+    }
