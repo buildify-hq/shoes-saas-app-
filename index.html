@@ -5,20 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Shoe Shop App</title>
     
-    <!-- Supabase आणि Excel -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- 🚀 Barcode Scanner साठी लायब्ररी -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- CSS फाईल लिंक -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- PWA साठी -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3B82F6">
 </head>
@@ -27,7 +18,7 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
-    <!-- 🚀 Barcode Scanner Modal -->
+    <!-- Scanner Modal -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
@@ -37,7 +28,7 @@
         </div>
     </div>
 
-    <!-- Custom Confirm Modal -->
+    <!-- Confirm Modal -->
     <div id="customConfirmModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center;">
             <div style="font-size: 40px; color: var(--warning); margin-bottom: 10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -50,7 +41,7 @@
         </div>
     </div>
 
-    <!-- Sidebar Menu (Owner Only) -->
+    <!-- Sidebar -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -85,7 +76,7 @@
 
     <div class="content-area">
         
-        <!-- 1. LOGIN SCREEN -->
+        <!-- LOGIN SCREEN -->
         <div id="loginScreen" class="fade-in" style="display: block; padding-top: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="login-logo">
@@ -110,7 +101,7 @@
             </div>
         </div>
 
-        <!-- 2. SUPER ADMIN SCREEN -->
+        <!-- SUPER ADMIN SCREEN -->
         <div id="superAdminScreen" class="fade-in" style="display: none;">
             <div class="sa-header">
                 <div>
@@ -136,7 +127,7 @@
             <div id="saOwnerList"></div>
         </div>
 
-        <!-- 3. DASHBOARD SCREEN -->
+        <!-- DASHBOARD SCREEN -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
             <div id="broadcastDisplay" class="broadcast-box" style="display: none;">
                 <i class="fa-solid fa-bullhorn"></i> <span id="broadcastText"></span>
@@ -153,19 +144,19 @@
             </div>
 
             <div class="stats-grid">
-                <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(16, 185, 129, 0.3); cursor: default;">
-                    <div class="stat-title" style="color: var(--success);">Today's Sales</div>
-                    <div class="stat-value" id="todaySalesDisplay">₹0</div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+                    <div class="stat-title" style="color: white;">Today's Sales</div>
+                    <div class="stat-value" id="todaySalesDisplay" style="color: white;">₹0</div>
                 </div>
-                <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(59, 130, 246, 0.3); cursor: default;">
-                    <div class="stat-title" style="color: var(--primary);">Today's Profit</div>
-                    <div class="stat-value" id="todayProfitDisplay">₹0</div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #3B82F6, #2563EB); border: none; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">
+                    <div class="stat-title" style="color: white;">Today's Profit</div>
+                    <div class="stat-value" id="todayProfitDisplay" style="color: white;">₹0</div>
                 </div>
             </div>
             
             <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                <button class="btn-success" onclick="switchTab('sale')" style="flex: 1.5; padding: 18px; font-size: 16px; margin:0;"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
-                <button class="btn-warning" onclick="switchTab('return')" style="flex: 1; padding: 18px; font-size: 15px; margin:0;"><i class="fa-solid fa-rotate-left"></i> Return</button>
+                <button class="btn-success" onclick="switchTab('sale')" style="flex: 1.5; padding: 16px; font-size: 15px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
+                <button class="btn-warning" onclick="switchTab('return')" style="flex: 1; padding: 16px; font-size: 14px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);"><i class="fa-solid fa-rotate-left"></i> Return</button>
             </div>
 
             <div class="app-card" style="padding: 15px; margin-bottom: 20px;">
@@ -180,10 +171,30 @@
 
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); font-weight: 600;">Quick Expenses</h4>
             <div class="quick-expense-chart">
-                <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')"><i class="fa-solid fa-mug-hot"></i> Tea/Snacks</div>
-                <div class="quick-expense-btn" onclick="quickExpense('Light Bill')"><i class="fa-solid fa-lightbulb"></i> Light Bill</div>
-                <div class="quick-expense-btn" onclick="quickExpense('Shop Rent')"><i class="fa-solid fa-shop"></i> Shop Rent</div>
-                <div class="quick-expense-btn" onclick="switchTab('staff')"><i class="fa-solid fa-user-tie"></i> Staff Pay</div>
+                <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')">
+                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                        <i class="fa-solid fa-mug-hot" style="color: var(--warning); font-size: 20px;"></i>
+                    </div>
+                    Tea/Snacks
+                </div>
+                <div class="quick-expense-btn" onclick="quickExpense('Light Bill')">
+                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                        <i class="fa-solid fa-lightbulb" style="color: var(--warning); font-size: 20px;"></i>
+                    </div>
+                    Light Bill
+                </div>
+                <div class="quick-expense-btn" onclick="quickExpense('Shop Rent')">
+                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                        <i class="fa-solid fa-shop" style="color: var(--warning); font-size: 20px;"></i>
+                    </div>
+                    Shop Rent
+                </div>
+                <div class="quick-expense-btn" onclick="switchTab('staff')">
+                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                        <i class="fa-solid fa-user-tie" style="color: var(--warning); font-size: 20px;"></i>
+                    </div>
+                    Staff Pay
+                </div>
             </div>
 
             <h3 style="margin-bottom: 12px; font-size: 16px; margin-top: 20px; font-weight: 700;"><i class="fa-solid fa-list-check"></i> Today's Transactions</h3>
@@ -192,11 +203,10 @@
             </div>
         </div>
 
-        <!-- 4. MY STOCK SCREEN -->
+        <!-- MY STOCK SCREEN -->
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
             
-            <!-- 🛠️ स्टॉक सर्च बार -->
             <div class="app-card" style="padding: 12px; margin-bottom: 15px;">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" onkeyup="if(event.key === 'Enter') searchStockArticle()">
@@ -223,34 +233,29 @@
             <div id="stockList"></div>
         </div>
 
-        <!-- 5. STAFF CALCULATOR SCREEN -->
+        <!-- STAFF CALCULATOR SCREEN -->
         <div id="staffScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
             <div class="app-card">
                 <label>Staff Name</label>
                 <input type="text" id="staffNameInput" placeholder="e.g. Raju" onkeyup="calculateStaffPayment()">
-                
                 <label>Total Monthly Salary (₹)</label>
                 <input type="number" id="staffTotalSalary" placeholder="e.g. 15000" onkeyup="calculateStaffPayment()">
-                
                 <label>Advance Paid (₹)</label>
                 <input type="number" id="staffAdvance" placeholder="e.g. 2000" onkeyup="calculateStaffPayment()">
-                
                 <label>Leave Deduction (₹)</label>
                 <input type="number" id="staffLeaveDeduction" placeholder="e.g. 500" onkeyup="calculateStaffPayment()">
-                
                 <div class="net-payable-box">
                     <span style="font-weight: 700; color: var(--text-muted); font-size: 15px;">Net Payable:</span>
                     <span id="staffNetPayable" style="font-size: 24px; font-weight: 800; color: var(--success);">₹0</span>
                 </div>
-
                 <button class="btn-success" onclick="promptReleaseStaffPayment()" style="padding: 18px; font-size: 16px; margin-top: 10px;"><i class="fa-solid fa-money-bill-wave"></i> Release Payment</button>
                 <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 10px;"><i class="fa-solid fa-circle-info"></i> रक्कम दिल्यावरच हे बटन दाबा. यामुळे खर्च वजा होईल.</p>
                 <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-top: 15px;"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
             </div>
         </div>
 
-        <!-- 6. NEW SALE SCREEN -->
+        <!-- NEW SALE SCREEN -->
         <div id="saleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <div class="app-card">
@@ -290,7 +295,7 @@
             </div>
         </div>
 
-        <!-- 7. ADD ARTICLE SCREEN -->
+        <!-- ADD ARTICLE SCREEN -->
         <div id="articleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-plus"></i> Add Article</h2>
             <div class="app-card">
@@ -307,15 +312,14 @@
                 </div>
                 <div id="colorContainer"></div>
                 
-                <!-- 🛠️ स्टिकी बटणं -->
-                <div style="position: sticky; bottom: 10px; background: var(--bg-dark); padding: 10px; border-radius: 12px; box-shadow: 0 -4px 10px rgba(0,0,0,0.3); z-index: 99; margin-top: 20px;">
+                <div class="sticky-buttons">
                     <button class="btn-primary" onclick="saveArticle()" style="margin-bottom: 8px; padding: 16px;"><i class="fa-solid fa-floppy-disk"></i> Save Article</button>
                     <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-bottom: 0;"><i class="fa-solid fa-arrow-left"></i> Back</button>
                 </div>
             </div>
         </div>
 
-        <!-- 8. PURCHASE SCREEN -->
+        <!-- PURCHASE SCREEN -->
         <div id="purchaseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
             <div class="app-card">
@@ -338,7 +342,7 @@
             </div>
         </div>
 
-        <!-- 9. RETURN SCREEN -->
+        <!-- RETURN SCREEN -->
         <div id="returnScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
@@ -359,7 +363,7 @@
             </div>
         </div>
 
-        <!-- 10. EXPENSE SCREEN -->
+        <!-- EXPENSE SCREEN -->
         <div id="expenseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
             <div class="app-card">
@@ -370,7 +374,7 @@
             </div>
         </div>
 
-        <!-- 11. CREDITS SCREEN -->
+        <!-- CREDITS SCREEN -->
         <div id="creditsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
             <div class="app-card" style="padding: 20px;">
@@ -385,7 +389,7 @@
             <div id="creditsList"></div>
         </div>
 
-        <!-- 12. MANAGE STAFF PIN SCREEN -->
+        <!-- MANAGE STAFF PIN SCREEN -->
         <div id="staffPinScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
             <div class="app-card" style="text-align: center;">
@@ -397,7 +401,7 @@
             </div>
         </div>
 
-        <!-- 13. SET TARGET SCREEN -->
+        <!-- SET TARGET SCREEN -->
         <div id="targetScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-bullseye"></i> Set Target</h2>
             <div class="app-card" style="text-align: center;">
@@ -408,7 +412,7 @@
             </div>
         </div>
 
-        <!-- 14. REPORTS SCREEN -->
+        <!-- REPORTS SCREEN -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-chart-line"></i> Daily Report</h2>
             <div class="app-card">
@@ -463,10 +467,8 @@
         </div>
     </div>
 
-    <!-- JS फाईल लिंक -->
     <script src="script.js"></script>
 
-    <!-- Service Worker स्क्रिप्ट -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -477,4 +479,4 @@
         }
     </script>
 </body>
-    </html>
+</html>
