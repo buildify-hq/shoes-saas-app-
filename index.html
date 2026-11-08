@@ -50,6 +50,11 @@
         <div class="menu-list">
             <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
             <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
+            <!-- 🛠️ नवीन Low Stock Alert मेनू -->
+            <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();">
+                <i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert
+                <span id="menuAlertBadge" style="display:none; background: var(--danger); color: white; border-radius: 50%; padding: 2px 8px; font-size: 11px; margin-left: auto;">0</span>
+            </div>
             <div class="menu-item" onclick="switchTab('credits'); toggleSidebar();"><i class="fa-solid fa-book"></i> Udhaar Khata</div>
             <div class="menu-item" onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i> Staff Salary & Advance</div>
             <div class="menu-item" onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</div>
@@ -169,7 +174,6 @@
                 <div id="dashSearchResult" style="margin-top: 15px;"></div>
             </div>
 
-            <!-- 🛠️ Quick Expenses (गोल आयकॉन्ससह) -->
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); font-weight: 600;">Quick Expenses</h4>
             <div class="quick-expense-chart">
                 <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')">
@@ -232,6 +236,13 @@
             
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); margin-top: 15px; font-weight: 600;"><i class="fa-solid fa-shoe-prints"></i> Available Articles</h4>
             <div id="stockList"></div>
+        </div>
+
+        <!-- 🛠️ LOW STOCK ALERT SCREEN (नवीन) -->
+        <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
+            <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
+            <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">खालील शूजचा स्टॉक ५ जोड्यांपेक्षा कमी आहे. कृपया लवकर नवीन स्टॉक आणा!</p>
+            <div id="lowStockListContainer"></div>
         </div>
 
         <!-- STAFF CALCULATOR SCREEN -->
