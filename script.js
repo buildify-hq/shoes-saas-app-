@@ -373,7 +373,7 @@ function showOwnerDashboard() {
 
 function switchTab(tabName) {
     if(isStaffMode && (tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
-    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen'];
+    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -389,6 +389,7 @@ function switchTab(tabName) {
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
     else if(tabName === 'target') { document.getElementById('targetScreen').style.display = 'block'; loadTargetData(); }
     else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadReportData(); }
+    else if(tabName === 'lowStockAlert') { document.getElementById('lowStockAlertScreen').style.display = 'block'; loadLowStockAlerts(); }
 }
 
 async function loadStaffPin() {
@@ -438,6 +439,7 @@ async function loadDashboardData() {
     
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
     let gentsTotal = 0, ladiesTotal = 0, kidsTotal = 0;
+    let lowStockItems = [];
     if(articles) {
         articles.forEach(art => {
             let artTotal = 0;
@@ -449,12 +451,25 @@ async function loadDashboardData() {
             if(cat.includes('Ladies')) ladiesTotal += artTotal;
             else if(cat.includes('Boys') || cat.includes('Girls')) kidsTotal += artTotal;
             else gentsTotal += artTotal; 
+            
+            if(artTotal > 0 && artTotal <= 5) {
+                lowStockItems.push({article_no: art.article_no, name: art.name, total: artTotal});
+            }
         });
     }
     document.getElementById('gentsStockDisplay').innerText = gentsTotal + " P";
     document.getElementById('ladiesStockDisplay').innerText = ladiesTotal + " P";
     document.getElementById('kidsStockDisplay').innerText = kidsTotal + " P";
     document.getElementById('totalAllStockDisplay').innerText = (gentsTotal + ladiesTotal + kidsTotal) + " Pairs";
+
+    // 🛠️ Update Menu Badge
+    let badge = document.getElementById('menuAlertBadge');
+    if(lowStockItems.length > 0) {
+        badge.style.display = 'inline-block';
+        badge.innerText = lowStockItems.length;
+    } else {
+        badge.style.display = 'none';
+    }
 
     const todayStr = new Date().toISOString().split('T')[0];
     const { data: todaySales } = await supabaseClient.from('sales').select(`id, total_amount, total_profit, sale_items (quantity, size, articles(article_no, name))`).eq('shop_id', currentShopId).gte('sale_date', todayStr);
@@ -509,6 +524,37 @@ async function loadDashboardData() {
     } else {
         document.getElementById('targetProgressBar').style.width = '0%';
         document.getElementById('targetPercent').innerText = '0%';
+    }
+}
+
+// 🛠️ Low Stock Alerts लोड करण्यासाठी फंक्शन
+async function loadLowStockAlerts() {
+    const container = document.getElementById('lowStockListContainer');
+    container.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Loading...</p>';
+    const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
+    
+    let lowStockHtml = '';
+    if(articles) {
+        articles.forEach(art => {
+            let artTotal = 0;
+            if(art.stock_batches) { art.stock_batches.forEach(batch => { artTotal += batch.remaining_qty; }); }
+            if(artTotal <= 5 && artTotal >= 0) {
+                let badgeColor = artTotal === 0 ? 'var(--danger)' : 'var(--warning)';
+                lowStockHtml += `
+                <div class="app-card" style="border-left: 4px solid ${badgeColor}; padding: 15px; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4 style="margin:0; font-size:15px;">[${art.article_no}] ${art.name || 'Unnamed'}</h4>
+                        <span style="background:${badgeColor}; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${artTotal} Pairs Left</span>
+                    </div>
+                    <p style="margin:5px 0 0 0; font-size:12px; color:var(--text-muted);">${art.category}</p>
+                </div>`;
+            }
+        });
+    }
+    if(lowStockHtml === '') {
+        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--success);"><i class="fa-solid fa-check-circle" style="font-size: 40px; margin-bottom: 10px;"></i><h3>All Good!</h3><p>सर्व शूजचा स्टॉक व्यवस्थित आहे.</p></div>';
+    } else {
+        container.innerHTML = lowStockHtml;
     }
 }
 
@@ -611,13 +657,17 @@ async function loadMyStockList() {
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
 
+        let alertBadge = '';
+        if (totalPairs === 0) { alertBadge = `<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">Out of Stock</span>`; }
+        else if (totalPairs <= 5) { alertBadge = `<span style="background: var(--warning); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">Low Stock</span>`; }
+
         let delBtn = !isStaffMode ? `<button onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${art.id}', '${art.article_no}'))" style="position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: none; border-radius: 50%; color: var(--danger); cursor: pointer; z-index: 10;"><i class="fa-solid fa-trash" style="font-size: 14px;"></i></button>` : '';
 
         stockListDiv.innerHTML += `
-        <div class="stock-card" style="border-left: 5px solid ${totalPairs > 0 ? 'var(--primary)' : 'var(--danger)'};">
+        <div class="stock-card" style="border-left: 5px solid ${totalPairs > 5 ? 'var(--primary)' : (totalPairs > 0 ? 'var(--warning)' : 'var(--danger)')};">
             ${delBtn}
             <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
-                <h4>[${art.article_no}] ${art.name || 'Unnamed'}</h4>
+                <h4>[${art.article_no}] ${art.name || 'Unnamed'} ${alertBadge}</h4>
             </div>
             <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${art.category}</p>
             <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
@@ -658,7 +708,7 @@ async function searchStockArticle() {
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
         stockListDiv.innerHTML += `
-        <div class="stock-card" style="border-left: 5px solid ${totalPairs > 0 ? 'var(--primary)' : 'var(--danger)'};">
+        <div class="stock-card" style="border-left: 5px solid ${totalPairs > 5 ? 'var(--primary)' : (totalPairs > 0 ? 'var(--warning)' : 'var(--danger)')};">
             <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
                 <h4>[${art.article_no}] ${art.name || 'Unnamed'}</h4>
             </div>
