@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --bg-dark: #0B1120; 
+    --bg-dark: #0F172A; 
     --card-dark: #1E293B; 
     --card-hover: #334155;
     --text-light: #F8FAFC;
@@ -242,3 +242,40 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 }
 .net-cash-flow-box .amount.positive { color: var(--success); text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
 .net-cash-flow-box .amount.negative { color: var(--danger); text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+/* 🛠️ सुधारित बटणं - लहान आणि एका रांगेत बसणारी */
+.sa-actions { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 8px; 
+    border-top: 1px solid var(--border-color); 
+    padding-top: 12px; 
+    margin-top: 12px; 
+}
+
+.sa-act-btn { 
+    flex: 1 1 30%; 
+    background: var(--bg-dark); 
+    color: var(--text-light); 
+    border: 1px solid var(--border-color); 
+    font-size: 12px; 
+    font-weight: 700; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 4px; 
+    cursor: pointer; 
+    padding: 8px 4px; 
+    border-radius: 8px; 
+    text-decoration: none; 
+    transition: 0.2s; 
+}
+
+.sa-act-btn i {
+    font-size: 14px; 
+}
+
+.sa-act-btn:active { 
+    transform: scale(0.95); 
+    background: var(--border-color); 
+}
