@@ -51,11 +51,13 @@
         <div class="menu-list">
             <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
             <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
-            <!-- 🛠️ Low Stock Alert मेनू -->
+            
+            <!-- 🛠️ नवीन Low Stock Alert मेनू -->
             <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();">
                 <i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert
                 <span id="menuAlertBadge" style="display:none; background: var(--danger); color: white; border-radius: 50%; padding: 2px 8px; font-size: 11px; margin-left: auto;">0</span>
             </div>
+            
             <div class="menu-item" onclick="switchTab('credits'); toggleSidebar();"><i class="fa-solid fa-book"></i> Udhaar Khata</div>
             <div class="menu-item" onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i> Staff Salary & Advance</div>
             <div class="menu-item" onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</div>
@@ -130,6 +132,33 @@
             <div class="sa-add-btn" onclick="openOwnerModal('add')">
                 <i class="fa-solid fa-plus-circle"></i> Add New Owner
             </div>
+            
+            <!-- 🛠️ Admin Report बटण -->
+            <div class="sa-add-btn" onclick="loadAdminReport()" style="background: var(--warning); color: white; margin-top: -10px; margin-bottom: 20px;">
+                <i class="fa-solid fa-chart-pie"></i> View Admin Report
+            </div>
+
+            <!-- 🛠️ Report दाखवण्यासाठी जागा -->
+            <div id="adminReportContainer" style="display: none; margin-bottom: 20px;">
+                <div class="app-card" style="background: var(--card-dark); padding: 15px;">
+                    <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--primary);">Admin Dashboard</h4>
+                    <div class="stats-grid" style="margin-bottom: 15px;">
+                        <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(16, 185, 129, 0.3);">
+                            <div class="stat-title" style="color: var(--success);">Total Shops</div>
+                            <div class="stat-value" id="adminTotalShops" style="color: var(--text-light);">0</div>
+                        </div>
+                        <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(59, 130, 246, 0.3);">
+                            <div class="stat-title" style="color: var(--primary);">Active Shops</div>
+                            <div class="stat-value" id="adminActiveShops" style="color: var(--text-light);">0</div>
+                        </div>
+                        <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <div class="stat-title" style="color: var(--danger);">Expired Shops</div>
+                            <div class="stat-value" id="adminExpiredShops" style="color: var(--text-light);">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="saOwnerList"></div>
         </div>
 
@@ -240,7 +269,7 @@
             <div id="stockList"></div>
         </div>
 
-        <!-- 🛠️ LOW STOCK ALERT SCREEN (नवीन) -->
+        <!-- 🛠️ LOW STOCK ALERT SCREEN -->
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
             <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">खालील शूजचा स्टॉक ५ जोड्यांपेक्षा कमी आहे. कृपया लवकर नवीन स्टॉक आणा!</p>
