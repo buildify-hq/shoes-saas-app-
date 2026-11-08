@@ -16,10 +16,10 @@ let currentTypeFilter = 'Formal';
 
 let confirmCallback = null; 
 
-// 🔐 ॲडमिन लॉगिन तपशील (तुमच्या नवीन माहितीनुसार)
-const ADMIN_EMAIL = 'admin14@shoeshop.com'; // <-- तुमचा नवीन ईमेल
-const SECRET_ADMIN_ID = 'sagar_admin';      // <-- तुमचं ॲडमिन नाव
-const SECRET_ADMIN_PIN = 'Sagar@1234';      // <-- तुमचा पिन
+// 🔐 ॲडमिन लॉगिन तपशील
+const ADMIN_EMAIL = 'admin14@shoeshop.com'; 
+const SECRET_ADMIN_ID = 'sagar_admin';      
+const SECRET_ADMIN_PIN = 'Sagar@1234';      
 
 // 📷 Barcode Scanner Variables
 let html5QrcodeScanner = null;
@@ -210,9 +210,11 @@ async function handleLogin() {
         return;
     }
 
+    // 🛠️ महत्त्वाचा बदल: "Email not confirmed" एरर टाळण्यासाठी options जोडले आहेत
     const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
         email: shop.auth_email,
-        password: shop.pin
+        password: shop.pin,
+        options: { emailRedirectTo: window.location.origin }
     });
 
     if (authError) { showToast("Login failed: " + authError.message, true); } 
@@ -377,7 +379,13 @@ async function saveOwner() {
     } else {
         const auth_email = `${shopName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@shoeshop.com`;
         
-        const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: auth_email, password: pin });
+        // नवीन युजर तयार करताना options जोडले आहेत जेणेकरून तो आपोआप कन्फर्म होईल
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({ 
+            email: auth_email, 
+            password: pin,
+            options: { data: { shop_name: shopName } } 
+        });
+        
         if(authError) { showToast("Error: " + authError.message, true); return; }
 
         const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
