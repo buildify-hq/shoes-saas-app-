@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://gwjutqrqecjmlundxdxk.supabase.co'; 
-const SUPABASE_KEY = 'sb_publishable_nqQORmeUYMXDkE8kySD3Fw_Tam9Jr-I';
+const SUPABASE_KEY = 'sb_publishable_nqQORmeUYMXDkE8kySD3Fw_Tam9Jr-I'; // <-- तुमची जुनी की, बदलायची असल्यास बदला
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
@@ -16,10 +16,10 @@ let currentTypeFilter = 'Formal';
 
 let confirmCallback = null; 
 
-// 🔐 नवीन सुरक्षित ॲडमिन लॉगिन
+// 🔐 नवीन सुरक्षित ॲडमिन लॉगिन (तुमचं नाव आणि पिन)
 const ADMIN_EMAIL = 'admin@shoeshop.com'; 
-const SECRET_ADMIN_ID = 'sj_owner_786';
-const SECRET_ADMIN_PIN = 'SJ@Digital@2024'; 
+const SECRET_ADMIN_ID = 'sagar_admin';      // <-- तुमचं नवीन ॲडमिन नाव
+const SECRET_ADMIN_PIN = 'Sagar@1234';      // <-- तुमचा नवीन ॲडमिन पिन
 
 // 📷 Barcode Scanner Variables
 let html5QrcodeScanner = null;
