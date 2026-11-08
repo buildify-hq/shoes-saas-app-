@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
@@ -50,7 +51,7 @@
         <div class="menu-list">
             <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
             <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
-            <!-- 🛠️ नवीन Low Stock Alert मेनू -->
+            <!-- 🛠️ Low Stock Alert मेनू -->
             <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();">
                 <i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert
                 <span id="menuAlertBadge" style="display:none; background: var(--danger); color: white; border-radius: 50%; padding: 2px 8px; font-size: 11px; margin-left: auto;">0</span>
@@ -59,7 +60,7 @@
             <div class="menu-item" onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i> Staff Salary & Advance</div>
             <div class="menu-item" onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</div>
             <div class="menu-item" onclick="switchTab('target'); toggleSidebar();"><i class="fa-solid fa-bullseye"></i> Set Daily Target</div>
-            <div class="menu-item" onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i> Daily Report</div>
+            <div class="menu-item" onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i> Sales Report</div>
             <div class="menu-item" onclick="downloadExcel(); toggleSidebar();"><i class="fa-solid fa-file-excel"></i> Export Excel Report</div>
             <div class="menu-item text-danger" onclick="askConfirm('Clear Today\'s History? This will restore stock.', clearHistory); toggleSidebar();"><i class="fa-solid fa-trash"></i> Clear History</div>
             <div class="menu-item text-danger" onclick="handleLogout(); toggleSidebar();"><i class="fa-solid fa-power-off"></i> Logout</div>
@@ -427,9 +428,21 @@
 
         <!-- REPORTS SCREEN -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Daily Report</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-primary" id="btnWeekly" onclick="loadChartData('weekly')" style="flex: 1; margin: 0; padding: 10px; font-size: 13px;">Weekly</button>
+                <button class="btn-outline" id="btnMonthly" onclick="loadChartData('monthly')" style="flex: 1; margin: 0; padding: 10px; font-size: 13px;">Monthly</button>
+            </div>
+
+            <div class="app-card" style="padding: 15px;">
+                <div style="position: relative; height: 250px; width: 100%;">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+
             <div class="app-card">
-                <label>Select Date</label>
+                <label>Select Date (For Single Day Report)</label>
                 <input type="date" id="reportDate" onchange="loadReportData()">
                 
                 <div class="stats-grid" style="margin-top: 20px;">
@@ -441,9 +454,6 @@
                         <div class="stat-title" style="color: var(--primary);">Total Profit</div>
                         <div class="stat-value" id="reportProfit">₹0</div>
                     </div>
-                </div>
-                <div class="app-card" style="background: var(--bg-dark); padding: 15px;">
-                    <p style="font-size: 14px; color: var(--text-muted); text-align: center;">Detailed report coming soon...</p>
                 </div>
             </div>
         </div>
