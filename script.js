@@ -271,6 +271,32 @@ async function loadSuperAdminData() {
     });
 }
 
+// 🛠️ सुपर ॲडमिन रिपोर्ट लोड करण्यासाठी
+async function loadAdminReport() {
+    document.getElementById('adminReportContainer').style.display = 'block';
+    
+    const { data: shops, error } = await supabaseClient.from('shops').select('*');
+    if (error) { showToast("Error loading report!", true); return; }
+
+    const today = new Date();
+    let activeCount = 0;
+    let expiredCount = 0;
+
+    shops.forEach(shop => {
+        if (shop.status === 'active' && shop.expiry_date && new Date(shop.expiry_date) > today) {
+            activeCount++;
+        } else {
+            expiredCount++;
+        }
+    });
+
+    document.getElementById('adminTotalShops').innerText = shops.length;
+    document.getElementById('adminActiveShops').innerText = activeCount;
+    document.getElementById('adminExpiredShops').innerText = expiredCount;
+    
+    document.getElementById('adminReportContainer').scrollIntoView({ behavior: 'smooth' });
+}
+
 function openOwnerModal(mode) {
     document.getElementById('ownerModal').style.display = 'flex';
     if(mode === 'add') {
@@ -1198,10 +1224,3 @@ document.onkeydown = function(e) {
     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
 };
-// 🛠️ ऑफलाइन डिटेक्शन
-window.addEventListener('online', () => {
-    showToast("Back online! Syncing data...", false);
-});
-window.addEventListener('offline', () => {
-    showToast("You are offline. Showing cached data.", true);
-});
