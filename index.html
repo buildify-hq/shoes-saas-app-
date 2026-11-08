@@ -205,7 +205,8 @@
 
         <!-- MY STOCK SCREEN -->
         <div id="stockScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
+            <!-- 🛠️ टायटल गडद काळ्या रंगात दिसण्यासाठी style जोडले आहे -->
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
             
             <div class="app-card" style="padding: 12px; margin-bottom: 15px;">
                 <div style="display: flex; gap: 8px;">
@@ -235,7 +236,7 @@
 
         <!-- STAFF CALCULATOR SCREEN -->
         <div id="staffScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
             <div class="app-card">
                 <label>Staff Name</label>
                 <input type="text" id="staffNameInput" placeholder="e.g. Raju" onkeyup="calculateStaffPayment()">
@@ -257,7 +258,8 @@
 
         <!-- NEW SALE SCREEN -->
         <div id="saleScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
+            <!-- 🛠️ टायटल गडद काळ्या रंगात दिसण्यासाठी style जोडले आहे -->
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <div class="app-card">
                 <label>Search Article No.</label>
                 <div style="display: flex; gap: 8px;">
@@ -297,7 +299,7 @@
 
         <!-- ADD ARTICLE SCREEN -->
         <div id="articleScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-plus"></i> Add Article</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-plus"></i> Add Article</h2>
             <div class="app-card">
                 <label>Gender</label><select id="artGender" onchange="updateArticleTypes()"><option value="Men">Men</option><option value="Ladies">Ladies</option><option value="Boys">Boys</option><option value="Girls">Girls</option></select>
                 <label>Type</label><select id="artType" onchange="updateSizes()"></select>
@@ -321,7 +323,7 @@
 
         <!-- PURCHASE SCREEN -->
         <div id="purchaseScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
             <div class="app-card">
                 <label>Article No.</label>
                 <div style="display: flex; gap: 8px;">
@@ -344,7 +346,7 @@
 
         <!-- RETURN SCREEN -->
         <div id="returnScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
                 <label>Article No.</label>
                 <div style="display: flex; gap: 8px;">
@@ -365,7 +367,7 @@
 
         <!-- EXPENSE SCREEN -->
         <div id="expenseScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
             <div class="app-card">
                 <label>Reason</label><input type="text" id="expReason">
                 <label>Amount (₹)</label><input type="number" id="expAmount">
@@ -376,7 +378,7 @@
 
         <!-- CREDITS SCREEN -->
         <div id="creditsScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
             <div class="app-card" style="padding: 20px;">
                 <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--warning); font-size: 16px;">Add New Credit</h4>
                 <label>Customer Name</label><input type="text" id="credName" placeholder="Name">
@@ -385,13 +387,13 @@
                 <button class="btn-primary" onclick="saveCredit()"><i class="fa-solid fa-plus"></i> Save Credit</button>
                 <button class="btn-outline" onclick="switchTab('dashboard')"><i class="fa-solid fa-arrow-left"></i> Back</button>
             </div>
-            <h4 style="margin-bottom: 12px; font-size: 15px; margin-top: 20px;">Pending Credits</h4>
+            <h4 style="margin-bottom: 12px; font-size: 15px; margin-top: 20px; color: var(--text-light);">Pending Credits</h4>
             <div id="creditsList"></div>
         </div>
 
         <!-- MANAGE STAFF PIN SCREEN -->
         <div id="staffPinScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
             <div class="app-card" style="text-align: center;">
                 <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Share this PIN with your staff to let them login.</p>
                 <div class="staff-pin-display" id="displayStaffPin">----</div>
@@ -403,7 +405,7 @@
 
         <!-- SET TARGET SCREEN -->
         <div id="targetScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-bullseye"></i> Set Target</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-bullseye"></i> Set Target</h2>
             <div class="app-card" style="text-align: center;">
                 <label>Enter Target Amount (₹)</label>
                 <input type="number" id="targetInput" placeholder="e.g. 10000">
@@ -414,7 +416,7 @@
 
         <!-- REPORTS SCREEN -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
-            <h2 class="page-title"><i class="fa-solid fa-chart-line"></i> Daily Report</h2>
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Daily Report</h2>
             <div class="app-card">
                 <label>Select Date</label>
                 <input type="date" id="reportDate" onchange="loadReportData()">
