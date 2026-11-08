@@ -63,6 +63,7 @@
             <div class="menu-item" onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i> Staff Salary & Advance</div>
             <div class="menu-item" onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</div>
             <div class="menu-item" onclick="switchTab('target'); toggleSidebar();"><i class="fa-solid fa-bullseye"></i> Set Daily Target</div>
+            <div class="menu-item" onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i> Daily Report</div>
             <div class="menu-item" onclick="downloadExcel(); toggleSidebar();"><i class="fa-solid fa-file-excel"></i> Export Excel Report</div>
             <div class="menu-item text-danger" onclick="askConfirm('Clear Today\'s History? This will restore stock.', clearHistory); toggleSidebar();"><i class="fa-solid fa-trash"></i> Clear History</div>
             <div class="menu-item text-danger" onclick="handleLogout(); toggleSidebar();"><i class="fa-solid fa-power-off"></i> Logout</div>
@@ -89,20 +90,23 @@
             <div style="text-align: center; margin-bottom: 30px;">
                 <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="login-logo">
                 <h1 style="color: var(--text-light); font-size: 28px; margin-bottom: 5px; font-weight: 800;">Welcome Back</h1>
-                <p style="color: var(--text-muted); font-size: 14px;">Login to manage your shop</p>
+                <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Login to manage your shop</p>
             </div>
+            
             <div class="app-card" style="padding: 30px 20px;">
-                <label>Shop Name</label>
-                <div class="input-group">
-                    <span class="input-icon"><i class="fa-solid fa-store"></i></span>
-                    <input type="text" id="loginShopName" placeholder="e.g. Sagar Shoes">
+                <label style="font-size: 14px; margin-bottom: 10px;">Shop Name</label>
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <span class="input-icon" style="top: 18px; font-size: 20px;"><i class="fa-solid fa-store"></i></span>
+                    <input type="text" id="loginShopName" placeholder="e.g. Sagar Shoes" style="padding-left: 50px; font-size: 16px;">
                 </div>
-                <label>6-Digit PIN / Password</label>
-                <div class="input-group" style="margin-bottom: 25px;">
-                    <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
-                    <input type="password" id="loginPin" placeholder="Enter PIN or Password">
+                
+                <label style="font-size: 14px; margin-bottom: 10px;">6-Digit PIN / Password</label>
+                <div class="input-group" style="margin-bottom: 30px;">
+                    <span class="input-icon" style="top: 18px; font-size: 20px;"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" id="loginPin" placeholder="Enter PIN or Password" style="padding-left: 50px; font-size: 16px;">
                 </div>
-                <button class="btn-primary" onclick="handleLogin()" style="padding: 16px; font-size: 16px; border-radius: 12px;">Login <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+                
+                <button class="btn-primary" onclick="handleLogin()" style="padding: 18px; font-size: 18px; border-radius: 16px;">Login <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
             </div>
         </div>
 
@@ -192,6 +196,14 @@
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
             
+            <!-- 🛠️ स्टॉक सर्च बार -->
+            <div class="app-card" style="padding: 12px; margin-bottom: 15px;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" onkeyup="if(event.key === 'Enter') searchStockArticle()">
+                    <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+            </div>
+
             <div class="stats-grid" style="margin-bottom: 20px;">
                 <div class="stat-card gents"><div class="stat-title">Gents</div><div class="stat-value" id="gentsStockDisplay">0</div></div>
                 <div class="stat-card ladies"><div class="stat-title">Ladies</div><div class="stat-value" id="ladiesStockDisplay">0</div></div>
@@ -294,8 +306,12 @@
                     <button class="btn-small btn-outline" onclick="addColorSection()"><i class="fa-solid fa-plus"></i> Color</button>
                 </div>
                 <div id="colorContainer"></div>
-                <button class="btn-primary" onclick="saveArticle()" style="padding: 16px; margin-top: 15px;"><i class="fa-solid fa-floppy-disk"></i> Save Article</button>
-                <button class="btn-outline" onclick="switchTab('dashboard')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                
+                <!-- 🛠️ स्टिकी बटणं -->
+                <div style="position: sticky; bottom: 10px; background: var(--bg-dark); padding: 10px; border-radius: 12px; box-shadow: 0 -4px 10px rgba(0,0,0,0.3); z-index: 99; margin-top: 20px;">
+                    <button class="btn-primary" onclick="saveArticle()" style="margin-bottom: 8px; padding: 16px;"><i class="fa-solid fa-floppy-disk"></i> Save Article</button>
+                    <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-bottom: 0;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                </div>
             </div>
         </div>
 
@@ -392,6 +408,29 @@
             </div>
         </div>
 
+        <!-- 14. REPORTS SCREEN -->
+        <div id="reportsScreen" class="fade-in" style="display: none;">
+            <h2 class="page-title"><i class="fa-solid fa-chart-line"></i> Daily Report</h2>
+            <div class="app-card">
+                <label>Select Date</label>
+                <input type="date" id="reportDate" onchange="loadReportData()">
+                
+                <div class="stats-grid" style="margin-top: 20px;">
+                    <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <div class="stat-title" style="color: var(--success);">Total Sales</div>
+                        <div class="stat-value" id="reportSales">₹0</div>
+                    </div>
+                    <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <div class="stat-title" style="color: var(--primary);">Total Profit</div>
+                        <div class="stat-value" id="reportProfit">₹0</div>
+                    </div>
+                </div>
+                <div class="app-card" style="background: var(--bg-dark); padding: 15px;">
+                    <p style="font-size: 14px; color: var(--text-muted); text-align: center;">Detailed report coming soon...</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Super Admin Modal -->
@@ -438,4 +477,4 @@
         }
     </script>
 </body>
-                        </html>
+    </html>
