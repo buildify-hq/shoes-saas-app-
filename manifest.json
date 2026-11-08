@@ -1,0 +1,22 @@
+{
+  "name": "Shoe Shop Manager",
+  "short_name": "Shoe Shop",
+  "start_url": "/shoes-saas-app/",
+  "scope": "/shoes-saas-app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1120",
+  "theme_color": "#3B82F6",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
