@@ -205,10 +205,10 @@
 
         <!-- MY STOCK SCREEN -->
         <div id="stockScreen" class="fade-in" style="display: none;">
-            <!-- 🛠️ टायटल गडद काळ्या रंगात दिसण्यासाठी style जोडले आहे -->
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
             
-            <div class="app-card" style="padding: 12px; margin-bottom: 15px;">
+            <!-- 🛠️ स्टिकी सर्च बार -->
+            <div class="app-card" style="padding: 10px; margin-bottom: 15px; position: sticky; top: 60px; z-index: 99; background: var(--card-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" onkeyup="if(event.key === 'Enter') searchStockArticle()">
                     <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
@@ -258,7 +258,6 @@
 
         <!-- NEW SALE SCREEN -->
         <div id="saleScreen" class="fade-in" style="display: none;">
-            <!-- 🛠️ टायटल गडद काळ्या रंगात दिसण्यासाठी style जोडले आहे -->
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <div class="app-card">
                 <label>Search Article No.</label>
