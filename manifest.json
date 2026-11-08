@@ -1,8 +1,8 @@
 {
   "name": "Shoe Shop Manager",
   "short_name": "Shoe Shop",
-  "start_url": "/shoes-saas-app/",
-  "scope": "/shoes-saas-app/",
+  "start_url": "/shoes-saas-app-/",
+  "scope": "/shoes-saas-app-/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0B1120",
