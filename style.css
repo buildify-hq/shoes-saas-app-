@@ -210,33 +210,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .sa-modal-content { background: var(--card-dark); width: 100%; max-width: 400px; border-radius: 16px; padding: 25px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); max-height: 90vh; overflow-y: auto;}
 .staff-pin-display { font-size: 36px; font-weight: 800; text-align: center; letter-spacing: 10px; color: var(--warning); margin-bottom: 25px; padding: 20px; background: var(--bg-dark); border-radius: 12px; border: 2px dashed var(--warning);}
 
-/* 🚀 नवीन ॲड केलेला प्रोफेशनल नेट कॅश फ्लो बॉक्स */
-.net-cash-flow-box {
-    margin-top: 20px;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-}
-.net-cash-flow-box .title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.net-cash-flow-box .amount {
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-}
-.net-cash-flow-box .amount.positive { color: var(--success); text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
-.net-cash-flow-box .amount.negative { color: var(--danger); text-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }/* प्रोफेशनल नेट कॅश फ्लो बॉक्स */
+/* प्रोफेशनल नेट कॅश फ्लो बॉक्स */
 .net-cash-flow-box {
     margin-top: 20px;
     padding: 16px 20px;
