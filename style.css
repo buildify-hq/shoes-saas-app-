@@ -241,35 +241,46 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 }
 
 /* =========================================
-   🛠️ LIGHT THEME SPECIFIC FIXES 
+   🛠️ LIGHT THEME ULTIMATE FIXES 
    ========================================= */
 
-[data-theme="light"] .stat-card .stat-value, 
+/* पेज टायटल (My Stock, New Sale) गडद काळे करण्यासाठी */
+[data-theme="light"] .page-title {
+    color: #0F172A !important;
+    background: none !important;
+    -webkit-text-fill-color: #0F172A !important;
+    text-shadow: none !important;
+}
+
+/* Today's Sales/Profit चे आकडे अधिक स्पष्ट करण्यासाठी */
+[data-theme="light"] .stat-card .stat-value,
 [data-theme="light"] .stat-card .stat-title {
-    color: white !important;
+    color: #FFFFFF !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
 }
 
-[data-theme="light"] .quick-expense-btn {
-    background: var(--card-dark);
-    border: 1px solid var(--border-color);
-    color: var(--text-light);
+/* स्टॉकच्या आकड्यांची कार्ड्स (Gents/Ladies/Kids) स्पष्ट दिसण्यासाठी */
+[data-theme="light"] .stock-card h4 {
+    color: #0F172A !important;
 }
 
-[data-theme="light"] .nav-item.active .nav-icon {
-    color: var(--primary);
+/* Quick Search बॉक्सचा बॅकग्राउंड */
+[data-theme="light"] #stockSearch,
+[data-theme="light"] #saleArtNo,
+[data-theme="light"] #dashSearchArt {
+    background: #F8FAFC !important;
+    color: #0F172A !important;
 }
 
-[data-theme="light"] .sidebar-header {
-    background: var(--card-dark);
+/* Current Bill आणि Net Total स्पष्ट दिसण्यासाठी */
+[data-theme="light"] .total-amount-box {
+    color: #0F172A !important;
 }
 
-[data-theme="light"] .sa-act-btn.call { color: #2563EB; }
-[data-theme="light"] .sa-act-btn.wa { color: #059669; }
-[data-theme="light"] .sa-act-btn.add { color: #D97706; }
-[data-theme="light"] .sa-act-btn.edit { color: #7C3AED; }
-[data-theme="light"] .sa-act-btn.del { color: #DC2626; }
-
-[data-theme="light"] #stockSearch {
-    background: var(--card-dark);
-    border: 1px solid var(--border-color);
-             }
+/* इनपुट बॉक्सचा रंग */
+[data-theme="light"] input, 
+[data-theme="light"] select, 
+[data-theme="light"] textarea {
+    color: #0F172A !important;
+    background: #F8FAFC !important;
+}
