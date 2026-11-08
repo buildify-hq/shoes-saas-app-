@@ -16,12 +16,10 @@ let currentTypeFilter = 'Formal';
 
 let confirmCallback = null; 
 
-// 🔐 ॲडमिन लॉगिन तपशील
 const ADMIN_EMAIL = 'admin14@shoeshop.com'; 
 const SECRET_ADMIN_ID = 'sagar_admin';      
 const SECRET_ADMIN_PIN = 'Sagar@1234';      
 
-// 📷 Barcode Scanner Variables
 let html5QrcodeScanner = null;
 
 function toggleSidebar() {
@@ -77,81 +75,55 @@ document.getElementById('confirmYesBtn').onclick = () => {
     closeConfirm();
 };
 
-// 📷 Barcode Scanner Functions
 function startScanner(targetInputId) {
     document.getElementById('scannerModal').style.display = 'flex';
-    
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear();
-    }
-
-    html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", { fps: 10, qrbox: {width: 250, height: 250} }, /* verbose= */ false);
-    
+    if (html5QrcodeScanner) { html5QrcodeScanner.clear(); }
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
     html5QrcodeScanner.render((decodedText, decodedResult) => {
         document.getElementById(targetInputId).value = decodedText;
         closeScanner();
-        
         if(targetInputId === 'saleArtNo') searchSaleArticle();
         else if(targetInputId === 'dashSearchArt') searchDashboardArticle();
         else if(targetInputId === 'purArtNo') searchPurchaseArticle();
         else if(targetInputId === 'retArtNo') searchReturnArticle();
-        
         showToast("Barcode Scanned!");
-    }, (errorMessage) => {
-        // स्कॅन करताना येणारे सामान्य एरर दुर्लक्षित करा
-    });
+    }, (errorMessage) => {});
 }
 
 function closeScanner() {
     document.getElementById('scannerModal').style.display = 'none';
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear();
-    }
+    if (html5QrcodeScanner) { html5QrcodeScanner.clear(); }
 }
 
 function calculateStaffPayment() {
     const total = parseFloat(document.getElementById('staffTotalSalary').value) || 0;
     const advance = parseFloat(document.getElementById('staffAdvance').value) || 0;
     const leaves = parseFloat(document.getElementById('staffLeaveDeduction').value) || 0;
-    
     let net = total - advance - leaves;
     if(net < 0) net = 0; 
-    
     document.getElementById('staffNetPayable').innerText = `₹${net}`;
 }
 
 function promptReleaseStaffPayment() {
     const name = document.getElementById('staffNameInput').value.trim();
     const netAmount = parseFloat(document.getElementById('staffNetPayable').innerText.replace('₹', '')) || 0;
-
     if(!name) { showToast("Enter Staff Name!", true); return; }
     if(netAmount <= 0) { showToast("Net Payable amount must be greater than 0!", true); return; }
-    
     askConfirm(`Are you sure you want to release ₹${netAmount} to ${name}?`, () => executeStaffRelease(name, netAmount));
 }
 
 async function executeStaffRelease(name, amount) {
     showToast("Releasing payment...", false);
-    
     try {
         const reason = `Salary - ${name}`;
-        const { error } = await supabaseClient.from('expenses').insert([{ 
-            shop_id: currentShopId, 
-            reason: reason, 
-            amount: amount 
-        }]);
-
+        const { error } = await supabaseClient.from('expenses').insert([{ shop_id: currentShopId, reason: reason, amount: amount }]);
         if (error) throw error;
-
         showToast(`✅ Released ₹${amount} to ${name}`, false);
-        
         document.getElementById('staffNameInput').value = '';
         document.getElementById('staffTotalSalary').value = '';
         document.getElementById('staffAdvance').value = '';
         document.getElementById('staffLeaveDeduction').value = '';
         document.getElementById('staffNetPayable').innerText = '₹0';
-        
         switchTab('dashboard');
     } catch (err) {
         showToast("Error: " + err.message, true);
@@ -161,20 +133,13 @@ async function executeStaffRelease(name, amount) {
 async function handleLogin() {
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
-    
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
         if (pinInput !== SECRET_ADMIN_PIN) { showToast("Invalid Admin PIN!", true); return; }
-        
-        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-            email: ADMIN_EMAIL, 
-            password: SECRET_ADMIN_PIN
-        });
-
-        if (authError) { 
-            showToast("Auth Error: " + authError.message, true); 
-        } else { 
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: SECRET_ADMIN_PIN });
+        if (authError) { showToast("Auth Error: " + authError.message, true); } 
+        else { 
             currentUser = authData.user; 
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('topHeader').style.display = 'none'; 
@@ -186,44 +151,22 @@ async function handleLogin() {
     }
 
     const { data: shop, error } = await supabaseClient.from('shops').select('*').ilike('shop_name', nameInput).maybeSingle();
-
     if (error || !shop) { showToast("Shop not found! Check the name.", true); return; }
     if (shop.status !== 'active') { showToast("Shop is inactive. Contact Admin.", true); return; }
-    
-    if (!shop.expiry_date || new Date() > new Date(shop.expiry_date)) { 
-        showToast("Subscription expired! Contact Admin.", true); 
-        return; 
-    }
+    if (!shop.expiry_date || new Date() > new Date(shop.expiry_date)) { showToast("Subscription expired! Contact Admin.", true); return; }
 
     const strPinInput = String(pinInput);
     const strOwnerPin = String(shop.pin);
     const strStaffPin = shop.staff_pin ? String(shop.staff_pin) : null;
 
-    if (strPinInput === strOwnerPin) {
-        isStaffMode = false;
-        localStorage.setItem('isStaff', 'false'); 
-    } else if (strStaffPin && strPinInput === strStaffPin) {
-        isStaffMode = true;
-        localStorage.setItem('isStaff', 'true'); 
-    } else {
-        showToast("Invalid PIN! Please check your PIN.", true);
-        return;
-    }
+    if (strPinInput === strOwnerPin) { isStaffMode = false; localStorage.setItem('isStaff', 'false'); } 
+    else if (strStaffPin && strPinInput === strStaffPin) { isStaffMode = true; localStorage.setItem('isStaff', 'true'); } 
+    else { showToast("Invalid PIN! Please check your PIN.", true); return; }
 
-    // 🛠️ "Email not confirmed" एरर टाळण्यासाठी options जोडले आहेत
-    const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-        email: shop.auth_email,
-        password: shop.pin,
-        options: { emailRedirectTo: window.location.origin }
-    });
+    const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: shop.auth_email, password: shop.pin, options: { emailRedirectTo: window.location.origin } });
 
     if (authError) { showToast("Login failed: " + authError.message, true); } 
-    else { 
-        currentUser = authData.user; 
-        currentShopId = shop.id;
-        document.getElementById('headerShopName').innerText = shop.shop_name;
-        showOwnerDashboard();
-    }
+    else { currentUser = authData.user; currentShopId = shop.id; document.getElementById('headerShopName').innerText = shop.shop_name; showOwnerDashboard(); }
 }
 
 async function sendBroadcast() {
@@ -254,9 +197,7 @@ async function searchDashboardArticle() {
     const artNo = document.getElementById('dashSearchArt').value.trim();
     const resultDiv = document.getElementById('dashSearchResult');
     if(!artNo) { resultDiv.innerHTML = ''; return; }
-    
     const { data: articles, error } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId).eq('article_no', artNo).maybeSingle();
-    
     if(error || !articles) { resultDiv.innerHTML = '<p style="color:var(--danger); font-size:14px; text-align:center;">Article not found!</p>'; return; }
     
     let totalPairs = 0;
@@ -275,9 +216,7 @@ async function searchDashboardArticle() {
     let colorHtml = '';
     for(let color in groupedByColor) {
         let sizesHtml = '';
-        groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => {
-            sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`;
-        });
+        groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => { sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`; });
         let colorTitle = (color === '' || color === 'Default') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
         colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
     }
@@ -297,14 +236,9 @@ async function loadSuperAdminData() {
     const list = document.getElementById('saOwnerList');
     const searchTerm = document.getElementById('saSearch').value.toLowerCase();
     const { data: shops, error } = await supabaseClient.from('shops').select('*');
-    
     if (error) { list.innerHTML = "Error loading shops."; return; }
     
-    const filtered = shops.filter(s => 
-        (s.owner_name && s.owner_name.toLowerCase().includes(searchTerm)) || 
-        (s.shop_name && s.shop_name.toLowerCase().includes(searchTerm))
-    );
-
+    const filtered = shops.filter(s => (s.owner_name && s.owner_name.toLowerCase().includes(searchTerm)) || (s.shop_name && s.shop_name.toLowerCase().includes(searchTerm)));
     const today = new Date();
     let activeCount = shops.filter(s => s.status === 'active' && new Date(s.expiry_date) > today).length;
     document.getElementById('saStats').innerText = `Total Owners: ${shops.length} | Active: ${activeCount}`;
@@ -315,7 +249,6 @@ async function loadSuperAdminData() {
     filtered.forEach(s => {
         let isActive = s.status === 'active';
         let expiryStr = s.expiry_date ? new Date(s.expiry_date).toLocaleDateString('en-GB') : 'Not Set';
-        
         list.innerHTML += `
         <div class="sa-card">
             <div class="sa-card-top">
@@ -378,21 +311,10 @@ async function saveOwner() {
         showToast("Owner Updated!", false);
     } else {
         const auth_email = `${shopName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@shoeshop.com`;
-        
-        const { data: authData, error: authError } = await supabaseClient.auth.signUp({ 
-            email: auth_email, 
-            password: pin,
-            options: { data: { shop_name: shopName } } 
-        });
-        
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: auth_email, password: pin, options: { data: { shop_name: shopName } } });
         if(authError) { showToast("Error: " + authError.message, true); return; }
-
         const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        
-        const { error: shopError } = await supabaseClient.from('shops').insert([{
-            owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry
-        }]);
-
+        const { error: shopError } = await supabaseClient.from('shops').insert([{ owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry }]);
         if(shopError) { showToast("Error: " + shopError.message, true); return; }
         showToast("Owner Added!", false);
     }
@@ -430,23 +352,19 @@ function showOwnerDashboard() {
     
     if(isStaffMode) {
         document.getElementById('nav-dash').style.display = 'none';
-        
         let navMore = document.getElementById('nav-more');
         navMore.setAttribute('onclick', 'handleLogout()');
         navMore.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket nav-icon"></i> Logout';
         navMore.style.display = 'flex';
-        
         document.getElementById('nav-stock').style.display = 'flex';
         document.getElementById('nav-sale').style.display = 'flex';
         switchTab('sale');
     } else {
         document.getElementById('nav-dash').style.display = 'flex';
-        
         let navMore = document.getElementById('nav-more');
         navMore.setAttribute('onclick', 'toggleSidebar()');
         navMore.innerHTML = '<i class="fa-solid fa-bars nav-icon"></i> Menu';
         navMore.style.display = 'flex';
-        
         document.getElementById('nav-stock').style.display = 'flex';
         document.getElementById('nav-sale').style.display = 'flex';
         switchTab('dashboard');
@@ -455,10 +373,8 @@ function showOwnerDashboard() {
 
 function switchTab(tabName) {
     if(isStaffMode && (tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
-
     const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
-    
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
     if(tabName === 'dashboard') { document.getElementById('dashboardScreen').style.display = 'block'; document.getElementById('nav-dash').classList.add('active'); loadDashboardData(); } 
@@ -506,18 +422,9 @@ function quickExpense(reason) {
 async function loadReportData() {
     const selectedDate = document.getElementById('reportDate').value;
     if (!selectedDate || !currentShopId) return;
-
-    // त्या दिवसाची विक्री मिळवा
     const { data: sales } = await supabaseClient.from('sales').select('total_amount, total_profit').eq('shop_id', currentShopId).gte('sale_date', selectedDate).lt('sale_date', selectedDate + 'T23:59:59');
-
     let totalSales = 0, totalProfit = 0;
-    if (sales) {
-        sales.forEach(s => {
-            totalSales += s.total_amount;
-            totalProfit += s.total_profit;
-        });
-    }
-
+    if (sales) { sales.forEach(s => { totalSales += s.total_amount; totalProfit += s.total_profit; }); }
     document.getElementById('reportSales').innerText = "₹" + totalSales;
     document.getElementById('reportProfit').innerText = "₹" + totalProfit;
 }
@@ -525,42 +432,31 @@ async function loadReportData() {
 async function loadDashboardData() {
     if(!currentShopId) return;
     loadBroadcast();
-    
     const { data: shopData } = await supabaseClient.from('shops').select('daily_target').eq('id', currentShopId).single();
     let dailyTarget = shopData && shopData.daily_target ? shopData.daily_target : 0;
     document.getElementById('targetDisplay').innerText = dailyTarget;
     
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
-    
     let gentsTotal = 0, ladiesTotal = 0, kidsTotal = 0;
-
     if(articles) {
         articles.forEach(art => {
             let artTotal = 0;
-            if(art.stock_batches) {
-                art.stock_batches.forEach(batch => {
-                    artTotal += batch.remaining_qty;
-                });
-            }
-            
+            if(art.stock_batches) { art.stock_batches.forEach(batch => { artTotal += batch.remaining_qty; }); }
             let cat = art.category;
             if(cat === 'Formal' || cat === 'Sport' || cat === 'Sandal' || cat === 'Chappal' || cat === 'Slippers') cat = 'Men';
             if(cat === 'LadiesSandal') cat = 'Ladies';
             if(cat === 'Kids') cat = 'Boys';
-
             if(cat.includes('Ladies')) ladiesTotal += artTotal;
             else if(cat.includes('Boys') || cat.includes('Girls')) kidsTotal += artTotal;
             else gentsTotal += artTotal; 
         });
     }
-
     document.getElementById('gentsStockDisplay').innerText = gentsTotal + " P";
     document.getElementById('ladiesStockDisplay').innerText = ladiesTotal + " P";
     document.getElementById('kidsStockDisplay').innerText = kidsTotal + " P";
     document.getElementById('totalAllStockDisplay').innerText = (gentsTotal + ladiesTotal + kidsTotal) + " Pairs";
 
     const todayStr = new Date().toISOString().split('T')[0];
-    
     const { data: todaySales } = await supabaseClient.from('sales').select(`id, total_amount, total_profit, sale_items (quantity, size, articles(article_no, name))`).eq('shop_id', currentShopId).gte('sale_date', todayStr);
     const { data: todayReturns } = await supabaseClient.from('returns').select(`quantity, refund_amount, size, articles(cost_price)`).eq('shop_id', currentShopId).gte('return_date', todayStr);
     const { data: todayExpenses } = await supabaseClient.from('expenses').select('*').eq('shop_id', currentShopId).gte('expense_date', todayStr);
@@ -572,14 +468,7 @@ async function loadDashboardData() {
         todaySales.forEach(s => {
             tSalesAmt += s.total_amount;
             tProfitAmt += s.total_profit;
-            if(s.sale_items) {
-                s.sale_items.forEach(item => {
-                    transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--success); font-weight:600;">
-                        <span><i class="fa-solid fa-bag-shopping"></i> Sale: [${item.articles.article_no}] S${item.size} x${item.quantity}</span>
-                        <span>+₹${item.quantity * (s.total_amount / s.sale_items.reduce((a,b)=>a+b.quantity,0))}</span>
-                    </div>`;
-                });
-            }
+            if(s.sale_items) { s.sale_items.forEach(item => { transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--success); font-weight:600;"><span><i class="fa-solid fa-bag-shopping"></i> Sale: [${item.articles.article_no}] S${item.size} x${item.quantity}</span><span>+₹${item.quantity * (s.total_amount / s.sale_items.reduce((a,b)=>a+b.quantity,0))}</span></div>`; }); }
         });
     }
     if(todayReturns) {
@@ -587,40 +476,23 @@ async function loadDashboardData() {
             tSalesAmt -= r.refund_amount;
             let returnCost = r.articles && r.articles.cost_price ? r.articles.cost_price : 0;
             tProfitAmt -= (r.refund_amount - returnCost);
-            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--warning); font-weight:600;">
-                <span><i class="fa-solid fa-rotate-left"></i> Return: Size ${r.size} x${r.quantity}</span>
-                <span>-₹${r.refund_amount}</span>
-            </div>`;
+            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--warning); font-weight:600;"><span><i class="fa-solid fa-rotate-left"></i> Return: Size ${r.size} x${r.quantity}</span><span>-₹${r.refund_amount}</span></div>`;
         });
     }
     if(todayExpenses) {
         todayExpenses.forEach(e => {
             tProfitAmt -= e.amount;
             tExpenseAmt += e.amount;
-            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--danger); font-weight:600;">
-                <span><i class="fa-solid fa-money-bill-transfer"></i> ${e.reason}</span>
-                <span>-₹${e.amount}</span>
-            </div>`;
+            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--danger); font-weight:600;"><span><i class="fa-solid fa-money-bill-transfer"></i> ${e.reason}</span><span>-₹${e.amount}</span></div>`;
         });
     }
 
     const transDiv = document.getElementById('todayTransactions');
-    if(transactionsHtml === '') {
-        transDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center;">No transactions today.</p>';
-    } else {
+    if(transactionsHtml === '') { transDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center;">No transactions today.</p>'; } 
+    else {
         let netCash = tSalesAmt - tExpenseAmt; 
         let isPositive = netCash >= 0;
-        
-        transactionsHtml += `
-        <div class="net-cash-flow-box">
-            <div class="title">
-                <i class="fa-solid fa-wallet" style="color: var(--primary);"></i> Net Cash:
-            </div>
-            <div class="amount ${isPositive ? 'positive' : 'negative'}">
-                ${isPositive ? '+' : ''}₹${netCash}
-            </div>
-        </div>`;
-        
+        transactionsHtml += `<div class="net-cash-flow-box"><div class="title"><i class="fa-solid fa-wallet" style="color: var(--primary);"></i> Net Cash:</div><div class="amount ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}₹${netCash}</div></div>`;
         transDiv.innerHTML = transactionsHtml;
     }
 
@@ -631,14 +503,9 @@ async function loadDashboardData() {
         let percent = Math.min(100, Math.round((tSalesAmt / dailyTarget) * 100));
         document.getElementById('targetProgressBar').style.width = percent + '%';
         document.getElementById('targetPercent').innerText = percent + '%';
-        
-        if(percent >= 100) {
-            document.getElementById('targetProgressBar').style.background = 'var(--success)';
-        } else if(percent > 50) {
-            document.getElementById('targetProgressBar').style.background = 'var(--warning)';
-        } else {
-            document.getElementById('targetProgressBar').style.background = 'var(--primary)';
-        }
+        if(percent >= 100) { document.getElementById('targetProgressBar').style.background = 'var(--success)'; }
+        else if(percent > 50) { document.getElementById('targetProgressBar').style.background = 'var(--warning)'; }
+        else { document.getElementById('targetProgressBar').style.background = 'var(--primary)'; }
     } else {
         document.getElementById('targetProgressBar').style.width = '0%';
         document.getElementById('targetPercent').innerText = '0%';
@@ -648,24 +515,16 @@ async function loadDashboardData() {
 async function loadCredits() {
     const list = document.getElementById('creditsList');
     const { data: credits } = await supabaseClient.from('credits').select('*').eq('shop_id', currentShopId).order('created_at', { ascending: false });
-    
     list.innerHTML = '';
     if(!credits || credits.length === 0) { list.innerHTML = '<p style="text-align:center; font-size:14px; color:var(--text-muted);">No pending credits.</p>'; return; }
-
     credits.forEach(c => {
         let isPaid = c.status === 'paid';
         let waLink = `https://wa.me/91${c.phone}?text=${encodeURIComponent(`नमस्कार ${c.customer_name}, तुमची आमच्या दुकानात ₹${c.amount} ची उधारी बाकी आहे. कृपया भेट द्या.`)}`;
         let actionBtn = `<a href="${waLink}" target="_blank" class="btn-small" style="background:#25D366; color:white; text-decoration:none; display:inline-flex; align-items:center; gap:5px; border-radius: 8px;"><i class="fa-brands fa-whatsapp"></i> Reminder</a>`;
-        
         list.innerHTML += `
         <div class="credit-card ${isPaid ? 'paid' : ''}">
-            <div>
-                <strong style="font-size: 16px;">${c.customer_name}</strong><br>
-                <span style="color:var(--text-muted); font-size: 13px;"><i class="fa-solid fa-phone"></i> ${c.phone}</span><br>
-                <span style="color:var(--warning); font-weight:800; font-size: 18px;">₹${c.amount}</span>
-            </div>
-            ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : 
-            `<div style="display:flex; flex-direction:column; gap:8px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
+            <div><strong style="font-size: 16px;">${c.customer_name}</strong><br><span style="color:var(--text-muted); font-size: 13px;"><i class="fa-solid fa-phone"></i> ${c.phone}</span><br><span style="color:var(--warning); font-weight:800; font-size: 18px;">₹${c.amount}</span></div>
+            ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : `<div style="display:flex; flex-direction:column; gap:8px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
         </div>`;
     });
 }
@@ -674,9 +533,7 @@ async function saveCredit() {
     const name = document.getElementById('credName').value;
     const phone = document.getElementById('credPhone').value;
     const amount = parseInt(document.getElementById('credAmount').value);
-
     if(!name || !amount || amount <= 0) { showToast("Enter valid name and amount!", true); return; } 
-    
     await supabaseClient.from('credits').insert([{ shop_id: currentShopId, customer_name: name, phone: phone, amount: amount }]);
     showToast("Credit Added!", false);
     document.getElementById('credName').value = ''; document.getElementById('credPhone').value = ''; document.getElementById('credAmount').value = '';
@@ -693,18 +550,11 @@ function setStockFilter(gender, btnElement) {
     currentGenderFilter = gender;
     document.querySelectorAll('#genderFilterContainer .filter-btn').forEach(btn => btn.classList.remove('active'));
     btnElement.classList.add('active');
-
     let types = [];
-    if(gender === 'Men' || gender === 'Ladies') {
-        types = ['Formal', 'Sport', 'Chappal', 'Sandal', 'Slippers'];
-    } else if(gender === 'Boys' || gender === 'Girls') {
-        types = ['School', 'Sport', 'Chappal', 'Sandal', 'Slippers'];
-    } else {
-        types = ['Chappal', 'Sandal', 'Slippers'];
-    }
-
+    if(gender === 'Men' || gender === 'Ladies') { types = ['Formal', 'Sport', 'Chappal', 'Sandal', 'Slippers']; }
+    else if(gender === 'Boys' || gender === 'Girls') { types = ['School', 'Sport', 'Chappal', 'Sandal', 'Slippers']; } 
+    else { types = ['Chappal', 'Sandal', 'Slippers']; }
     currentTypeFilter = types[0];
-
     const typeContainer = document.getElementById('typeFilterContainer');
     typeContainer.innerHTML = '';
     types.forEach((type, index) => {
@@ -719,7 +569,6 @@ function setStockFilter(gender, btnElement) {
         };
         typeContainer.appendChild(btn);
     });
-
     loadMyStockList();
 }
 
@@ -727,7 +576,6 @@ async function loadMyStockList() {
     const stockListDiv = document.getElementById('stockList');
     if(!currentShopId) return;
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId).order('created_at', { ascending: false });
-    
     stockListDiv.innerHTML = ''; 
     if(!articles || articles.length === 0) { stockListDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No articles added yet.</p>'; return; }
 
@@ -740,15 +588,11 @@ async function loadMyStockList() {
         return cat === `${currentGenderFilter} - ${currentTypeFilter}`;
     });
 
-    if(filteredArticles.length === 0) {
-        stockListDiv.innerHTML = `<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No ${currentTypeFilter} shoes found for ${currentGenderFilter}.</p>`;
-        return;
-    }
+    if(filteredArticles.length === 0) { stockListDiv.innerHTML = `<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No ${currentTypeFilter} shoes found for ${currentGenderFilter}.</p>`; return; }
 
     filteredArticles.forEach(art => {
         let totalPairs = 0;
         let groupedByColor = {};
-
         if(art.stock_batches) {
             art.stock_batches.forEach(b => {
                 totalPairs += b.remaining_qty;
@@ -759,18 +603,15 @@ async function loadMyStockList() {
                 }
             });
         }
-
         let colorHtml = '';
         for(let color in groupedByColor) {
             let sizesHtml = '';
-            groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => {
-                sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`;
-            });
+            groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => { sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`; });
             let colorTitle = (color === '' || color === 'Default') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
 
-        let delBtn = !isStaffMode ? `<button class="delete-btn" onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${art.id}', '${art.article_no}'))"><i class="fa-solid fa-trash"></i></button>` : '';
+        let delBtn = !isStaffMode ? `<button onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${art.id}', '${art.article_no}'))" style="position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: none; border-radius: 50%; color: var(--danger); cursor: pointer; z-index: 10;"><i class="fa-solid fa-trash" style="font-size: 14px;"></i></button>` : '';
 
         stockListDiv.innerHTML += `
         <div class="stock-card" style="border-left: 5px solid ${totalPairs > 0 ? 'var(--primary)' : 'var(--danger)'};">
@@ -787,35 +628,18 @@ async function loadMyStockList() {
     });
 }
 
-// 🛠️ स्टॉक सर्च फंक्शन
 async function searchStockArticle() {
     const searchTerm = document.getElementById('stockSearch').value.trim().toLowerCase();
     const stockListDiv = document.getElementById('stockList');
-    
-    if(!searchTerm) { 
-        loadMyStockList(); 
-        return; 
-    }
-
-    const { data: articles } = await supabaseClient.from('articles')
-        .select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`)
-        .eq('shop_id', currentShopId);
-
-    let filtered = articles.filter(art => 
-        (art.article_no && art.article_no.toLowerCase().includes(searchTerm)) || 
-        (art.name && art.name.toLowerCase().includes(searchTerm))
-    );
-
+    if(!searchTerm) { loadMyStockList(); return; }
+    const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId);
+    let filtered = articles.filter(art => (art.article_no && art.article_no.toLowerCase().includes(searchTerm)) || (art.name && art.name.toLowerCase().includes(searchTerm)));
     stockListDiv.innerHTML = ''; 
-    if(filtered.length === 0) { 
-        stockListDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No articles found.</p>'; 
-        return; 
-    }
+    if(filtered.length === 0) { stockListDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No articles found.</p>'; return; }
 
     filtered.forEach(art => {
         let totalPairs = 0;
         let groupedByColor = {};
-
         if(art.stock_batches) {
             art.stock_batches.forEach(b => {
                 totalPairs += b.remaining_qty;
@@ -826,17 +650,13 @@ async function searchStockArticle() {
                 }
             });
         }
-
         let colorHtml = '';
         for(let color in groupedByColor) {
             let sizesHtml = '';
-            groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => {
-                sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`;
-            });
+            groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => { sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`; });
             let colorTitle = (color === '' || color === 'Default') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
-
         stockListDiv.innerHTML += `
         <div class="stock-card" style="border-left: 5px solid ${totalPairs > 0 ? 'var(--primary)' : 'var(--danger)'};">
             <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
@@ -855,30 +675,18 @@ async function deleteArticle(articleId, articleNo) {
     if(isStaffMode) return;
     showToast("Deleting...", false);
     const { error } = await supabaseClient.from('articles').delete().eq('id', articleId);
-    
-    if(error) {
-        showToast("Error deleting: " + error.message, true);
-    } else {
-        showToast("Article Deleted! 🗑️", false);
-        loadMyStockList(); 
-        loadDashboardData(); 
-    }
+    if(error) { showToast("Error deleting: " + error.message, true); } 
+    else { showToast("Article Deleted! 🗑️", false); loadMyStockList(); loadDashboardData(); }
 }
 
 function updateArticleTypes() {
     const gender = document.getElementById('artGender').value;
     const typeSelect = document.getElementById('artType');
     typeSelect.innerHTML = '';
-    
     let types = [];
-    if(gender === 'Men' || gender === 'Ladies') {
-        types = ['Formal', 'Sport', 'Chappal', 'Sandal', 'Slippers'];
-    } else if(gender === 'Boys' || gender === 'Girls') {
-        types = ['School', 'Sport', 'Chappal', 'Sandal', 'Slippers'];
-    } else {
-        types = ['Chappal', 'Sandal', 'Slippers'];
-    }
-
+    if(gender === 'Men' || gender === 'Ladies') { types = ['Formal', 'Sport', 'Chappal', 'Sandal', 'Slippers']; } 
+    else if(gender === 'Boys' || gender === 'Girls') { types = ['School', 'Sport', 'Chappal', 'Sandal', 'Slippers']; } 
+    else { types = ['Chappal', 'Sandal', 'Slippers']; }
     types.forEach(t => { typeSelect.innerHTML += `<option value="${t}">${t}</option>`; });
     updateSizes();
 }
@@ -887,14 +695,10 @@ function getSizeGridHTML() {
     const gender = document.getElementById('artGender').value;
     let html = `<div class="size-grid">`;
     let sizes = [];
-    
     if(gender === 'Ladies') sizes = [3,4,5,6,7,8,9,10,11,12];
     else if(gender === 'Boys' || gender === 'Girls') sizes = [1,2,3,4,5,6,7,8,9,10,11,12,13];
     else sizes = [6,7,8,9,10,11,12];
-
-    sizes.forEach(s => {
-        html += `<div><label>${s}</label><input type="number" class="size-input-${s}" min="0" placeholder="0"></div>`;
-    });
+    sizes.forEach(s => { html += `<div><label>${s}</label><input type="number" class="size-input-${s}" min="0" placeholder="0"></div>`; });
     html += `</div>`;
     return html;
 }
@@ -921,14 +725,12 @@ function updateSizes() {
 async function saveArticle() {
     const artNo = document.getElementById('artNo').value.trim();
     if(artNo === "") { showToast("Article No is required!", true); return; }
-    
     const { data: existing } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).single();
     if (existing) { showToast("Error: Article No already exists!", true); return; }
 
     const gender = document.getElementById('artGender').value;
     const type = document.getElementById('artType').value;
     const combinedCategory = `${gender} - ${type}`;
-
     const { data: articleData, error: artError } = await supabaseClient.from('articles').insert([{
         shop_id: currentShopId, article_no: artNo, name: document.getElementById('artName').value, category: combinedCategory,
         cost_price: document.getElementById('artCost').value ? parseInt(document.getElementById('artCost').value) : 0, 
@@ -936,15 +738,12 @@ async function saveArticle() {
     }]).select();
 
     if (artError) { showToast("Error: " + artError.message, true); return; }
-
     const articleId = articleData[0].id;
     const colorSections = document.querySelectorAll('.color-section');
     let totalAdded = 0;
-
     for(let section of colorSections) {
         const colorName = section.querySelector('.color-name').value.trim(); 
         const inputs = section.querySelectorAll('input[type="number"]');
-        
         for(let input of inputs) {
             if(input.value && parseInt(input.value) > 0) {
                 let sizeStr = input.className.split('size-input-')[1]; 
@@ -956,7 +755,6 @@ async function saveArticle() {
             }
         }
     }
-
     showToast(`Article Saved with ${totalAdded} pairs! 🎉`, false);
     document.getElementById('artNo').value = ""; document.getElementById('artName').value = "";
     document.getElementById('colorContainer').innerHTML = ''; addColorSection();
@@ -967,27 +765,22 @@ async function searchSaleArticle() {
     const artNo = document.getElementById('saleArtNo').value;
     if(!artNo) return;
     const { data: articles, error } = await supabaseClient.from('articles').select(`id, article_no, name, category, mrp, cost_price, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId).eq('article_no', artNo).single();
-
     if (error || !articles) { showToast("Article not found!", true); document.getElementById('saleArticleDetails').style.display = 'none'; return; }
 
     foundSaleArticle = articles;
     document.getElementById('saleArtName').innerText = `[${articles.article_no}] ${articles.name}`;
-    
     const sizeSelect = document.getElementById('saleSize');
     sizeSelect.innerHTML = '';
-    
     let aggregatedStock = {};
     articles.stock_batches.forEach(batch => {
         if(batch.remaining_qty > 0) {
             let c = batch.color || ''; 
             if (c === 'Default') c = ''; 
-            
             if(!aggregatedStock[c]) aggregatedStock[c] = {};
             if(!aggregatedStock[c][batch.size]) aggregatedStock[c][batch.size] = 0;
             aggregatedStock[c][batch.size] += batch.remaining_qty;
         }
     });
-
     let hasStock = false;
     for (let color in aggregatedStock) {
         for (let size in aggregatedStock[color]) {
@@ -996,7 +789,6 @@ async function searchSaleArticle() {
             hasStock = true;
         }
     }
-
     if(!hasStock) { showToast("Out of stock!", true); return; }
     document.getElementById('salePrice').value = articles.mrp || 0;
     document.getElementById('saleQty').value = 1;
@@ -1006,34 +798,18 @@ async function searchSaleArticle() {
 function addToCart() {
     const colorSizeStr = document.getElementById('saleSize').value;
     if(!colorSizeStr) return;
-    
     const parts = colorSizeStr.split('|||');
     const color = parts[0]; 
     const size = parts[1];
-    
     const qty = parseInt(document.getElementById('saleQty').value);
     const price = parseInt(document.getElementById('salePrice').value);
-
     if(qty <= 0) { showToast("Quantity must be at least 1", true); return; }
 
-    let totalAvailableForSize = foundSaleArticle.stock_batches
-        .filter(b => {
-            let bColor = b.color || '';
-            if (bColor === 'Default') bColor = '';
-            return bColor === color && b.size === size;
-        })
-        .reduce((sum, b) => sum + b.remaining_qty, 0);
-        
-    const inCartQty = cart.filter(c => {
-        let cColor = c.color || '';
-        if (cColor === 'Default') cColor = '';
-        return c.id === foundSaleArticle.id && c.size === size && cColor === color;
-    }).reduce((sum, item) => sum + item.qty, 0);
-    
+    let totalAvailableForSize = foundSaleArticle.stock_batches.filter(b => { let bColor = b.color || ''; if (bColor === 'Default') bColor = ''; return bColor === color && b.size === size; }).reduce((sum, b) => sum + b.remaining_qty, 0);
+    const inCartQty = cart.filter(c => { let cColor = c.color || ''; if (cColor === 'Default') cColor = ''; return c.id === foundSaleArticle.id && c.size === size && cColor === color; }).reduce((sum, item) => sum + item.qty, 0);
     if((inCartQty + qty) > totalAvailableForSize) { showToast("Not enough stock!", true); return; }
 
     cart.push({ id: foundSaleArticle.id, artNo: foundSaleArticle.article_no, color: color, size: size, qty: qty, price: price, cost: foundSaleArticle.cost_price || 0 });
-
     renderCart();
     document.getElementById('saleQty').value = 1;
     showToast("Added to bill.", false);
@@ -1044,24 +820,15 @@ function renderCart() {
     let subTotal = 0;
     cartDiv.innerHTML = '';
     if(cart.length === 0) { cartDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 10px;">No items added.</p>'; }
-
     cart.forEach((item, index) => {
         subTotal += (item.qty * item.price);
         let displayColor = (item.color === '' || item.color === 'Default') ? '' : ` ${item.color} - `;
-        cartDiv.innerHTML += `
-        <div class="cart-item">
-            <span style="font-weight: 600;">${item.artNo} (${displayColor}S${item.size}) <br><span style="color: var(--text-muted); font-size: 12px;">Qty: ${item.qty}</span></span>
-            <span style="text-align:right; font-weight:800; color:var(--success); font-size: 16px;">₹${item.qty * item.price}</span>
-            <b style="color:var(--danger);cursor:pointer; padding-left:15px; font-size: 18px;" onclick="removeFromCart(${index})"><i class="fa-solid fa-circle-xmark"></i></b>
-        </div>`;
+        cartDiv.innerHTML += `<div class="cart-item"><span style="font-weight: 600;">${item.artNo} (${displayColor}S${item.size}) <br><span style="color: var(--text-muted); font-size: 12px;">Qty: ${item.qty}</span></span><span style="text-align:right; font-weight:800; color:var(--success); font-size: 16px;">₹${item.qty * item.price}</span><b style="color:var(--danger);cursor:pointer; padding-left:15px; font-size: 18px;" onclick="removeFromCart(${index})"><i class="fa-solid fa-circle-xmark"></i></b></div>`;
     });
-    
     let discount = parseInt(document.getElementById('saleDiscount').value) || 0;
     if(discount < 0) discount = 0;
-    
     let finalTotal = subTotal - discount;
     if(finalTotal < 0) finalTotal = 0;
-
     document.getElementById('cartTotalAmt').innerText = "₹" + finalTotal;
 }
 
@@ -1077,50 +844,28 @@ function clearCart() {
 
 async function confirmSale() {
     if(cart.length === 0) { showToast("Cart is empty!", true); return; }
-    
     let subTotal = 0; let totalProfit = 0;
     cart.forEach(item => { subTotal += (item.qty * item.price); totalProfit += (item.qty * (item.price - (item.cost || 0))); });
-    
     let discount = parseInt(document.getElementById('saleDiscount').value) || 0;
     if(discount < 0) { showToast("Discount cannot be negative!", true); return; }
     if(discount >= subTotal) { showToast("Discount cannot be greater than Subtotal!", true); return; }
-
     let totalAmount = subTotal - discount;
     totalProfit -= discount; 
-
     const btn = document.getElementById('confirmSaleBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-
     try {
-        const { data: saleData, error: saleError } = await supabaseClient.from('sales').insert([{ 
-            shop_id: currentShopId, 
-            total_amount: totalAmount, 
-            total_profit: totalProfit,
-            discount_amount: discount
-        }]).select();
-        
+        const { data: saleData, error: saleError } = await supabaseClient.from('sales').insert([{ shop_id: currentShopId, total_amount: totalAmount, total_profit: totalProfit, discount_amount: discount }]).select();
         if(saleError) throw saleError;
-
         for(let item of cart) {
             await supabaseClient.from('sale_items').insert([{ sale_id: saleData[0].id, article_id: item.id, size: item.size, quantity: item.qty, selling_price: item.price, cost_price: item.cost }]);
-            
-            const { data: batches } = await supabaseClient.from('stock_batches')
-                .select('id, remaining_qty, color')
-                .eq('article_id', item.id)
-                .eq('size', item.size)
-                .gt('remaining_qty', 0)
-                .order('entry_date', { ascending: true });
-
+            const { data: batches } = await supabaseClient.from('stock_batches').select('id, remaining_qty, color').eq('article_id', item.id).eq('size', item.size).gt('remaining_qty', 0).order('entry_date', { ascending: true });
             let qtyToDeduct = item.qty;
             if (batches) {
                 for (let b of batches) {
                     if (qtyToDeduct <= 0) break;
-                    let bColor = b.color || '';
-                    if (bColor === 'Default') bColor = '';
-                    let itemColor = item.color || '';
-                    if (itemColor === 'Default') itemColor = '';
-
+                    let bColor = b.color || ''; if (bColor === 'Default') bColor = '';
+                    let itemColor = item.color || ''; if (itemColor === 'Default') itemColor = '';
                     if (bColor === itemColor) {
                         let deduct = Math.min(b.remaining_qty, qtyToDeduct);
                         await supabaseClient.from('stock_batches').update({ remaining_qty: b.remaining_qty - deduct }).eq('id', b.id);
@@ -1129,45 +874,27 @@ async function confirmSale() {
                 }
             }
         }
-
         cart = []; 
         document.getElementById('saleDiscount').value = 0;
         renderCart();
         showToast("Sale Confirmed! 🎉", false);
-        
         switchTab(isStaffMode ? 'sale' : 'dashboard');
-    } catch (err) {
-        showToast("Error: " + err.message, true);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Confirm Sale';
-    }
+    } catch (err) { showToast("Error: " + err.message, true); } 
+    finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Confirm Sale'; }
 }
 
 async function searchPurchaseArticle() {
     const artNo = document.getElementById('purArtNo').value;
     if(!artNo) return;
     const { data: articles, error } = await supabaseClient.from('articles').select(`id, article_no, name, cost_price, stock_batches (color, size)`).eq('shop_id', currentShopId).eq('article_no', artNo).single();
-
     if (error || !articles) { showToast("Article not found!", true); document.getElementById('purArticleDetails').style.display = 'none'; return; }
-
     foundPurchaseArticle = articles;
     document.getElementById('purArtName').innerText = `[${articles.article_no}] ${articles.name}`;
-    
     const colorSelect = document.getElementById('purColor');
     colorSelect.innerHTML = '';
     let uniqueColors = new Set();
-    articles.stock_batches.forEach(batch => {
-        let c = batch.color || '';
-        if (c === 'Default') c = '';
-        uniqueColors.add(c);
-    });
-    
-    uniqueColors.forEach(color => { 
-        let displayColor = (color === '') ? 'No Color' : color;
-        colorSelect.innerHTML += `<option value="${color}">${displayColor}</option>`; 
-    });
-    
+    articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColors.add(c); });
+    uniqueColors.forEach(color => { let displayColor = (color === '') ? 'No Color' : color; colorSelect.innerHTML += `<option value="${color}">${displayColor}</option>`; });
     updatePurchaseSizes();
     document.getElementById('purCost').value = articles.cost_price || 0;
     document.getElementById('purArticleDetails').style.display = 'block';
@@ -1177,13 +904,8 @@ function updatePurchaseSizes() {
     const color = document.getElementById('purColor').value;
     const sizeSelect = document.getElementById('purSize');
     sizeSelect.innerHTML = '';
-    
     let uniqueSizes = new Set();
-    foundPurchaseArticle.stock_batches.forEach(batch => {
-        let bColor = batch.color || '';
-        if (bColor === 'Default') bColor = '';
-        if(bColor === color) uniqueSizes.add(batch.size);
-    });
+    foundPurchaseArticle.stock_batches.forEach(batch => { let bColor = batch.color || ''; if (bColor === 'Default') bColor = ''; if(bColor === color) uniqueSizes.add(batch.size); });
     uniqueSizes.forEach(size => { sizeSelect.innerHTML += `<option value="${size}">Size ${size}</option>`; });
 }
 
@@ -1193,18 +915,9 @@ async function processPurchase() {
     const qty = parseInt(document.getElementById('purQty').value);
     const cost = parseInt(document.getElementById('purCost').value) || 0;
     const supplier = document.getElementById('purSupplier').value;
-
     if(!size || !qty || qty <= 0) { showToast("Invalid details!", true); return; }
-
-    await supabaseClient.from('stock_batches').insert([{
-        shop_id: currentShopId, article_id: foundPurchaseArticle.id, size: size, color: color,
-        initial_qty: qty, remaining_qty: qty, cost_price: cost
-    }]);
-
-    await supabaseClient.from('purchases').insert([{
-        shop_id: currentShopId, article_id: foundPurchaseArticle.id, size: size, quantity: qty, cost_price: cost, supplier_name: supplier
-    }]);
-
+    await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: foundPurchaseArticle.id, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]);
+    await supabaseClient.from('purchases').insert([{ shop_id: currentShopId, article_id: foundPurchaseArticle.id, size: size, quantity: qty, cost_price: cost, supplier_name: supplier }]);
     showToast(`✅ Added ${qty} pairs to stock!`, false);
     document.getElementById('purArticleDetails').style.display = 'none';
     document.getElementById('purArtNo').value = '';
@@ -1214,48 +927,29 @@ async function processPurchase() {
 async function saveExpense() {
     const reason = document.getElementById('expReason').value;
     const amount = parseInt(document.getElementById('expAmount').value);
-    
     if(!reason || !amount || amount <= 0) { showToast("Enter valid reason and amount!", true); return; }
     showToast("Saving expense...", false);
-
     try {
         const { error } = await supabaseClient.from('expenses').insert([{ shop_id: currentShopId, reason: reason, amount: amount }]);
         if (error) throw error;
-        
         showToast("Expense Saved! 💸", false);
         document.getElementById('expReason').value = ''; document.getElementById('expAmount').value = '';
         switchTab('dashboard');
-    } catch (err) {
-        showToast("Error: " + err.message, true);
-    }
+    } catch (err) { showToast("Error: " + err.message, true); }
 }
 
 async function searchReturnArticle() {
     const artNo = document.getElementById('retArtNo').value;
     if(!artNo) return;
     const { data: articles, error } = await supabaseClient.from('articles').select(`id, article_no, name, cost_price, stock_batches (color, size)`).eq('shop_id', currentShopId).eq('article_no', artNo).single();
-
     if (error || !articles) { showToast("Article not found!", true); document.getElementById('retArticleDetails').style.display = 'none'; return; }
-
     foundReturnArticle = articles;
     document.getElementById('retArtName').innerText = `[${articles.article_no}] ${articles.name}`;
     const sizeSelect = document.getElementById('retSize');
     sizeSelect.innerHTML = '';
-    
     let uniqueColorSizes = new Set();
-    articles.stock_batches.forEach(batch => {
-        let c = batch.color || '';
-        if (c === 'Default') c = '';
-        uniqueColorSizes.add(`${c}|||${batch.size}`);
-    });
-    uniqueColorSizes.forEach(val => { 
-        const parts = val.split('|||');
-        const c = parts[0];
-        const s = parts[1];
-        let displayColor = (c === '') ? '' : `${c} - `;
-        sizeSelect.innerHTML += `<option value="${val}">${displayColor}Size ${s}</option>`; 
-    });
-    
+    articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColorSizes.add(`${c}|||${batch.size}`); });
+    uniqueColorSizes.forEach(val => { const parts = val.split('|||'); const c = parts[0]; const s = parts[1]; let displayColor = (c === '') ? '' : `${c} - `; sizeSelect.innerHTML += `<option value="${val}">${displayColor}Size ${s}</option>`; });
     document.getElementById('retQty').value = 1;
     document.getElementById('retArticleDetails').style.display = 'block';
 }
@@ -1265,19 +959,11 @@ async function processReturn() {
     const parts = colorSizeStr.split('|||');
     const color = parts[0];
     const size = parts[1];
-    
     const qty = parseInt(document.getElementById('retQty').value);
     const refund = parseInt(document.getElementById('retPrice').value) || 0;
-
     if(!size || !qty || qty <= 0) { showToast("Invalid details!", true); return; }
-
-    await supabaseClient.from('stock_batches').insert([{
-        shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, color: color,
-        initial_qty: qty, remaining_qty: qty, cost_price: foundReturnArticle.cost_price || 0 
-    }]);
-
+    await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: foundReturnArticle.cost_price || 0 }]);
     await supabaseClient.from('returns').insert([{ shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, quantity: qty, refund_amount: refund }]);
-
     showToast(`✅ Returned & Stock Added!`, false);
     document.getElementById('retArticleDetails').style.display = 'none';
     document.getElementById('retArtNo').value = '';
@@ -1287,23 +973,17 @@ async function processReturn() {
 async function downloadExcel() {
     if(!currentShopId) return;
     const { data: allData } = await supabaseClient.from('sales').select(`sale_date, total_amount, total_profit, sale_items (quantity, size, selling_price, articles(article_no, name))`).eq('shop_id', currentShopId).order('sale_date', { ascending: false });
-
     let excelData = [];
     if(allData) {
         allData.forEach(s => {
             if(s.sale_items) {
                 s.sale_items.forEach(item => {
-                    excelData.push({
-                        Date: new Date(s.sale_date).toLocaleDateString(), "Article No": item.articles.article_no,
-                        "Name": item.articles.name, "Size": item.size, "Qty": item.quantity, "Total Amount": s.total_amount, "Profit": s.total_profit
-                    });
+                    excelData.push({ Date: new Date(s.sale_date).toLocaleDateString(), "Article No": item.articles.article_no, "Name": item.articles.name, "Size": item.size, "Qty": item.quantity, "Total Amount": s.total_amount, "Profit": s.total_profit });
                 });
             }
         });
     }
-
     if(excelData.length === 0) { showToast("No data to export!", true); return; }
-
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
@@ -1313,26 +993,20 @@ async function downloadExcel() {
 
 async function clearHistory() {
     const todayStr = new Date().toISOString().split('T')[0];
-    
     const { data: todaySales } = await supabaseClient.from('sales').select(`id, sale_items (article_id, size, quantity)`).eq('shop_id', currentShopId).gte('sale_date', todayStr);
-    
     if(todaySales) {
         for(let sale of todaySales) {
             if(sale.sale_items) {
                 for(let item of sale.sale_items) {
                     const { data: batches } = await supabaseClient.from('stock_batches').select('id, remaining_qty').eq('article_id', item.article_id).eq('size', item.size).limit(1);
-                    if(batches && batches.length > 0) {
-                        await supabaseClient.from('stock_batches').update({ remaining_qty: batches[0].remaining_qty + item.quantity }).eq('id', batches[0].id);
-                    }
+                    if(batches && batches.length > 0) { await supabaseClient.from('stock_batches').update({ remaining_qty: batches[0].remaining_qty + item.quantity }).eq('id', batches[0].id); }
                 }
             }
         }
     }
-
     await supabaseClient.from('sales').delete().eq('shop_id', currentShopId).gte('sale_date', todayStr);
     await supabaseClient.from('returns').delete().eq('shop_id', currentShopId).gte('return_date', todayStr);
     await supabaseClient.from('expenses').delete().eq('shop_id', currentShopId).gte('expense_date', todayStr);
-    
     showToast("History cleared & stock restored!", false);
     loadDashboardData();
 }
@@ -1343,19 +1017,15 @@ async function handleLogout() {
     currentShopId = null;
     cart = [];
     localStorage.removeItem('isStaff'); 
-    
     document.getElementById('topHeader').style.display = 'none';
     document.getElementById('bottomNav').style.display = 'none';
     document.getElementById('superAdminScreen').style.display = 'none';
     switchTab(''); 
     document.getElementById('loginScreen').style.display = 'block'; 
-    
     document.getElementById('nav-dash').style.display = 'flex';
-    
     let navMore = document.getElementById('nav-more');
     navMore.setAttribute('onclick', 'toggleSidebar()');
     navMore.innerHTML = '<i class="fa-solid fa-bars nav-icon"></i> Menu';
-    
     document.getElementById('nav-stock').style.display = 'flex';
     document.getElementById('nav-sale').style.display = 'flex';
 }
@@ -1382,7 +1052,6 @@ async function checkSession() {
     }
 }
 
-// 🛡️ Anti-Copy Protection
 document.addEventListener('contextmenu', event => event.preventDefault());
 document.onkeydown = function(e) {
     if (e.keyCode == 123) return false; 
