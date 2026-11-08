@@ -210,7 +210,7 @@ async function handleLogin() {
         return;
     }
 
-    // 🛠️ महत्त्वाचा बदल: "Email not confirmed" एरर टाळण्यासाठी options जोडले आहेत
+    // 🛠️ "Email not confirmed" एरर टाळण्यासाठी options जोडले आहेत
     const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
         email: shop.auth_email,
         password: shop.pin,
@@ -379,7 +379,6 @@ async function saveOwner() {
     } else {
         const auth_email = `${shopName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@shoeshop.com`;
         
-        // नवीन युजर तयार करताना options जोडले आहेत जेणेकरून तो आपोआप कन्फर्म होईल
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({ 
             email: auth_email, 
             password: pin,
@@ -457,7 +456,7 @@ function showOwnerDashboard() {
 function switchTab(tabName) {
     if(isStaffMode && (tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
 
-    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen'];
+    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -473,6 +472,7 @@ function switchTab(tabName) {
     else if(tabName === 'credits') { document.getElementById('creditsScreen').style.display = 'block'; loadCredits(); }
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
     else if(tabName === 'target') { document.getElementById('targetScreen').style.display = 'block'; loadTargetData(); }
+    else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadReportData(); }
 }
 
 async function loadStaffPin() {
@@ -501,6 +501,25 @@ async function loadTargetData() {
 function quickExpense(reason) {
     document.getElementById('expReason').value = reason;
     switchTab('expense');
+}
+
+async function loadReportData() {
+    const selectedDate = document.getElementById('reportDate').value;
+    if (!selectedDate || !currentShopId) return;
+
+    // त्या दिवसाची विक्री मिळवा
+    const { data: sales } = await supabaseClient.from('sales').select('total_amount, total_profit').eq('shop_id', currentShopId).gte('sale_date', selectedDate).lt('sale_date', selectedDate + 'T23:59:59');
+
+    let totalSales = 0, totalProfit = 0;
+    if (sales) {
+        sales.forEach(s => {
+            totalSales += s.total_amount;
+            totalProfit += s.total_profit;
+        });
+    }
+
+    document.getElementById('reportSales').innerText = "₹" + totalSales;
+    document.getElementById('reportProfit').innerText = "₹" + totalProfit;
 }
 
 async function loadDashboardData() {
@@ -756,6 +775,70 @@ async function loadMyStockList() {
         stockListDiv.innerHTML += `
         <div class="stock-card" style="border-left: 5px solid ${totalPairs > 0 ? 'var(--primary)' : 'var(--danger)'};">
             ${delBtn}
+            <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
+                <h4>[${art.article_no}] ${art.name || 'Unnamed'}</h4>
+            </div>
+            <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${art.category}</p>
+            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
+                 <span style="background:var(--primary); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:800; color:white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);">Total: ${totalPairs}</span>
+            </div>
+            ${colorHtml || '<p style="font-size:14px; color:var(--danger); font-weight: bold;">Out of Stock</p>'}
+        </div>`;
+    });
+}
+
+// 🛠️ स्टॉक सर्च फंक्शन
+async function searchStockArticle() {
+    const searchTerm = document.getElementById('stockSearch').value.trim().toLowerCase();
+    const stockListDiv = document.getElementById('stockList');
+    
+    if(!searchTerm) { 
+        loadMyStockList(); 
+        return; 
+    }
+
+    const { data: articles } = await supabaseClient.from('articles')
+        .select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`)
+        .eq('shop_id', currentShopId);
+
+    let filtered = articles.filter(art => 
+        (art.article_no && art.article_no.toLowerCase().includes(searchTerm)) || 
+        (art.name && art.name.toLowerCase().includes(searchTerm))
+    );
+
+    stockListDiv.innerHTML = ''; 
+    if(filtered.length === 0) { 
+        stockListDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No articles found.</p>'; 
+        return; 
+    }
+
+    filtered.forEach(art => {
+        let totalPairs = 0;
+        let groupedByColor = {};
+
+        if(art.stock_batches) {
+            art.stock_batches.forEach(b => {
+                totalPairs += b.remaining_qty;
+                if(b.remaining_qty > 0) {
+                    let c = b.color || ''; 
+                    if(!groupedByColor[c]) groupedByColor[c] = [];
+                    groupedByColor[c].push({size: b.size, qty: b.remaining_qty});
+                }
+            });
+        }
+
+        let colorHtml = '';
+        for(let color in groupedByColor) {
+            let sizesHtml = '';
+            groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => {
+                sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`;
+            });
+            let colorTitle = (color === '' || color === 'Default') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
+            colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
+        }
+
+        stockListDiv.innerHTML += `
+        <div class="stock-card" style="border-left: 5px solid ${totalPairs > 0 ? 'var(--primary)' : 'var(--danger)'};">
             <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
                 <h4>[${art.article_no}] ${art.name || 'Unnamed'}</h4>
             </div>
