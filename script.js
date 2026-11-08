@@ -428,6 +428,126 @@ async function loadReportData() {
     if (sales) { sales.forEach(s => { totalSales += s.total_amount; totalProfit += s.total_profit; }); }
     document.getElementById('reportSales').innerText = "₹" + totalSales;
     document.getElementById('reportProfit').innerText = "₹" + totalProfit;
+
+    if(document.getElementById('salesChart')) {
+        loadChartData('weekly');
+    }
+}
+
+let mySalesChart = null;
+async function loadChartData(type) {
+    const btnWeekly = document.getElementById('btnWeekly');
+    const btnMonthly = document.getElementById('btnMonthly');
+    if (type === 'weekly') {
+        btnWeekly.style.background = 'linear-gradient(135deg, #1D4ED8, #1E40AF)';
+        btnWeekly.style.color = 'white';
+        btnMonthly.style.background = 'transparent';
+        btnMonthly.style.color = 'var(--primary)';
+    } else {
+        btnMonthly.style.background = 'linear-gradient(135deg, #1D4ED8, #1E40AF)';
+        btnMonthly.style.color = 'white';
+        btnWeekly.style.background = 'transparent';
+        btnWeekly.style.color = 'var(--primary)';
+    }
+
+    let labels = [];
+    let salesData = [];
+    
+    if(type === 'weekly') {
+        for(let i=6; i>=0; i--) {
+            let d = new Date();
+            d.setDate(d.getDate() - i);
+            let dateStr = d.toISOString().split('T')[0];
+            labels.push(d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }));
+            const { data: sales } = await supabaseClient.from('sales').select('total_amount').eq('shop_id', currentShopId).gte('sale_date', dateStr).lt('sale_date', dateStr + 'T23:59:59');
+            let dayTotal = 0;
+            if(sales) { sales.forEach(s => dayTotal += s.total_amount); }
+            salesData.push(dayTotal);
+        }
+    } else {
+        for(let i=3; i>=0; i--) {
+            let endDate = new Date();
+            endDate.setDate(endDate.getDate() - (i * 7));
+            let startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 6);
+            
+            let startStr = startDate.toISOString().split('T')[0];
+            let endStr = endDate.toISOString().split('T')[0];
+            
+            labels.push(`Week ${4-i}`);
+            
+            const { data: sales } = await supabaseClient.from('sales').select('total_amount').eq('shop_id', currentShopId).gte('sale_date', startStr).lte('sale_date', endStr + 'T23:59:59');
+            let weekTotal = 0;
+            if(sales) { sales.forEach(s => weekTotal += s.total_amount); }
+            salesData.push(weekTotal);
+        }
+    }
+
+    if(mySalesChart) { mySalesChart.destroy(); }
+
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    mySalesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sales (₹)',
+                data: salesData,
+                backgroundColor: 'rgba(29, 78, 216, 0.7)',
+                borderColor: 'rgba(29, 78, 216, 1)',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    ticks: { color: '#94A3B8' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#94A3B8' }
+                }
+            }
+        }
+    });
+}
+
+async function loadLowStockAlerts() {
+    const container = document.getElementById('lowStockListContainer');
+    container.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Loading...</p>';
+    const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
+    
+    let lowStockHtml = '';
+    if(articles) {
+        articles.forEach(art => {
+            let artTotal = 0;
+            if(art.stock_batches) { art.stock_batches.forEach(batch => { artTotal += batch.remaining_qty; }); }
+            if(artTotal <= 5 && artTotal >= 0) {
+                let badgeColor = artTotal === 0 ? 'var(--danger)' : 'var(--warning)';
+                lowStockHtml += `
+                <div class="app-card" style="border-left: 4px solid ${badgeColor}; padding: 15px; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4 style="margin:0; font-size:15px;">[${art.article_no}] ${art.name || 'Unnamed'}</h4>
+                        <span style="background:${badgeColor}; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${artTotal} Pairs Left</span>
+                    </div>
+                    <p style="margin:5px 0 0 0; font-size:12px; color:var(--text-muted);">${art.category}</p>
+                </div>`;
+            }
+        });
+    }
+    if(lowStockHtml === '') {
+        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--success);"><i class="fa-solid fa-check-circle" style="font-size: 40px; margin-bottom: 10px;"></i><h3>All Good!</h3><p>सर्व शूजचा स्टॉक व्यवस्थित आहे.</p></div>';
+    } else {
+        container.innerHTML = lowStockHtml;
+    }
 }
 
 async function loadDashboardData() {
@@ -462,7 +582,6 @@ async function loadDashboardData() {
     document.getElementById('kidsStockDisplay').innerText = kidsTotal + " P";
     document.getElementById('totalAllStockDisplay').innerText = (gentsTotal + ladiesTotal + kidsTotal) + " Pairs";
 
-    // 🛠️ Update Menu Badge
     let badge = document.getElementById('menuAlertBadge');
     if(lowStockItems.length > 0) {
         badge.style.display = 'inline-block';
@@ -524,37 +643,6 @@ async function loadDashboardData() {
     } else {
         document.getElementById('targetProgressBar').style.width = '0%';
         document.getElementById('targetPercent').innerText = '0%';
-    }
-}
-
-// 🛠️ Low Stock Alerts लोड करण्यासाठी फंक्शन
-async function loadLowStockAlerts() {
-    const container = document.getElementById('lowStockListContainer');
-    container.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Loading...</p>';
-    const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
-    
-    let lowStockHtml = '';
-    if(articles) {
-        articles.forEach(art => {
-            let artTotal = 0;
-            if(art.stock_batches) { art.stock_batches.forEach(batch => { artTotal += batch.remaining_qty; }); }
-            if(artTotal <= 5 && artTotal >= 0) {
-                let badgeColor = artTotal === 0 ? 'var(--danger)' : 'var(--warning)';
-                lowStockHtml += `
-                <div class="app-card" style="border-left: 4px solid ${badgeColor}; padding: 15px; margin-bottom: 10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h4 style="margin:0; font-size:15px;">[${art.article_no}] ${art.name || 'Unnamed'}</h4>
-                        <span style="background:${badgeColor}; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${artTotal} Pairs Left</span>
-                    </div>
-                    <p style="margin:5px 0 0 0; font-size:12px; color:var(--text-muted);">${art.category}</p>
-                </div>`;
-            }
-        });
-    }
-    if(lowStockHtml === '') {
-        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--success);"><i class="fa-solid fa-check-circle" style="font-size: 40px; margin-bottom: 10px;"></i><h3>All Good!</h3><p>सर्व शूजचा स्टॉक व्यवस्थित आहे.</p></div>';
-    } else {
-        container.innerHTML = lowStockHtml;
     }
 }
 
