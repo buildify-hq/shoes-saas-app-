@@ -6,7 +6,7 @@
     --card-hover: #334155;
     --text-light: #F8FAFC;
     --text-muted: #94A3B8; 
-    --primary: #1D4ED8; /* नवीन डीप ब्लू रंग */
+    --primary: #1D4ED8; 
     --success: #10B981;
     --danger: #EF4444; 
     --warning: #F59E0B; 
@@ -240,27 +240,54 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     margin-top: 20px;
 }
 
+/* 🛠️ Chart चा आकार व्यवस्थित ठेवण्यासाठी */
+#salesChart {
+    max-height: 250px !important;
+    width: 100% !important;
+}
+
 /* =========================================
-   🛠️ LIGHT THEME SPECIFIC FIXES 
+   🛠️ LIGHT THEME ULTIMATE FIXES 
    ========================================= */
 
-[data-theme="light"] .stat-card .stat-value, 
+[data-theme="light"] .page-title {
+    color: #0F172A !important;
+    background: none !important;
+    -webkit-text-fill-color: #0F172A !important;
+    text-shadow: none !important;
+}
+
+[data-theme="light"] .stat-card .stat-value,
 [data-theme="light"] .stat-card .stat-title {
-    color: white !important;
+    color: #FFFFFF !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+[data-theme="light"] .stock-card h4 {
+    color: #0F172A !important;
+}
+
+[data-theme="light"] #stockSearch,
+[data-theme="light"] #saleArtNo,
+[data-theme="light"] #dashSearchArt {
+    background: #F8FAFC !important;
+    color: #0F172A !important;
+}
+
+[data-theme="light"] .total-amount-box {
+    color: #0F172A !important;
+}
+
+[data-theme="light"] input, 
+[data-theme="light"] select, 
+[data-theme="light"] textarea {
+    color: #0F172A !important;
+    background: #F8FAFC !important;
 }
 
 [data-theme="light"] .quick-expense-btn {
-    background: var(--card-dark);
-    border: 1px solid var(--border-color);
-    color: var(--text-light);
-}
-
-[data-theme="light"] .nav-item.active .nav-icon {
-    color: var(--primary);
-}
-
-[data-theme="light"] .sidebar-header {
-    background: var(--card-dark);
+    background: #FFFFFF !important;
+    color: #0F172A !important;
 }
 
 [data-theme="light"] .sa-act-btn.call { color: #2563EB; }
@@ -269,7 +296,11 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 [data-theme="light"] .sa-act-btn.edit { color: #7C3AED; }
 [data-theme="light"] .sa-act-btn.del { color: #DC2626; }
 
-[data-theme="light"] #stockSearch {
-    background: var(--card-dark);
-    border: 1px solid var(--border-color);
+/* 🛠️ मोबाईल स्क्रीनला फिट करण्यासाठी */
+@media screen and (max-width: 480px) {
+    .content-area { padding: 10px !important; padding-bottom: 80px !important; }
+    .stat-value { font-size: 18px !important; }
+    .stat-title { font-size: 9px !important; }
+    .quick-expense-btn { font-size: 12px !important; padding: 12px 8px !important; }
+    .quick-expense-btn i { width: 40px !important; height: 40px !important; font-size: 18px !important; }
 }
