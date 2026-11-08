@@ -158,6 +158,44 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .color-title { font-size: 12px; font-weight: 700; color: var(--warning); margin-bottom: 6px; display: block;}
 .size-badge { background: var(--input-bg); padding: 4px 8px; border-radius: 6px; font-weight: 700; color: var(--text-light); font-size: 12px; margin-right: 6px; display: inline-block; margin-bottom: 6px; border: 1px solid var(--border-color); }
 
+/* 🛠️ Quick Expenses (गोल आयकॉन्ससह) */
+.quick-expense-chart { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 12px; 
+    margin-bottom: 25px; 
+}
+.quick-expense-btn { 
+    background: var(--card-dark); 
+    border: 1px solid var(--border-color); 
+    color: var(--text-light); 
+    padding: 15px 10px; 
+    font-size: 13px; 
+    border-radius: 14px; 
+    text-align: center; 
+    cursor: pointer; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px; 
+    font-weight: 600; 
+    transition: 0.2s; 
+}
+.quick-expense-btn i { 
+    font-size: 20px !important; 
+    width: 45px !important; 
+    height: 45px !important; 
+    display: flex !important; 
+    align-items: center !important; 
+    justify-content: center !important; 
+    border-radius: 50% !important; 
+    background: rgba(245, 158, 11, 0.15) !important; 
+    color: var(--warning) !important; 
+    margin-bottom: 5px !important; 
+    padding: 0 !important;
+}
+
 /* 🛠️ फिल्टर टॅब्स */
 .filter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
 .filter-tabs::-webkit-scrollbar { display: none; }
@@ -234,4 +272,4 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 [data-theme="light"] #stockSearch {
     background: var(--card-dark);
     border: 1px solid var(--border-color);
-    }
+             }
