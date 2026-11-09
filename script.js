@@ -131,13 +131,15 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
+    alert("Login button clicked! Checking credentials..."); // 🛠️ हे अलर्ट तुला बटन चालू आहे का ते सांगेल
+    
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
-        if (authError) { showToast("Auth Error: " + authError.message, true); } 
+        if (authError) { showToast("Auth Error: " + authError.message, true); alert("Auth Error: " + authError.message); } 
         else { 
             currentUser = authData.user; 
             document.getElementById('loginScreen').style.display = 'none';
@@ -244,7 +246,7 @@ async function searchDashboardArticle() {
             if(b.remaining_qty > 0) {
                 let c = b.color || ''; 
                 if(c === 'Default') c = '';
-                let s = String(b.size).trim(); // 🛠️ स्पेस काढण्यासाठी
+                let s = String(b.size).trim();
                 
                 if(!groupedByColor[c]) groupedByColor[c] = {};
                 if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
@@ -1315,7 +1317,7 @@ document.onkeydown = function(e) {
     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
 };
 
-// 🛠️ HTML ला फंक्शन्स दिसण्यासाठी (Module Fix)
+// 🛠️ HTML ला फंक्शन्स दिसण्यासाठी (Module Fix) - हा भाग सर्वात शेवटी असणं गरजेचं आहे!
 Object.assign(window, {
     toggleSidebar, toggleTheme, showToast, askConfirm, closeConfirm, startScanner, closeScanner,
     calculateStaffPayment, promptReleaseStaffPayment, handleLogin, sendBroadcast, loadBroadcast, dismissBroadcast, sendAdminMessage,
