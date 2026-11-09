@@ -111,13 +111,7 @@
                 </div>
                 <div class="sa-logout" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
-            <div class="app-card" style="padding: 15px;">
-                <label>Broadcast Message</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="broadcastMsg" placeholder="Update coming soon!" style="margin-bottom: 0;">
-                    <button class="btn-primary" onclick="sendBroadcast()" style="width: 80px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-paper-plane"></i></button>
-                </div>
-            </div>
+            
             <div class="sa-search">
                 <span><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="saSearch" placeholder="Search Owner or Shop..." oninput="loadSuperAdminData()">
@@ -155,19 +149,6 @@
 
         <div id="dashboardScreen" class="fade-in" style="display: none;">
             
-            <div id="broadcastDisplay" class="broadcast-box" style="display: none; align-items: center; justify-content: space-between;">
-                <div><i class="fa-solid fa-bullhorn"></i> <span id="broadcastText"></span></div>
-                <span onclick="dismissBroadcast()" style="cursor: pointer; padding: 5px 10px; color: var(--danger); font-size: 18px;"><i class="fa-solid fa-xmark"></i></span>
-            </div>
-
-            <div class="app-card" style="padding: 15px; margin-bottom: 20px;">
-                <label style="font-size: 13px; color: var(--primary);"><i class="fa-solid fa-paper-plane"></i> Message to Admin</label>
-                <div style="display: flex; gap: 8px; margin-top: 5px;">
-                    <input type="text" id="msgToAdmin" placeholder="Type your message here..." style="margin-bottom: 0; padding: 10px;">
-                    <button class="btn-primary" onclick="sendAdminMessage(event)" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-paper-plane"></i></button>
-                </div>
-            </div>
-
             <div class="app-card target-card">
                 <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; font-weight: 700;">
                     <span>Target: ₹<span id="targetDisplay">0</span></span>
@@ -504,7 +485,6 @@
         </div>
     </div>
 
-    <!-- 🔴 हा type="module" काढून टाकलाय, आता हा साधा स्क्रिप्ट म्हणून चालेल -->
     <script src="script.js"></script>
 
     <script>
