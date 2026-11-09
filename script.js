@@ -1223,3 +1223,17 @@ document.onkeydown = function(e) {
     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
 };
+// 🛠️ HTML ला फंक्शन्स दिसण्यासाठी (Module Fix)
+Object.assign(window, {
+    toggleSidebar, toggleTheme, showToast, askConfirm, closeConfirm, startScanner, closeScanner,
+    calculateStaffPayment, promptReleaseStaffPayment, handleLogin, sendBroadcast, loadBroadcast,
+    saveTarget, searchDashboardArticle, loadSuperAdminData, loadAdminReport, openOwnerModal,
+    editOwner, saveOwner, toggleShopStatus, add30Days, deleteOwner, showOwnerDashboard,
+    switchTab, loadStaffPin, generateStaffPin, resetStaffPin, loadTargetData, quickExpense,
+    loadReportData, loadChartData, loadLowStockAlerts, loadDashboardData, loadCredits, saveCredit,
+    markCreditPaid, setStockFilter, loadMyStockList, searchStockArticle, deleteArticle,
+    updateArticleTypes, getSizeGridHTML, addColorSection, updateSizes, saveArticle,
+    searchSaleArticle, addToCart, renderCart, removeFromCart, clearCart, confirmSale,
+    searchPurchaseArticle, updatePurchaseSizes, processPurchase, saveExpense, searchReturnArticle,
+    processReturn, downloadExcel, clearHistory, handleLogout, checkSession
+});
