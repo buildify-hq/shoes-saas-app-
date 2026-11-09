@@ -52,7 +52,6 @@
             <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
             <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
             
-            <!-- 🛠️ नवीन Low Stock Alert मेनू -->
             <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();">
                 <i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert
                 <span id="menuAlertBadge" style="display:none; background: var(--danger); color: white; border-radius: 50%; padding: 2px 8px; font-size: 11px; margin-left: auto;">0</span>
@@ -133,12 +132,10 @@
                 <i class="fa-solid fa-plus-circle"></i> Add New Owner
             </div>
             
-            <!-- 🛠️ Admin Report बटण -->
             <div class="sa-add-btn" onclick="loadAdminReport()" style="background: var(--warning); color: white; margin-top: -10px; margin-bottom: 20px;">
                 <i class="fa-solid fa-chart-pie"></i> View Admin Report
             </div>
 
-            <!-- 🛠️ Report दाखवण्यासाठी जागा -->
             <div id="adminReportContainer" style="display: none; margin-bottom: 20px;">
                 <div class="app-card" style="background: var(--card-dark); padding: 15px;">
                     <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--primary);">Admin Dashboard</h4>
@@ -164,8 +161,20 @@
 
         <!-- DASHBOARD SCREEN -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
-            <div id="broadcastDisplay" class="broadcast-box" style="display: none;">
-                <i class="fa-solid fa-bullhorn"></i> <span id="broadcastText"></span>
+            
+            <!-- Broadcast Box with Close Button -->
+            <div id="broadcastDisplay" class="broadcast-box" style="display: none; align-items: center; justify-content: space-between;">
+                <div><i class="fa-solid fa-bullhorn"></i> <span id="broadcastText"></span></div>
+                <span onclick="dismissBroadcast()" style="cursor: pointer; padding: 5px 10px; color: var(--danger); font-size: 18px;"><i class="fa-solid fa-xmark"></i></span>
+            </div>
+
+            <!-- Message to Admin Box -->
+            <div class="app-card" style="padding: 15px; margin-bottom: 20px;">
+                <label style="font-size: 13px; color: var(--primary);"><i class="fa-solid fa-paper-plane"></i> Message to Admin</label>
+                <div style="display: flex; gap: 8px; margin-top: 5px;">
+                    <input type="text" id="msgToAdmin" placeholder="Type your message here..." style="margin-bottom: 0; padding: 10px;">
+                    <button class="btn-primary" onclick="sendAdminMessage()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
             </div>
 
             <div class="app-card target-card">
@@ -204,7 +213,6 @@
                 <div id="dashSearchResult" style="margin-top: 15px;"></div>
             </div>
 
-            <!-- 🛠️ Quick Expenses (गोल आयकॉन्ससह) -->
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); font-weight: 600;">Quick Expenses</h4>
             <div class="quick-expense-chart">
                 <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')">
@@ -269,7 +277,7 @@
             <div id="stockList"></div>
         </div>
 
-        <!-- 🛠️ LOW STOCK ALERT SCREEN -->
+        <!-- LOW STOCK ALERT SCREEN -->
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
             <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">खालील शूजचा स्टॉक ५ जोड्यांपेक्षा कमी आहे. कृपया लवकर नवीन स्टॉक आणा!</p>
@@ -519,7 +527,7 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
