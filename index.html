@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SJ Digital Labs</title>
     
+    <!-- 🛠️ एरर पकडण्यासाठी कोड -->
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            alert("⚠️ CODE ERROR: " + msg + "\n\nLine: " + line);
+            return false;
+        };
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -19,7 +27,6 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
-    <!-- Scanner Modal -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
@@ -29,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Confirm Modal -->
     <div id="customConfirmModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center;">
             <div style="font-size: 40px; color: var(--warning); margin-bottom: 10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -42,7 +48,6 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -68,7 +73,6 @@
         </div>
     </div>
 
-    <!-- Top Header -->
     <div class="top-header" id="topHeader">
         <div style="display: flex; align-items: center; gap: 12px;">
             <span class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></span>
@@ -83,7 +87,6 @@
 
     <div class="content-area">
         
-        <!-- LOGIN SCREEN -->
         <div id="loginScreen" class="fade-in" style="display: block; padding-top: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="login-logo">
@@ -108,7 +111,6 @@
             </div>
         </div>
 
-        <!-- SUPER ADMIN SCREEN -->
         <div id="superAdminScreen" class="fade-in" style="display: none;">
             <div class="sa-header">
                 <div>
@@ -159,16 +161,13 @@
             <div id="saOwnerList"></div>
         </div>
 
-        <!-- DASHBOARD SCREEN -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
             
-            <!-- Broadcast Box with Close Button (🛠️ FIXED) -->
             <div id="broadcastDisplay" class="broadcast-box" style="display: none; align-items: center; justify-content: space-between;">
                 <div><i class="fa-solid fa-bullhorn"></i> <span id="broadcastText"></span></div>
                 <span onclick="dismissBroadcast()" style="cursor: pointer; padding: 5px 10px; color: var(--danger); font-size: 18px;"><i class="fa-solid fa-xmark"></i></span>
             </div>
 
-            <!-- Message to Admin Box (🛠️ NEW) -->
             <div class="app-card" style="padding: 15px; margin-bottom: 20px;">
                 <label style="font-size: 13px; color: var(--primary);"><i class="fa-solid fa-paper-plane"></i> Message to Admin</label>
                 <div style="display: flex; gap: 8px; margin-top: 5px;">
@@ -247,7 +246,6 @@
             </div>
         </div>
 
-        <!-- MY STOCK SCREEN -->
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
             
@@ -277,14 +275,12 @@
             <div id="stockList"></div>
         </div>
 
-        <!-- LOW STOCK ALERT SCREEN -->
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
             <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">खालील शूजचा स्टॉक ५ जोड्यांपेक्षा कमी आहे. कृपया लवकर नवीन स्टॉक आणा!</p>
             <div id="lowStockListContainer"></div>
         </div>
 
-        <!-- STAFF CALCULATOR SCREEN -->
         <div id="staffScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
             <div class="app-card">
@@ -306,7 +302,6 @@
             </div>
         </div>
 
-        <!-- NEW SALE SCREEN -->
         <div id="saleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <div class="app-card">
@@ -346,7 +341,6 @@
             </div>
         </div>
 
-        <!-- ADD ARTICLE SCREEN -->
         <div id="articleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-plus"></i> Add Article</h2>
             <div class="app-card">
@@ -370,7 +364,6 @@
             </div>
         </div>
 
-        <!-- PURCHASE SCREEN -->
         <div id="purchaseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
             <div class="app-card">
@@ -393,7 +386,6 @@
             </div>
         </div>
 
-        <!-- RETURN SCREEN -->
         <div id="returnScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
@@ -414,7 +406,6 @@
             </div>
         </div>
 
-        <!-- EXPENSE SCREEN -->
         <div id="expenseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
             <div class="app-card">
@@ -425,7 +416,6 @@
             </div>
         </div>
 
-        <!-- CREDITS SCREEN -->
         <div id="creditsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
             <div class="app-card" style="padding: 20px;">
@@ -440,7 +430,6 @@
             <div id="creditsList"></div>
         </div>
 
-        <!-- MANAGE STAFF PIN SCREEN -->
         <div id="staffPinScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
             <div class="app-card" style="text-align: center;">
@@ -452,7 +441,6 @@
             </div>
         </div>
 
-        <!-- SET TARGET SCREEN -->
         <div id="targetScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-bullseye"></i> Set Target</h2>
             <div class="app-card" style="text-align: center;">
@@ -463,7 +451,6 @@
             </div>
         </div>
 
-        <!-- REPORTS SCREEN -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
             
@@ -497,7 +484,6 @@
 
     </div>
 
-    <!-- Super Admin Modal -->
     <div id="ownerModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 id="modalTitle" style="margin-top:0; margin-bottom: 20px;">Owner Details</h3>
@@ -511,7 +497,6 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation -->
     <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash">
             <i class="fa-solid fa-house nav-icon"></i> Home
@@ -527,7 +512,6 @@
         </div>
     </div>
 
-    <!-- 🛠️ महत्त्वाचं: type="module" असणं गरजेचं आहे -->
     <script type="module" src="script.js"></script>
 
     <script>
