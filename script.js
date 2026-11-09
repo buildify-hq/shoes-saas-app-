@@ -1,4 +1,3 @@
-// 🔴 इथे तुझी नवीन URL आणि Key टाकली आहे
 const SUPABASE_URL = 'https://naehmnkvjsxzhzgvpmpj.supabase.co';
 const SUPABASE_ANON_KEY = 'तुझी_लांब_key_इथे_पेस्ट_कर'; 
 
@@ -168,59 +167,6 @@ async function handleLogin() {
 
     if (authError) { showToast("Login failed: " + authError.message, true); } 
     else { currentUser = authData.user; currentShopId = shop.id; document.getElementById('headerShopName').innerText = shop.shop_name; showOwnerDashboard(); }
-}
-
-async function sendBroadcast() {
-    const msg = document.getElementById('broadcastMsg').value;
-    if(!msg) return;
-    await supabaseClient.from('broadcasts').insert([{ message: msg }]);
-    showToast("Message Sent!");
-    document.getElementById('broadcastMsg').value = '';
-}
-
-async function loadBroadcast() {
-    const { data } = await supabaseClient.from('broadcasts').select('*').order('created_at', { ascending: false }).limit(1);
-    if(data && data.length > 0) {
-        const lastMsgId = data[0].id; 
-        const dismissedId = localStorage.getItem('dismissed_broadcast');
-        
-        if (dismissedId !== String(lastMsgId)) {
-            document.getElementById('broadcastDisplay').style.display = 'flex';
-            document.getElementById('broadcastText').innerText = data[0].message;
-        } else {
-            document.getElementById('broadcastDisplay').style.display = 'none';
-        }
-    } else {
-        document.getElementById('broadcastDisplay').style.display = 'none';
-    }
-}
-
-function dismissBroadcast() {
-    document.getElementById('broadcastDisplay').style.display = 'none';
-    supabaseClient.from('broadcasts').select('id').order('created_at', { ascending: false }).limit(1).then(res => {
-        if(res.data && res.data.length > 0) {
-            localStorage.setItem('dismissed_broadcast', String(res.data[0].id));
-        }
-    });
-}
-
-async function sendAdminMessage(e) {
-    const msg = document.getElementById('msgToAdmin').value.trim();
-    if(!msg) { showToast("Please type a message!", true); return; }
-    
-    const btn = e.target.closest('button');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-    
-    const { error } = await supabaseClient.from('admin_messages').insert([{ shop_id: currentShopId, message: msg }]);
-    
-    if(error) { 
-        showToast("Error: " + error.message, true); 
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
-    } else { 
-        showToast("Message sent to Admin! ✅", false); 
-        document.getElementById('msgToAdmin').value = ''; 
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
-    }
 }
 
 async function saveTarget() {
@@ -621,7 +567,6 @@ async function loadLowStockAlerts() {
 
 async function loadDashboardData() {
     if(!currentShopId) return;
-    loadBroadcast();
     const { data: shopData } = await supabaseClient.from('shops').select('daily_target').eq('id', currentShopId).single();
     let dailyTarget = shopData && shopData.daily_target ? shopData.daily_target : 0;
     document.getElementById('targetDisplay').innerText = dailyTarget;
