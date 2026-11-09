@@ -21,6 +21,16 @@ const SECRET_ADMIN_ID = 'sagar_admin';
 
 let html5QrcodeScanner = null;
 
+// 🛠️ चेक करण्यासाठी अलर्ट
+window.onload = () => {
+    console.log("Script loaded successfully!");
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.getElementById('themeIcon').innerHTML = savedTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+    updateArticleTypes();
+    checkSession();
+};
+
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sideMenuOverlay');
@@ -42,14 +52,6 @@ function toggleTheme() {
     document.getElementById('themeIcon').innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
     localStorage.setItem('theme', newTheme);
 }
-
-window.onload = () => {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    document.getElementById('themeIcon').innerHTML = savedTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
-    updateArticleTypes();
-    checkSession();
-};
 
 function showToast(msg, isError = false) {
     const toast = document.getElementById("toast");
@@ -130,13 +132,15 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
+    alert("Login process started..."); // 🛠️ हे अलर्ट तुला बटन चालू आहे का ते सांगेल
+    
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
-        if (authError) { showToast("Auth Error: " + authError.message, true); } 
+        if (authError) { showToast("Auth Error: " + authError.message, true); alert("Auth Error: " + authError.message); } 
         else { 
             currentUser = authData.user; 
             document.getElementById('loginScreen').style.display = 'none';
@@ -201,11 +205,11 @@ function dismissBroadcast() {
     });
 }
 
-async function sendAdminMessage() {
+async function sendAdminMessage(e) {
     const msg = document.getElementById('msgToAdmin').value.trim();
     if(!msg) { showToast("Please type a message!", true); return; }
     
-    const btn = event.target.closest('button');
+    const btn = e.target.closest('button');
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     
     const { error } = await supabaseClient.from('admin_messages').insert([{ shop_id: currentShopId, message: msg }]);
