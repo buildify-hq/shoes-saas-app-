@@ -16,7 +16,6 @@ let currentTypeFilter = 'Formal';
 
 let confirmCallback = null; 
 
-// 🛠️ सुरक्षिततेसाठी SECRET_ADMIN_PIN पूर्णपणे काढून टाकला आहे
 const ADMIN_EMAIL = 'admin14@shoeshop.com'; 
 const SECRET_ADMIN_ID = 'sagar_admin';      
 
@@ -179,8 +178,45 @@ async function sendBroadcast() {
 async function loadBroadcast() {
     const { data } = await supabaseClient.from('broadcasts').select('*').order('created_at', { ascending: false }).limit(1);
     if(data && data.length > 0) {
-        document.getElementById('broadcastDisplay').style.display = 'block';
-        document.getElementById('broadcastText').innerText = data[0].message;
+        const lastMsgId = data[0].id; 
+        const dismissedId = localStorage.getItem('dismissed_broadcast');
+        
+        if (dismissedId !== String(lastMsgId)) {
+            document.getElementById('broadcastDisplay').style.display = 'flex';
+            document.getElementById('broadcastText').innerText = data[0].message;
+        } else {
+            document.getElementById('broadcastDisplay').style.display = 'none';
+        }
+    } else {
+        document.getElementById('broadcastDisplay').style.display = 'none';
+    }
+}
+
+function dismissBroadcast() {
+    document.getElementById('broadcastDisplay').style.display = 'none';
+    supabaseClient.from('broadcasts').select('id').order('created_at', { ascending: false }).limit(1).then(res => {
+        if(res.data && res.data.length > 0) {
+            localStorage.setItem('dismissed_broadcast', String(res.data[0].id));
+        }
+    });
+}
+
+async function sendAdminMessage() {
+    const msg = document.getElementById('msgToAdmin').value.trim();
+    if(!msg) { showToast("Please type a message!", true); return; }
+    
+    const btn = event.target.closest('button');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    
+    const { error } = await supabaseClient.from('admin_messages').insert([{ shop_id: currentShopId, message: msg }]);
+    
+    if(error) { 
+        showToast("Error: " + error.message, true); 
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+    } else { 
+        showToast("Message sent to Admin! ✅", false); 
+        document.getElementById('msgToAdmin').value = ''; 
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
     }
 }
 
@@ -1266,7 +1302,7 @@ document.onkeydown = function(e) {
 // 🛠️ HTML ला फंक्शन्स दिसण्यासाठी (Module Fix)
 Object.assign(window, {
     toggleSidebar, toggleTheme, showToast, askConfirm, closeConfirm, startScanner, closeScanner,
-    calculateStaffPayment, promptReleaseStaffPayment, handleLogin, sendBroadcast, loadBroadcast,
+    calculateStaffPayment, promptReleaseStaffPayment, handleLogin, sendBroadcast, loadBroadcast, dismissBroadcast, sendAdminMessage,
     saveTarget, searchDashboardArticle, loadSuperAdminData, loadAdminReport, openOwnerModal,
     editOwner, saveOwner, toggleShopStatus, add30Days, deleteOwner, showOwnerDashboard,
     switchTab, loadStaffPin, generateStaffPin, resetStaffPin, loadTargetData, quickExpense,
