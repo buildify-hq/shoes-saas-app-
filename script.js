@@ -136,7 +136,6 @@ async function handleLogin() {
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
-        // 🛠️ आता पिन थेट Supabase ला पाठवला जाईल, कोडमध्ये सेव्ह होणार नाही
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
         if (authError) { showToast("Auth Error: " + authError.message, true); } 
         else { 
@@ -207,8 +206,10 @@ async function searchDashboardArticle() {
             totalPairs += b.remaining_qty;
             if(b.remaining_qty > 0) {
                 let c = b.color || ''; 
-                if(!groupedByColor[c]) groupedByColor[c] = [];
-                groupedByColor[c].push({size: b.size, qty: b.remaining_qty});
+                if(c === 'Default') c = '';
+                if(!groupedByColor[c]) groupedByColor[c] = {};
+                if(!groupedByColor[c][b.size]) groupedByColor[c][b.size] = 0;
+                groupedByColor[c][b.size] += b.remaining_qty;
             }
         });
     }
@@ -216,8 +217,10 @@ async function searchDashboardArticle() {
     let colorHtml = '';
     for(let color in groupedByColor) {
         let sizesHtml = '';
-        groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => { sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`; });
-        let colorTitle = (color === '' || color === 'Default') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
+        Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
+            sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
+        });
+        let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
         colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
     }
 
@@ -757,16 +760,20 @@ async function loadMyStockList() {
                 totalPairs += b.remaining_qty;
                 if(b.remaining_qty > 0) {
                     let c = b.color || ''; 
-                    if(!groupedByColor[c]) groupedByColor[c] = [];
-                    groupedByColor[c].push({size: b.size, qty: b.remaining_qty});
+                    if(c === 'Default') c = '';
+                    if(!groupedByColor[c]) groupedByColor[c] = {};
+                    if(!groupedByColor[c][b.size]) groupedByColor[c][b.size] = 0;
+                    groupedByColor[c][b.size] += b.remaining_qty;
                 }
             });
         }
         let colorHtml = '';
         for(let color in groupedByColor) {
             let sizesHtml = '';
-            groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => { sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`; });
-            let colorTitle = (color === '' || color === 'Default') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
+            Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
+                sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
+            });
+            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
 
@@ -808,16 +815,20 @@ async function searchStockArticle() {
                 totalPairs += b.remaining_qty;
                 if(b.remaining_qty > 0) {
                     let c = b.color || ''; 
-                    if(!groupedByColor[c]) groupedByColor[c] = [];
-                    groupedByColor[c].push({size: b.size, qty: b.remaining_qty});
+                    if(c === 'Default') c = '';
+                    if(!groupedByColor[c]) groupedByColor[c] = {};
+                    if(!groupedByColor[c][b.size]) groupedByColor[c][b.size] = 0;
+                    groupedByColor[c][b.size] += b.remaining_qty;
                 }
             });
         }
         let colorHtml = '';
         for(let color in groupedByColor) {
             let sizesHtml = '';
-            groupedByColor[color].sort((a,b)=>a.size-b.size).forEach(s => { sizesHtml += `<span class="size-badge">S${s.size}: ${s.qty}</span>`; });
-            let colorTitle = (color === '' || color === 'Default') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
+            Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
+                sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
+            });
+            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
         stockListDiv.innerHTML += `
@@ -1079,7 +1090,21 @@ async function processPurchase() {
     const cost = parseInt(document.getElementById('purCost').value) || 0;
     const supplier = document.getElementById('purSupplier').value;
     if(!size || !qty || qty <= 0) { showToast("Invalid details!", true); return; }
-    await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: foundPurchaseArticle.id, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]);
+
+    let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', foundPurchaseArticle.id).eq('size', size);
+    if(color && color !== 'Default') { query = query.eq('color', color); } else { query = query.or('color.is.null,color.eq.Default,color.eq.'); }
+    
+    const { data: existingBatch } = await query.limit(1).maybeSingle();
+
+    if (existingBatch) {
+        await supabaseClient.from('stock_batches').update({ 
+            remaining_qty: existingBatch.remaining_qty + qty,
+            initial_qty: existingBatch.initial_qty + qty 
+        }).eq('id', existingBatch.id);
+    } else {
+        await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: foundPurchaseArticle.id, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]);
+    }
+
     await supabaseClient.from('purchases').insert([{ shop_id: currentShopId, article_id: foundPurchaseArticle.id, size: size, quantity: qty, cost_price: cost, supplier_name: supplier }]);
     showToast(`✅ Added ${qty} pairs to stock!`, false);
     document.getElementById('purArticleDetails').style.display = 'none';
@@ -1125,7 +1150,21 @@ async function processReturn() {
     const qty = parseInt(document.getElementById('retQty').value);
     const refund = parseInt(document.getElementById('retPrice').value) || 0;
     if(!size || !qty || qty <= 0) { showToast("Invalid details!", true); return; }
-    await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: foundReturnArticle.cost_price || 0 }]);
+    
+    let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', foundReturnArticle.id).eq('size', size);
+    if(color && color !== 'Default') { query = query.eq('color', color); } else { query = query.or('color.is.null,color.eq.Default,color.eq.'); }
+    
+    const { data: existingBatch } = await query.limit(1).maybeSingle();
+
+    if (existingBatch) {
+        await supabaseClient.from('stock_batches').update({ 
+            remaining_qty: existingBatch.remaining_qty + qty,
+            initial_qty: existingBatch.initial_qty + qty 
+        }).eq('id', existingBatch.id);
+    } else {
+        await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: foundReturnArticle.cost_price || 0 }]);
+    }
+
     await supabaseClient.from('returns').insert([{ shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, quantity: qty, refund_amount: refund }]);
     showToast(`✅ Returned & Stock Added!`, false);
     document.getElementById('retArticleDetails').style.display = 'none';
@@ -1223,6 +1262,7 @@ document.onkeydown = function(e) {
     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
 };
+
 // 🛠️ HTML ला फंक्शन्स दिसण्यासाठी (Module Fix)
 Object.assign(window, {
     toggleSidebar, toggleTheme, showToast, askConfirm, closeConfirm, startScanner, closeScanner,
