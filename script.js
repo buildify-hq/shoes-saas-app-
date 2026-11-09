@@ -16,10 +16,9 @@ let currentTypeFilter = 'Formal';
 
 let confirmCallback = null; 
 
-// TODO: Phase 1 मध्ये हे सगळे डिलीट करून Supabase Auth वापरणार आहोत
+// 🛠️ सुरक्षिततेसाठी SECRET_ADMIN_PIN पूर्णपणे काढून टाकला आहे
 const ADMIN_EMAIL = 'admin14@shoeshop.com'; 
 const SECRET_ADMIN_ID = 'sagar_admin';      
-const SECRET_ADMIN_PIN = 'Sagar@1234';      
 
 let html5QrcodeScanner = null;
 
@@ -137,8 +136,8 @@ async function handleLogin() {
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
-        if (pinInput !== SECRET_ADMIN_PIN) { showToast("Invalid Admin PIN!", true); return; }
-        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: SECRET_ADMIN_PIN });
+        // 🛠️ आता पिन थेट Supabase ला पाठवला जाईल, कोडमध्ये सेव्ह होणार नाही
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
         if (authError) { showToast("Auth Error: " + authError.message, true); } 
         else { 
             currentUser = authData.user; 
