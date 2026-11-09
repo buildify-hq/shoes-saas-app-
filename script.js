@@ -807,7 +807,7 @@ async function loadMyStockList() {
                 if(b.remaining_qty > 0) {
                     let c = b.color || ''; 
                     if(c === 'Default') c = '';
-                    let s = String(b.size).trim(); // 🛠️ स्पेस काढण्यासाठी
+                    let s = String(b.size).trim();
                     
                     if(!groupedByColor[c]) groupedByColor[c] = {};
                     if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
@@ -864,7 +864,7 @@ async function searchStockArticle() {
                 if(b.remaining_qty > 0) {
                     let c = b.color || ''; 
                     if(c === 'Default') c = '';
-                    let s = String(b.size).trim(); // 🛠️
+                    let s = String(b.size).trim();
                     
                     if(!groupedByColor[c]) groupedByColor[c] = {};
                     if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
@@ -1000,7 +1000,7 @@ async function searchSaleArticle() {
         if(batch.remaining_qty > 0) {
             let c = batch.color || ''; 
             if (c === 'Default') c = ''; 
-            let s = String(batch.size).trim(); // 🛠️
+            let s = String(batch.size).trim();
             if(!aggregatedStock[c]) aggregatedStock[c] = {};
             if(!aggregatedStock[c][s]) aggregatedStock[c][s] = 0;
             aggregatedStock[c][s] += batch.remaining_qty;
@@ -1322,17 +1322,67 @@ document.onkeydown = function(e) {
     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
 };
 
-// 🛠️ HTML ला फंक्शन्स दिसण्यासाठी (Module Fix) - हा भाग सर्वात शेवटी असणं गरजेचं आहे!
-Object.assign(window, {
-    toggleSidebar, toggleTheme, showToast, askConfirm, closeConfirm, startScanner, closeScanner,
-    calculateStaffPayment, promptReleaseStaffPayment, handleLogin, sendBroadcast, loadBroadcast, dismissBroadcast, sendAdminMessage,
-    saveTarget, searchDashboardArticle, loadSuperAdminData, loadAdminReport, openOwnerModal,
-    editOwner, saveOwner, toggleShopStatus, add30Days, deleteOwner, showOwnerDashboard,
-    switchTab, loadStaffPin, generateStaffPin, resetStaffPin, loadTargetData, quickExpense,
-    loadReportData, loadChartData, loadLowStockAlerts, loadDashboardData, loadCredits, saveCredit,
-    markCreditPaid, setStockFilter, loadMyStockList, searchStockArticle, deleteArticle,
-    updateArticleTypes, getSizeGridHTML, addColorSection, updateSizes, saveArticle,
-    searchSaleArticle, addToCart, renderCart, removeFromCart, clearCart, confirmSale,
-    searchPurchaseArticle, updatePurchaseSizes, processPurchase, saveExpense, searchReturnArticle,
-    processReturn, downloadExcel, clearHistory, handleLogout, checkSession
-});
+// 🔥 सर्वात महत्त्वाचं: प्रत्येक फंक्शन HTML च्या window ला जोडणे 🔥
+window.toggleSidebar = toggleSidebar;
+window.toggleTheme = toggleTheme;
+window.showToast = showToast;
+window.askConfirm = askConfirm;
+window.closeConfirm = closeConfirm;
+window.startScanner = startScanner;
+window.closeScanner = closeScanner;
+window.calculateStaffPayment = calculateStaffPayment;
+window.promptReleaseStaffPayment = promptReleaseStaffPayment;
+window.handleLogin = handleLogin;
+window.sendBroadcast = sendBroadcast;
+window.loadBroadcast = loadBroadcast;
+window.dismissBroadcast = dismissBroadcast;
+window.sendAdminMessage = sendAdminMessage;
+window.saveTarget = saveTarget;
+window.searchDashboardArticle = searchDashboardArticle;
+window.loadSuperAdminData = loadSuperAdminData;
+window.loadAdminReport = loadAdminReport;
+window.openOwnerModal = openOwnerModal;
+window.editOwner = editOwner;
+window.saveOwner = saveOwner;
+window.toggleShopStatus = toggleShopStatus;
+window.add30Days = add30Days;
+window.deleteOwner = deleteOwner;
+window.showOwnerDashboard = showOwnerDashboard;
+window.switchTab = switchTab;
+window.loadStaffPin = loadStaffPin;
+window.generateStaffPin = generateStaffPin;
+window.resetStaffPin = resetStaffPin;
+window.loadTargetData = loadTargetData;
+window.quickExpense = quickExpense;
+window.loadReportData = loadReportData;
+window.loadChartData = loadChartData;
+window.loadLowStockAlerts = loadLowStockAlerts;
+window.loadDashboardData = loadDashboardData;
+window.loadCredits = loadCredits;
+window.saveCredit = saveCredit;
+window.markCreditPaid = markCreditPaid;
+window.setStockFilter = setStockFilter;
+window.loadMyStockList = loadMyStockList;
+window.searchStockArticle = searchStockArticle;
+window.deleteArticle = deleteArticle;
+window.updateArticleTypes = updateArticleTypes;
+window.getSizeGridHTML = getSizeGridHTML;
+window.addColorSection = addColorSection;
+window.updateSizes = updateSizes;
+window.saveArticle = saveArticle;
+window.searchSaleArticle = searchSaleArticle;
+window.addToCart = addToCart;
+window.renderCart = renderCart;
+window.removeFromCart = removeFromCart;
+window.clearCart = clearCart;
+window.confirmSale = confirmSale;
+window.searchPurchaseArticle = searchPurchaseArticle;
+window.updatePurchaseSizes = updatePurchaseSizes;
+window.processPurchase = processPurchase;
+window.saveExpense = saveExpense;
+window.searchReturnArticle = searchReturnArticle;
+window.processReturn = processReturn;
+window.downloadExcel = downloadExcel;
+window.clearHistory = clearHistory;
+window.handleLogout = handleLogout;
+window.checkSession = checkSession;
