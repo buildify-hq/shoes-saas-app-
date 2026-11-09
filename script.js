@@ -21,7 +21,6 @@ const SECRET_ADMIN_ID = 'sagar_admin';
 
 let html5QrcodeScanner = null;
 
-// 🛠️ चेक करण्यासाठी अलर्ट
 window.onload = () => {
     console.log("Script loaded successfully!");
     const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -132,15 +131,13 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
-    alert("Login process started..."); // 🛠️ हे अलर्ट तुला बटन चालू आहे का ते सांगेल
-    
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
-        if (authError) { showToast("Auth Error: " + authError.message, true); alert("Auth Error: " + authError.message); } 
+        if (authError) { showToast("Auth Error: " + authError.message, true); } 
         else { 
             currentUser = authData.user; 
             document.getElementById('loginScreen').style.display = 'none';
@@ -247,9 +244,11 @@ async function searchDashboardArticle() {
             if(b.remaining_qty > 0) {
                 let c = b.color || ''; 
                 if(c === 'Default') c = '';
+                let s = String(b.size).trim(); // 🛠️ स्पेस काढण्यासाठी
+                
                 if(!groupedByColor[c]) groupedByColor[c] = {};
-                if(!groupedByColor[c][b.size]) groupedByColor[c][b.size] = 0;
-                groupedByColor[c][b.size] += b.remaining_qty;
+                if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
+                groupedByColor[c][s] += b.remaining_qty;
             }
         });
     }
@@ -801,9 +800,11 @@ async function loadMyStockList() {
                 if(b.remaining_qty > 0) {
                     let c = b.color || ''; 
                     if(c === 'Default') c = '';
+                    let s = String(b.size).trim(); // 🛠️ स्पेस काढण्यासाठी
+                    
                     if(!groupedByColor[c]) groupedByColor[c] = {};
-                    if(!groupedByColor[c][b.size]) groupedByColor[c][b.size] = 0;
-                    groupedByColor[c][b.size] += b.remaining_qty;
+                    if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
+                    groupedByColor[c][s] += b.remaining_qty;
                 }
             });
         }
@@ -856,9 +857,11 @@ async function searchStockArticle() {
                 if(b.remaining_qty > 0) {
                     let c = b.color || ''; 
                     if(c === 'Default') c = '';
+                    let s = String(b.size).trim(); // 🛠️
+                    
                     if(!groupedByColor[c]) groupedByColor[c] = {};
-                    if(!groupedByColor[c][b.size]) groupedByColor[c][b.size] = 0;
-                    groupedByColor[c][b.size] += b.remaining_qty;
+                    if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
+                    groupedByColor[c][s] += b.remaining_qty;
                 }
             });
         }
@@ -990,9 +993,10 @@ async function searchSaleArticle() {
         if(batch.remaining_qty > 0) {
             let c = batch.color || ''; 
             if (c === 'Default') c = ''; 
+            let s = String(batch.size).trim(); // 🛠️
             if(!aggregatedStock[c]) aggregatedStock[c] = {};
-            if(!aggregatedStock[c][batch.size]) aggregatedStock[c][batch.size] = 0;
-            aggregatedStock[c][batch.size] += batch.remaining_qty;
+            if(!aggregatedStock[c][s]) aggregatedStock[c][s] = 0;
+            aggregatedStock[c][s] += batch.remaining_qty;
         }
     });
     let hasStock = false;
@@ -1019,8 +1023,16 @@ function addToCart() {
     const price = parseInt(document.getElementById('salePrice').value);
     if(qty <= 0) { showToast("Quantity must be at least 1", true); return; }
 
-    let totalAvailableForSize = foundSaleArticle.stock_batches.filter(b => { let bColor = b.color || ''; if (bColor === 'Default') bColor = ''; return bColor === color && b.size === size; }).reduce((sum, b) => sum + b.remaining_qty, 0);
-    const inCartQty = cart.filter(c => { let cColor = c.color || ''; if (cColor === 'Default') cColor = ''; return c.id === foundSaleArticle.id && c.size === size && cColor === color; }).reduce((sum, item) => sum + item.qty, 0);
+    let totalAvailableForSize = foundSaleArticle.stock_batches.filter(b => { 
+        let bColor = b.color || ''; if (bColor === 'Default') bColor = ''; 
+        return bColor === color && String(b.size).trim() === size; 
+    }).reduce((sum, b) => sum + b.remaining_qty, 0);
+    
+    const inCartQty = cart.filter(c => { 
+        let cColor = c.color || ''; if (cColor === 'Default') cColor = ''; 
+        return c.id === foundSaleArticle.id && c.size === size && cColor === color; 
+    }).reduce((sum, item) => sum + item.qty, 0);
+    
     if((inCartQty + qty) > totalAvailableForSize) { showToast("Not enough stock!", true); return; }
 
     cart.push({ id: foundSaleArticle.id, artNo: foundSaleArticle.article_no, color: color, size: size, qty: qty, price: price, cost: foundSaleArticle.cost_price || 0 });
@@ -1119,7 +1131,7 @@ function updatePurchaseSizes() {
     const sizeSelect = document.getElementById('purSize');
     sizeSelect.innerHTML = '';
     let uniqueSizes = new Set();
-    foundPurchaseArticle.stock_batches.forEach(batch => { let bColor = batch.color || ''; if (bColor === 'Default') bColor = ''; if(bColor === color) uniqueSizes.add(batch.size); });
+    foundPurchaseArticle.stock_batches.forEach(batch => { let bColor = batch.color || ''; if (bColor === 'Default') bColor = ''; if(bColor === color) uniqueSizes.add(String(batch.size).trim()); });
     uniqueSizes.forEach(size => { sizeSelect.innerHTML += `<option value="${size}">Size ${size}</option>`; });
 }
 
@@ -1176,7 +1188,7 @@ async function searchReturnArticle() {
     const sizeSelect = document.getElementById('retSize');
     sizeSelect.innerHTML = '';
     let uniqueColorSizes = new Set();
-    articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColorSizes.add(`${c}|||${batch.size}`); });
+    articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColorSizes.add(`${c}|||${String(batch.size).trim()}`); });
     uniqueColorSizes.forEach(val => { const parts = val.split('|||'); const c = parts[0]; const s = parts[1]; let displayColor = (c === '') ? '' : `${c} - `; sizeSelect.innerHTML += `<option value="${val}">${displayColor}Size ${s}</option>`; });
     document.getElementById('retQty').value = 1;
     document.getElementById('retArticleDetails').style.display = 'block';
