@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SJ Digital Labs</title>
     
-    <!-- 🛠️ एरर पकडण्यासाठी कोड -->
-    <script>
-        window.onerror = function(msg, url, line, col, error) {
-            alert("⚠️ CODE ERROR: " + msg + "\n\nLine: " + line);
-            return false;
-        };
-    </script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -512,7 +504,8 @@
         </div>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <!-- 🔴 हा type="module" काढून टाकलाय, आता हा साधा स्क्रिप्ट म्हणून चालेल -->
+    <script src="script.js"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
