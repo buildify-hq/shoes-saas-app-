@@ -1,5 +1,10 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './src/config.js';
 
+// 🛠️ जर config.js मध्ये चूक असेल तर हे लगेच कळेल
+if(!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    alert("Error: Supabase URL or Key is missing in config.js!");
+}
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
@@ -131,7 +136,7 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
-    alert("Login button clicked! Checking credentials..."); // 🛠️ हे अलर्ट तुला बटन चालू आहे का ते सांगेल
+    alert("Login button clicked! Checking credentials...");
     
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
