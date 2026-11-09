@@ -1,9 +1,6 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './src/config.js';
-
-// 🛠️ जर config.js मध्ये चूक असेल तर हे लगेच कळेल
-if(!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    alert("Error: Supabase URL or Key is missing in config.js!");
-}
+// 🔴 इथे तुझी नवीन URL आणि Key टाकली आहे
+const SUPABASE_URL = 'https://naehmnkvjsxzhzgvpmpj.supabase.co';
+const SUPABASE_ANON_KEY = 'तुझी_लांब_key_इथे_पेस्ट_कर'; 
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -136,15 +133,13 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
-    alert("Login button clicked! Checking credentials...");
-    
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
-        if (authError) { showToast("Auth Error: " + authError.message, true); alert("Auth Error: " + authError.message); } 
+        if (authError) { showToast("Auth Error: " + authError.message, true); } 
         else { 
             currentUser = authData.user; 
             document.getElementById('loginScreen').style.display = 'none';
@@ -1321,68 +1316,3 @@ document.onkeydown = function(e) {
     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
 };
-
-// 🔥 सर्वात महत्त्वाचं: प्रत्येक फंक्शन HTML च्या window ला जोडणे 🔥
-window.toggleSidebar = toggleSidebar;
-window.toggleTheme = toggleTheme;
-window.showToast = showToast;
-window.askConfirm = askConfirm;
-window.closeConfirm = closeConfirm;
-window.startScanner = startScanner;
-window.closeScanner = closeScanner;
-window.calculateStaffPayment = calculateStaffPayment;
-window.promptReleaseStaffPayment = promptReleaseStaffPayment;
-window.handleLogin = handleLogin;
-window.sendBroadcast = sendBroadcast;
-window.loadBroadcast = loadBroadcast;
-window.dismissBroadcast = dismissBroadcast;
-window.sendAdminMessage = sendAdminMessage;
-window.saveTarget = saveTarget;
-window.searchDashboardArticle = searchDashboardArticle;
-window.loadSuperAdminData = loadSuperAdminData;
-window.loadAdminReport = loadAdminReport;
-window.openOwnerModal = openOwnerModal;
-window.editOwner = editOwner;
-window.saveOwner = saveOwner;
-window.toggleShopStatus = toggleShopStatus;
-window.add30Days = add30Days;
-window.deleteOwner = deleteOwner;
-window.showOwnerDashboard = showOwnerDashboard;
-window.switchTab = switchTab;
-window.loadStaffPin = loadStaffPin;
-window.generateStaffPin = generateStaffPin;
-window.resetStaffPin = resetStaffPin;
-window.loadTargetData = loadTargetData;
-window.quickExpense = quickExpense;
-window.loadReportData = loadReportData;
-window.loadChartData = loadChartData;
-window.loadLowStockAlerts = loadLowStockAlerts;
-window.loadDashboardData = loadDashboardData;
-window.loadCredits = loadCredits;
-window.saveCredit = saveCredit;
-window.markCreditPaid = markCreditPaid;
-window.setStockFilter = setStockFilter;
-window.loadMyStockList = loadMyStockList;
-window.searchStockArticle = searchStockArticle;
-window.deleteArticle = deleteArticle;
-window.updateArticleTypes = updateArticleTypes;
-window.getSizeGridHTML = getSizeGridHTML;
-window.addColorSection = addColorSection;
-window.updateSizes = updateSizes;
-window.saveArticle = saveArticle;
-window.searchSaleArticle = searchSaleArticle;
-window.addToCart = addToCart;
-window.renderCart = renderCart;
-window.removeFromCart = removeFromCart;
-window.clearCart = clearCart;
-window.confirmSale = confirmSale;
-window.searchPurchaseArticle = searchPurchaseArticle;
-window.updatePurchaseSizes = updatePurchaseSizes;
-window.processPurchase = processPurchase;
-window.saveExpense = saveExpense;
-window.searchReturnArticle = searchReturnArticle;
-window.processReturn = processReturn;
-window.downloadExcel = downloadExcel;
-window.clearHistory = clearHistory;
-window.handleLogout = handleLogout;
-window.checkSession = checkSession;
