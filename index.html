@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1D4ED8">
 </head>
 <body>
@@ -485,16 +484,7 @@
         </div>
     </div>
 
+    <!-- 🛠️ साधी स्क्रिप्ट, कोणतेही मॉड्यूल नाही -->
     <script src="script.js"></script>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('SW Registered!', reg))
-                    .catch(err => console.log('SW Error:', err));
-            });
-        }
-    </script>
 </body>
 </html>
