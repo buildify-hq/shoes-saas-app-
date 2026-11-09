@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://naehmnkvjsxzhzgvpmpj.supabase.co';
-const SUPABASE_ANON_KEY = 'तुझी_लांब_key_इथे_पेस्ट_कर'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hZWhtbmt2anN4cmh6Z3ZwbXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0OTkyOTYsImV4cCI6MjA4MDA3NTI5Nn0.rDagdxfbZ1rQK1YnFdxJxhFOZ-KPRLl8UrwIFe8QKaE'; 
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -23,7 +23,6 @@ const SECRET_ADMIN_ID = 'sagar_admin';
 let html5QrcodeScanner = null;
 
 window.onload = () => {
-    console.log("Script loaded successfully!");
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.getElementById('themeIcon').innerHTML = savedTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
@@ -132,13 +131,15 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
+    alert("Login बटन दाबलं! चेक करत आहे..."); // 🛠️ हे तुला बटन चालू आहे का ते सांगेल
+    
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
     
     if (nameInput === SECRET_ADMIN_ID) {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
-        if (authError) { showToast("Auth Error: " + authError.message, true); } 
+        if (authError) { showToast("Auth Error: " + authError.message, true); alert("Auth Error: " + authError.message); } 
         else { 
             currentUser = authData.user; 
             document.getElementById('loginScreen').style.display = 'none';
@@ -517,19 +518,10 @@ async function loadChartData(type) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
-                    ticks: { color: '#94A3B8' }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#94A3B8' }
-                }
+                y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94A3B8' } },
+                x: { grid: { display: false }, ticks: { color: '#94A3B8' } }
             }
         }
     });
