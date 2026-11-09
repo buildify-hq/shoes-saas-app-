@@ -1,6 +1,6 @@
-const SUPABASE_URL = 'https://gwjutqrqecjmlundxdxk.supabase.co'; 
-const SUPABASE_KEY = 'sb_publishable_nqQORmeUYMXDkE8kySD3Fw_Tam9Jr-I';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './src/config.js';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let currentShopId = null;
@@ -16,6 +16,7 @@ let currentTypeFilter = 'Formal';
 
 let confirmCallback = null; 
 
+// TODO: Phase 1 मध्ये हे सगळे डिलीट करून Supabase Auth वापरणार आहोत
 const ADMIN_EMAIL = 'admin14@shoeshop.com'; 
 const SECRET_ADMIN_ID = 'sagar_admin';      
 const SECRET_ADMIN_PIN = 'Sagar@1234';      
@@ -271,7 +272,6 @@ async function loadSuperAdminData() {
     });
 }
 
-// 🛠️ सुपर ॲडमिन रिपोर्ट लोड करण्यासाठी
 async function loadAdminReport() {
     document.getElementById('adminReportContainer').style.display = 'block';
     
