@@ -586,7 +586,7 @@ async function loadChartData(type) {
 }
 
 // ==========================================
-// 🌟 FEATURE 2: SIZE-WISE LOW STOCK ALERT (UPDATED)
+// 🌟 FEATURE 2: TOTAL SIZE-WISE LOW STOCK ALERT
 // ==========================================
 async function loadLowStockAlerts() {
     const container = document.getElementById('lowStockListContainer');
@@ -596,21 +596,22 @@ async function loadLowStockAlerts() {
     let lowStockHtml = '';
     if(articles) {
         articles.forEach(art => {
-            let lowSizes = [];
             let totalPairs = 0;
+            let sizeDetails = [];
 
             (art.stock_batches || []).forEach(b => {
                 totalPairs += b.remaining_qty;
-                // 🌟 १ किंवा ० जोड्या असतील तरच अलर्ट दाखवा
-                if (b.remaining_qty <= 1) {
+                // जे साईज उपलब्ध आहेत ते दाखवण्यासाठी
+                if (b.remaining_qty > 0) {
                     let c = b.color || ''; if(c === 'Default') c = '';
                     let s = String(b.size).trim();
                     let display = (c ? c + " - " : "") + "Size " + s;
-                    lowSizes.push(`<span style="background: rgba(239,68,68,0.15); color: var(--danger); padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; display:inline-block; margin-bottom:4px;">${display}: ${b.remaining_qty}</span>`);
+                    sizeDetails.push(`<span style="background: rgba(16,185,129,0.15); color: var(--success); padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; display:inline-block; margin-bottom:4px;">${display}: ${b.remaining_qty}</span>`);
                 }
             });
 
-            if (lowSizes.length > 0) {
+            // 🌟 नवीन लॉजिक: फक्त तेव्हाच अलर्ट दाखवा जेव्हा एकूण जोड्या २ किंवा त्यापेक्षा कमी असतील
+            if (totalPairs <= 2) {
                 let badgeColor = totalPairs === 0 ? 'var(--danger)' : 'var(--warning)';
                 lowStockHtml += `
                 <div class="app-card" style="border-left: 4px solid ${badgeColor}; padding: 15px; margin-bottom: 10px;">
@@ -619,8 +620,8 @@ async function loadLowStockAlerts() {
                         <span style="background:${badgeColor}; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">Total: ${totalPairs}</span>
                     </div>
                     <p style="margin:0 0 8px 0; font-size:12px; color:var(--text-muted);">${esc(art.category)}</p>
-                    <div style="font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 5px;">Low/Out of Stock Sizes:</div>
-                    <div>${lowSizes.join('')}</div>
+                    <div style="font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 5px;">Available Sizes:</div>
+                    <div>${sizeDetails.length ? sizeDetails.join('') : '<span style="color:var(--danger); font-weight:bold;">Out of Stock</span>'}</div>
                     
                     <!-- 🌟 नवीन बटणं: स्टॉक ॲड करा आणि आर्टिकल डिलीट करा -->
                     <div style="display:flex; gap:8px; margin-top:12px; border-top: 1px dashed var(--border-color); padding-top:12px;">
@@ -663,13 +664,10 @@ async function loadDashboardData() {
     if(articles) {
         articles.forEach(art => {
             let artTotal = 0;
-            let hasLowSize = false;
             
             if(art.stock_batches) { 
                 art.stock_batches.forEach(batch => { 
                     artTotal += batch.remaining_qty; 
-                    // 🌟 डॅशबोर्ड बॅजसाठी पण १ किंवा ० चा नियम
-                    if (batch.remaining_qty <= 1) hasLowSize = true; 
                 }); 
             }
 
@@ -681,7 +679,8 @@ async function loadDashboardData() {
             else if(cat.includes('Boys') || cat.includes('Girls')) kidsTotal += artTotal;
             else gentsTotal += artTotal; 
             
-            if(hasLowSize || artTotal === 0) {
+            // 🌟 डॅशबोर्ड बॅजसाठी पण एकूण जोड्या २ किंवा कमी असल्यासच
+            if(artTotal <= 2) {
                 lowStockItemsCount++;
             }
         });
@@ -1850,4 +1849,4 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
     });
-    }
+}
