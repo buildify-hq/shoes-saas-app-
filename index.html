@@ -68,6 +68,10 @@
             <div class="menu-item" onclick="switchTab('labels'); toggleSidebar();"><i class="fa-solid fa-qrcode"></i> Print Labels</div>
             <div class="menu-item text-danger" onclick="toggleSidebar(); clearHistory();"><i class="fa-solid fa-broom"></i> Clear History</div>
             <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
+            
+            <!-- 🌟 नवीन बटण: Bulk Import -->
+            <div class="menu-item" onclick="switchTab('bulkImport'); toggleSidebar();" style="color: var(--warning);"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</div>
+            
             <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
             
             <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();">
@@ -82,7 +86,6 @@
             <div class="menu-item" onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i> Sales Report</div>
             <div class="menu-item" onclick="downloadExcel(); toggleSidebar();"><i class="fa-solid fa-file-excel"></i> Export Excel Report</div>
             
-            <!-- 🌟 नवीन ॲड केलेलं Full Backup बटण -->
             <div class="menu-item" onclick="downloadFullBackup(); toggleSidebar();" style="color: var(--success);"><i class="fa-solid fa-cloud-arrow-down"></i> Full Backup (Excel)</div>
             
             <div class="menu-item text-danger" onclick="handleLogout(); toggleSidebar();"><i class="fa-solid fa-power-off"></i> Logout</div>
@@ -273,9 +276,32 @@
             <div id="stockList"></div>
         </div>
 
+        <!-- 🌟 नवीन स्क्रीन: Bulk Import -->
+        <div id="bulkImportScreen" class="fade-in" style="display: none;">
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</h2>
+            <div class="app-card">
+                <div style="background: rgba(29, 78, 216, 0.1); border: 1px solid var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <p style="font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.5;">
+                        <b>सूचना:</b> खालील बटणावर क्लिक करून टेम्पलेट डाउनलोड करा. त्यात मालाची माहिती भरा आणि ती फाईल येथे अपलोड करा. (एक्सेलमध्ये <b>Article No, Size, Qty</b> अनिवार्य आहे).
+                    </p>
+                </div>
+                <button class="btn-outline" onclick="downloadImportTemplate()" style="margin-bottom: 15px;"><i class="fa-solid fa-download"></i> Download Excel Template</button>
+                
+                <input type="file" id="excelUpload" accept=".xlsx, .xls, .csv" style="display: none;" onchange="processExcelUpload(event)">
+                
+                <button class="btn-primary" onclick="document.getElementById('excelUpload').click()" style="padding: 18px; font-size: 16px;">
+                    <i class="fa-solid fa-upload"></i> Upload Excel File
+                </button>
+                
+                <div id="importStatus" style="margin-top: 15px; font-size: 14px; text-align: center; font-weight: 600;"></div>
+                
+                <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-top: 20px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            </div>
+        </div>
+
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
-            <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">The shoes below have less than 5 pairs in stock. Please restock soon!</p>
+            <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">खालील शूजचा स्टॉक कमी आहे. कोणता साईज संपलाय ते तपासा आणि लगेच भरून काढा!</p>
             <div id="lowStockListContainer"></div>
         </div>
 
