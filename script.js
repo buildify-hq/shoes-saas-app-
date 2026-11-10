@@ -247,7 +247,7 @@ async function searchDashboardArticle() {
     for(let color in groupedByColor) {
         let sizesHtml = '';
         Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
-            sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
+            sizesHtml += `<span class="size-badge${groupedByColor[color][size] <= 2 ? ' low' : ''}">S${size}: ${groupedByColor[color][size]}</span>`; 
         });
         let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${esc(color)}</span>`;
         colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
@@ -432,8 +432,8 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    if(isStaffMode && (tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
-    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen'];
+    if(isStaffMode && (tabName === 'insights' || tabName === 'closing' || tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
+    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -450,6 +450,8 @@ function switchTab(tabName) {
     else if(tabName === 'target') { document.getElementById('targetScreen').style.display = 'block'; loadTargetData(); }
     else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = localDateStr(new Date()); loadReportData(); }
     else if(tabName === 'history') { document.getElementById('historyScreen').style.display = 'block'; document.getElementById('nav-hist').classList.add('active'); loadHistory(); }
+    else if(tabName === 'insights') { document.getElementById('insightsScreen').style.display = 'block'; loadInsights(); }
+    else if(tabName === 'closing') { document.getElementById('closingScreen').style.display = 'block'; loadClosing(); }
     else if(tabName === 'lowStockAlert') { document.getElementById('lowStockAlertScreen').style.display = 'block'; loadLowStockAlerts(); }
 }
 
@@ -611,36 +613,43 @@ async function loadDashboardData() {
         badge.style.display = 'none';
     }
 
-    const todayStr = startOfTodayISO();
-    const { data: todaySales } = await supabaseClient.from('sales').select(`id, total_amount, total_profit, discount_amount, sale_items (quantity, size, selling_price, articles(article_no, name))`).eq('shop_id', currentShopId).gte('sale_date', todayStr);
-    const { data: todayReturns } = await supabaseClient.from('returns').select(`quantity, refund_amount, size, articles(cost_price)`).eq('shop_id', currentShopId).gte('return_date', todayStr);
-    const { data: todayExpenses } = await supabaseClient.from('expenses').select('*').eq('shop_id', currentShopId).gte('expense_date', todayStr);
+    const tr = dayRange(localDateStr(new Date()));
+    const yd = new Date(); yd.setDate(yd.getDate() - 1);
+    const yr = dayRange(localDateStr(yd));
+    const [hRes, yRes] = await Promise.all([
+        supabaseClient.rpc('get_history', { p_from: tr[0], p_to: tr[1] }),
+        supabaseClient.rpc('get_history', { p_from: yr[0], p_to: yr[1] })
+    ]);
+    const H = hRes.data || {}, Y = yRes.data || {};
+    const todaySales = H.sales || [], todayReturns = H.returns || [], todayExpenses = H.expenses || [];
 
-    let tSalesAmt = 0, tProfitAmt = 0, tExpenseAmt = 0;
+    let tSalesAmt = 0, tProfitAmt = 0, tExpenseAmt = 0, tReturnAmt = 0;
     let transactionsHtml = '';
+    const row = (color, icon, text, amt) => `<div class="tx-row" style="color:${color};"><span><i class="fa-solid ${icon}"></i> ${text}</span><span>${amt}</span></div>`;
 
-    if(todaySales) {
-        todaySales.forEach(s => {
-            tSalesAmt += s.total_amount;
-            tProfitAmt += s.total_profit;
-            if(s.sale_items) { s.sale_items.forEach(item => { transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--success); font-weight:600;"><span><i class="fa-solid fa-bag-shopping"></i> Sale: [${esc(item.articles.article_no)}] S${item.size} x${item.quantity}</span><span>+₹${item.quantity * item.selling_price}</span></div>`; }); }
-            if(s.discount_amount > 0) { transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--warning); font-weight:600;"><span><i class="fa-solid fa-tag"></i> Discount</span><span>-₹${s.discount_amount}</span></div>`; }
-        });
+    todaySales.forEach(s => {
+        tSalesAmt += s.total_amount; tProfitAmt += s.total_profit;
+        (s.items || []).forEach(i => { transactionsHtml += row('var(--success)', 'fa-bag-shopping', `Sale: [${esc(i.article_no)}] S${esc(i.size)} x${i.qty}`, `+₹${i.qty * i.price}`); });
+        if (s.discount_amount > 0) transactionsHtml += row('var(--warning)', 'fa-tag', 'Discount', `-₹${s.discount_amount}`);
+    });
+    todayReturns.forEach(r => {
+        tSalesAmt -= r.refund_amount; tReturnAmt += r.refund_amount;
+        tProfitAmt -= (r.refund_amount - (r.cost || 0) * r.quantity);
+        transactionsHtml += row('var(--warning)', 'fa-rotate-left', `Return: [${esc(r.article_no || '-')}] S${esc(r.size)} x${r.quantity}`, `-₹${r.refund_amount}`);
+    });
+    todayExpenses.forEach(e => {
+        tProfitAmt -= e.amount; tExpenseAmt += e.amount;
+        transactionsHtml += row('var(--danger)', 'fa-money-bill-transfer', esc(e.reason), `-₹${e.amount}`);
+    });
+    if (transactionsHtml !== '') {
+        transactionsHtml = `<div class="day-sum"><span><b>${todaySales.length}</b> बिले</span><span><b>₹${tReturnAmt}</b> return</span><span><b>₹${tExpenseAmt}</b> खर्च</span></div>` + transactionsHtml;
     }
-    if(todayReturns) {
-        todayReturns.forEach(r => {
-            tSalesAmt -= r.refund_amount;
-            let returnCost = r.articles && r.articles.cost_price ? r.articles.cost_price : 0;
-            tProfitAmt -= (r.refund_amount - returnCost);
-            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--warning); font-weight:600;"><span><i class="fa-solid fa-rotate-left"></i> Return: Size ${r.size} x${r.quantity}</span><span>-₹${r.refund_amount}</span></div>`;
-        });
-    }
-    if(todayExpenses) {
-        todayExpenses.forEach(e => {
-            tProfitAmt -= e.amount;
-            tExpenseAmt += e.amount;
-            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--danger); font-weight:600;"><span><i class="fa-solid fa-money-bill-transfer"></i> ${esc(e.reason)}</span><span>-₹${e.amount}</span></div>`;
-        });
+    let ySales = 0;
+    (Y.sales || []).forEach(s => ySales += s.total_amount); (Y.returns || []).forEach(r => ySales -= r.refund_amount);
+    const cmp = document.getElementById('salesCompare');
+    if (cmp) {
+        if (ySales > 0) { const p = Math.round(((tSalesAmt - ySales) / ySales) * 100); cmp.innerHTML = `${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}% कालपेक्षा`; }
+        else cmp.innerHTML = 'काल: ₹0';
     }
 
     const transDiv = document.getElementById('todayTransactions');
@@ -731,10 +740,11 @@ function setStockFilter(gender, btnElement) {
 async function loadMyStockList() {
     const stockListDiv = document.getElementById('stockList');
     if(!currentShopId) return;
+    stockListDiv.innerHTML = skeleton(3);
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId).order('created_at', { ascending: false });
     updateStockTotals(articles);
     stockListDiv.innerHTML = ''; 
-    if(!articles || articles.length === 0) { stockListDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No articles added yet.</p>'; return; }
+    if(!articles || articles.length === 0) { stockListDiv.innerHTML = emptyState('fa-box-open', 'अजून एकही article नाही', '<button class="btn-primary" onclick="switchTab(\'article\')" style="width:auto; padding:12px 22px;"><i class="fa-solid fa-plus"></i> पहिला article जोडा</button>'); return; }
 
     let filteredArticles = articles.filter(art => {
         let cat = art.category;
@@ -745,7 +755,7 @@ async function loadMyStockList() {
         return cat === `${currentGenderFilter} - ${currentTypeFilter}`;
     });
 
-    if(filteredArticles.length === 0) { stockListDiv.innerHTML = `<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No ${currentTypeFilter} shoes found for ${currentGenderFilter}.</p>`; return; }
+    if(filteredArticles.length === 0) { stockListDiv.innerHTML = emptyState('fa-shoe-prints', `${currentGenderFilter} - ${currentTypeFilter} मध्ये article नाही`); return; }
 
     filteredArticles.forEach(art => {
         let totalPairs = 0;
@@ -962,10 +972,31 @@ async function searchSaleArticle() {
             hasStock = true;
         }
     }
-    if(!hasStock) { showToast("Out of stock!", true); return; }
+    if(!hasStock) { showToast("Out of stock!", true); document.getElementById('saleChips').innerHTML = ''; return; }
+    renderSaleChips(aggregatedStock);
     document.getElementById('salePrice').value = articles.mrp || 0;
     document.getElementById('saleQty').value = 1;
     document.getElementById('saleArticleDetails').style.display = 'block';
+}
+
+function renderSaleChips(agg) {
+    const wrap = document.getElementById('saleChips'); let html = '';
+    for (const color in agg) {
+        if (color) html += `<div class="chip-color"><i class="fa-solid fa-palette"></i> ${esc(color)}</div>`;
+        html += '<div class="chip-row">';
+        Object.keys(agg[color]).sort((a, b) => Number(a) - Number(b)).forEach(size => {
+            const q = agg[color][size];
+            html += `<button type="button" class="chip${q <= 2 ? ' low' : ''}" data-val="${esc(color)}|||${esc(size)}" onclick="pickSaleChip(this)">S${esc(size)}<small>${q}</small></button>`;
+        });
+        html += '</div>';
+    }
+    wrap.innerHTML = html;
+    const first = wrap.querySelector('.chip'); if (first) pickSaleChip(first);
+}
+function pickSaleChip(el) {
+    document.querySelectorAll('#saleChips .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('saleSize').value = el.dataset.val;
 }
 
 function addToCart() {
@@ -1035,13 +1066,16 @@ async function confirmSale() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
     try {
         const items = cart.map(i => ({ article_id: i.id, size: String(i.size), qty: i.qty, price: i.price, cost: i.cost || 0, color: i.color || '' }));
-        const { error } = await supabaseClient.rpc('confirm_sale', { p_discount: discount, p_items: items });
+        const { data: res, error } = await supabaseClient.rpc('confirm_sale', { p_discount: discount, p_items: items });
         if (error) throw error;
+        const billData = { id: res && res.sale_id, items: cart.map(c => ({ ...c })), subTotal, discount, total: subTotal - discount,
+            name: document.getElementById('saleCustName').value.trim(), phone: document.getElementById('saleCustPhone').value.trim() };
         cart = [];
         document.getElementById('saleDiscount').value = 0;
+        document.getElementById('saleCustName').value = ''; document.getElementById('saleCustPhone').value = '';
+        document.getElementById('saleChips').innerHTML = '';
         renderCart();
-        showToast("Sale Confirmed! 🎉", false);
-        switchTab(isStaffMode ? 'history' : 'dashboard');
+        showBill(billData);
     } catch (err) { showToast("Error: " + err.message, true); }
     finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Confirm Sale'; }
 }
@@ -1128,7 +1162,8 @@ async function searchReturnArticle() {
     articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColorSizes.add(`${c}|||${String(batch.size).trim()}`); });
     uniqueColorSizes.forEach(val => { const parts = val.split('|||'); const c = parts[0]; const s = parts[1]; let displayColor = (c === '') ? '' : `${c} - `; sizeSelect.innerHTML += `<option value="${esc(val)}">${esc(displayColor)}Size ${esc(s)}</option>`; });
     document.getElementById('retQty').value = 1;
-    document.getElementById('retPrice').value = articles.mrp || 0;
+    retUnit = articles.mrp || 0;
+    document.getElementById('retPrice').value = retUnit;
     document.getElementById('retArticleDetails').style.display = 'block';
 }
 
@@ -1145,6 +1180,145 @@ async function processReturn() {
     document.getElementById('retArticleDetails').style.display = 'none';
     document.getElementById('retArtNo').value = '';
     switchTab('history');
+}
+
+
+// ---------- Bill share ----------
+let billText = '', billPhone = '';
+function showBill(b) {
+    const shop = document.getElementById('headerShopName').innerText || 'Shop';
+    const no = b.id ? String(b.id).replace(/-/g, '').slice(-6).toUpperCase() : '------';
+    const dt = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    let t = `🧾 *${shop}*\nबिल #${no}\n${dt}\n`;
+    if (b.name) t += `ग्राहक: ${b.name}\n`;
+    t += `------------------------\n`;
+    b.items.forEach(i => { const c = (i.color && i.color !== 'Default') ? `${i.color} ` : ''; t += `${i.artNo} (${c}S${i.size}) x${i.qty} = ₹${i.qty * i.price}\n`; });
+    t += `------------------------\n`;
+    if (b.discount > 0) t += `सूट: -₹${b.discount}\n`;
+    t += `*एकूण: ₹${b.total}*\n\nधन्यवाद! पुन्हा भेट द्या 🙏`;
+    billText = t; billPhone = b.phone;
+    document.getElementById('billPreview').innerText = t.replace(/\*/g, '');
+    document.getElementById('billModal').style.display = 'flex';
+}
+function shareBillWA() {
+    const num = (billPhone || '').replace(/\D/g, '');
+    window.open(`https://wa.me/${num.length === 10 ? '91' + num : ''}?text=${encodeURIComponent(billText)}`, '_blank');
+}
+function copyBill() {
+    if (navigator.clipboard) navigator.clipboard.writeText(billText.replace(/\*/g, '')).then(() => showToast('Copied ✅', false));
+}
+function closeBill() {
+    document.getElementById('billModal').style.display = 'none';
+    switchTab(isStaffMode ? 'history' : 'dashboard');
+}
+
+// ---------- Return from bill ----------
+let retUnit = 0, recentBillItems = [];
+function updateRetPrice() {
+    const q = parseInt(document.getElementById('retQty').value) || 0;
+    document.getElementById('retPrice').value = retUnit * q;
+}
+async function toggleRecentBills() {
+    const box = document.getElementById('recentBills');
+    if (box.style.display === 'block') { box.style.display = 'none'; return; }
+    box.style.display = 'block'; box.innerHTML = skeleton(2);
+    const from = new Date(); from.setDate(from.getDate() - 6); from.setHours(0, 0, 0, 0);
+    const to = new Date(); to.setDate(to.getDate() + 1); to.setHours(0, 0, 0, 0);
+    const { data, error } = await supabaseClient.rpc('get_history', { p_from: from.toISOString(), p_to: to.toISOString() });
+    if (error) { box.innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
+    recentBillItems = [];
+    (data.sales || []).forEach(s => (s.items || []).forEach(i => recentBillItems.push({ ...i, date: s.sale_date })));
+    if (!recentBillItems.length) { box.innerHTML = emptyState('fa-receipt', 'मागच्या 7 दिवसांत बिल नाही'); return; }
+    box.innerHTML = recentBillItems.map((i, idx) => `<button type="button" class="bill-pick" onclick="pickReturnItem(${idx})"><span>[${esc(i.article_no)}] ${esc(i.name || '')} • S${esc(i.size)} × ${i.qty}<small>${new Date(i.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} ${fmtTime(i.date)}</small></span><b>₹${i.price}</b></button>`).join('');
+}
+async function pickReturnItem(idx) {
+    const it = recentBillItems[idx]; if (!it) return;
+    document.getElementById('retArtNo').value = it.article_no;
+    await searchReturnArticle();
+    const sel = document.getElementById('retSize');
+    for (const o of sel.options) { if (o.value.endsWith('|||' + String(it.size).trim())) { sel.value = o.value; break; } }
+    retUnit = it.price; document.getElementById('retQty').value = 1; updateRetPrice();
+    document.getElementById('recentBills').style.display = 'none';
+}
+
+// ---------- Helpers: skeleton / empty ----------
+function skeleton(n) { return Array.from({ length: n }, () => '<div class="skeleton"></div>').join(''); }
+function emptyState(icon, text, btn) {
+    return `<div class="empty-state"><i class="fa-solid ${icon}"></i><p>${text}</p>${btn || ''}</div>`;
+}
+
+// ---------- Insights ----------
+let insDays = 7;
+function setInsDays(d, el) {
+    insDays = d;
+    document.querySelectorAll('#insightsScreen .hist-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active'); loadInsights();
+}
+async function loadInsights() {
+    document.getElementById('insTop').innerHTML = skeleton(2);
+    document.getElementById('insDead').innerHTML = skeleton(2);
+    const from = new Date(); from.setDate(from.getDate() - (insDays - 1)); from.setHours(0, 0, 0, 0);
+    const to = new Date(); to.setDate(to.getDate() + 1); to.setHours(0, 0, 0, 0);
+    const [hRes, aRes] = await Promise.all([
+        supabaseClient.rpc('get_history', { p_from: from.toISOString(), p_to: to.toISOString() }),
+        supabaseClient.from('articles').select('article_no, name, stock_batches (remaining_qty)').eq('shop_id', currentShopId)
+    ]);
+    const H = hRes.data || {}, sales = H.sales || [], rets = H.returns || [], exps = H.expenses || [];
+    let sTot = 0, profit = 0; const sold = {};
+    sales.forEach(s => {
+        sTot += s.total_amount; profit += s.total_profit;
+        (s.items || []).forEach(i => { const k = i.article_no; if (!sold[k]) sold[k] = { name: i.name, qty: 0, amt: 0 }; sold[k].qty += i.qty; sold[k].amt += i.qty * i.price; });
+    });
+    rets.forEach(r => { sTot -= r.refund_amount; profit -= (r.refund_amount - (r.cost || 0) * r.quantity); });
+    exps.forEach(e => profit -= e.amount);
+    document.getElementById('insSales').innerText = '₹' + sTot;
+    document.getElementById('insProfit').innerText = '₹' + profit;
+    document.getElementById('insBills').innerText = sales.length;
+
+    const top = Object.entries(sold).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+    const max = top.length ? top[0][1].qty : 1;
+    document.getElementById('insTop').innerHTML = top.length ? top.map(([no, v], i) => `
+        <div class="rank-row"><span class="rank-n">${i + 1}</span><div class="rank-body"><div class="rank-line"><span>[${esc(no)}] ${esc(v.name || '')}</span><b>${v.qty} जोडी</b></div><div class="rank-bar"><i style="width:${Math.round(v.qty / max * 100)}%"></i></div><small>₹${v.amt}</small></div></div>`).join('')
+        : emptyState('fa-chart-simple', 'या काळात विक्री नाही');
+    document.getElementById('insDeadTitle').innerText = `${insDays === 1 ? 'आज' : insDays + ' दिवस'} न विकलेला stock`;
+    const dead = (aRes.data || []).map(a => ({ no: a.article_no, name: a.name, stock: (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0) }))
+        .filter(a => a.stock > 0 && !sold[a.no]).sort((a, b) => b.stock - a.stock);
+    document.getElementById('insDead').innerHTML = dead.length ? dead.map(a => `<div class="close-row"><span>[${esc(a.no)}] ${esc(a.name || '')}</span><b>${a.stock} जोडी</b></div>`).join('')
+        : emptyState('fa-circle-check', 'सगळे article विकले गेले 👍');
+}
+
+// ---------- Day Closing ----------
+let closingNet = 0, closingData = {};
+async function loadClosing() {
+    const r = dayRange(localDateStr(new Date()));
+    const { data } = await supabaseClient.rpc('get_history', { p_from: r[0], p_to: r[1] });
+    const H = data || {}; let s = 0, rt = 0, e = 0;
+    (H.sales || []).forEach(x => s += x.total_amount); (H.returns || []).forEach(x => rt += x.refund_amount); (H.expenses || []).forEach(x => e += x.amount);
+    closingNet = s - rt - e; closingData = { s, rt, e, bills: (H.sales || []).length };
+    document.getElementById('clBills').innerText = closingData.bills;
+    document.getElementById('clSales').innerText = '₹' + s;
+    document.getElementById('clReturns').innerText = '-₹' + rt;
+    document.getElementById('clExpenses').innerText = '-₹' + e;
+    document.getElementById('clNet').innerText = '₹' + closingNet;
+    calcClosing();
+}
+function calcClosing() {
+    const open = parseInt(document.getElementById('clOpening').value) || 0;
+    const cv = document.getElementById('clCounted').value;
+    const box = document.getElementById('clDiff');
+    const expected = open + closingNet;
+    if (cv === '') { box.className = 'close-diff'; box.innerHTML = `गल्ल्यात हवेत: <b>₹${expected}</b>`; return; }
+    const diff = (parseInt(cv) || 0) - expected;
+    box.className = 'close-diff ' + (diff === 0 ? 'ok' : (diff > 0 ? 'more' : 'less'));
+    box.innerHTML = `गल्ल्यात हवेत: <b>₹${expected}</b><br>` + (diff === 0 ? '✅ हिशोब बरोबर' : (diff > 0 ? `⬆ ₹${diff} जास्त` : `⬇ ₹${Math.abs(diff)} कमी`));
+}
+function shareClosingWA() {
+    const shop = document.getElementById('headerShopName').innerText || 'Shop';
+    const open = parseInt(document.getElementById('clOpening').value) || 0;
+    const cv = document.getElementById('clCounted').value;
+    let t = `🔒 *${shop} - आजचा हिशोब*\n${new Date().toLocaleDateString('en-IN')}\n------------------------\nबिले: ${closingData.bills}\nSales: ₹${closingData.s}\nReturns: -₹${closingData.rt}\nखर्च: -₹${closingData.e}\n*Net: ₹${closingNet}*\n------------------------\nसकाळचे: ₹${open}\nहवेत: ₹${open + closingNet}`;
+    if (cv !== '') t += `\nमोजलेले: ₹${cv}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, '_blank');
 }
 
 // ---------- History ----------
@@ -1184,7 +1358,7 @@ async function loadHistory() {
     const dateEl = document.getElementById('histDate');
     if(!dateEl.value) dateEl.value = localDateStr(new Date());
     const list = document.getElementById('historyList');
-    list.innerHTML = '<div class="hist-empty"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+    list.innerHTML = skeleton(3);
     const r = dayRange(dateEl.value);
     const { data, error } = await supabaseClient.rpc('get_history', { p_from: r[0], p_to: r[1] });
     if (error) { list.innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
@@ -1210,7 +1384,7 @@ async function loadHistory() {
         <div class="hist-card exp"><div class="hist-head"><span class="hist-badge exp"><i class="fa-solid fa-money-bill-transfer"></i> Expense</span><span class="hist-right"><span class="hist-time">${fmtTime(x.expense_date)}</span>${delBtn('expense', x.id)}</span></div>
         <div class="hist-line"><span>${esc(x.reason)}</span><b class="neg">-₹${x.amount}</b></div></div>` }));
     rows = rows.filter(x => histFilter === 'all' || x.type === histFilter).sort((a, b) => new Date(b.t) - new Date(a.t));
-    list.innerHTML = rows.length ? rows.map(x => x.html).join('') : '<div class="hist-empty"><i class="fa-regular fa-folder-open"></i><p>या दिवशी काहीही नोंद नाही</p></div>';
+    list.innerHTML = rows.length ? rows.map(x => x.html).join('') : emptyState('fa-folder-open', 'या दिवशी काहीही नोंद नाही');
 }
 
 async function downloadExcel() {

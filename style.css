@@ -395,3 +395,42 @@ body { height: 100vh; height: 100dvh; }
 
 .menu-toggle { font-size: 22px; padding: 6px 4px; cursor: pointer; }
 .bottom-nav .nav-item { flex: 1; }
+
+/* ===== v7 : chips, bill, insights, closing, polish ===== */
+.chip-wrap { margin-bottom: 14px; }
+.chip-color { font-size: 13px; font-weight: 700; color: var(--warning); margin: 8px 0 6px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { width: auto; margin: 0; padding: 10px 14px; min-width: 62px; border-radius: 12px; background: var(--input-bg); color: var(--text-light); border: 2px solid var(--border-color); font-weight: 800; font-size: 15px; box-shadow: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.chip small { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.chip.low small { color: var(--danger); }
+.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chip.active small { color: #fff; }
+.size-badge.low { background: rgba(239,68,68,.15); color: var(--danger); border-color: var(--danger); }
+.stat-sub { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.9); margin-top: 4px; }
+.tx-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 8px 0; border-bottom: 1px dashed var(--border-color); font-weight: 600; }
+.day-sum { display: flex; justify-content: space-around; background: var(--input-bg); border-radius: 12px; padding: 10px 6px; margin-bottom: 8px; font-size: 12px; color: var(--text-muted); text-align: center; }
+.day-sum b { display: block; font-size: 15px; color: var(--text-light); }
+.bill-preview { background: var(--input-bg); border: 1px dashed var(--border-color); border-radius: 12px; padding: 14px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; white-space: pre-wrap; color: var(--text-light); margin: 0 0 14px; }
+.bill-pick { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; margin: 0 0 8px; padding: 12px 14px; text-align: left; background: var(--input-bg); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 12px; font-size: 13px; box-shadow: none; }
+.bill-pick small { display: block; color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.bill-pick b { color: var(--success); }
+.skeleton { height: 96px; border-radius: 16px; margin-bottom: 12px; background: linear-gradient(90deg, var(--card-dark) 25%, var(--input-bg) 50%, var(--card-dark) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.empty-state { text-align: center; color: var(--text-muted); padding: 36px 10px; }
+.empty-state i { font-size: 38px; margin-bottom: 10px; display: block; opacity: .7; }
+.empty-state p { margin: 0 0 14px; font-size: 14px; }
+.card-h { margin: 0 0 12px; font-size: 15px; color: var(--text-light); }
+.rank-row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; }
+.rank-n { width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.rank-body { flex: 1; min-width: 0; }
+.rank-line { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 600; }
+.rank-bar { height: 6px; background: var(--input-bg); border-radius: 6px; margin: 6px 0 3px; overflow: hidden; }
+.rank-bar i { display: block; height: 100%; background: var(--success); border-radius: 6px; }
+.rank-body small { color: var(--text-muted); font-size: 11px; }
+.close-row { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--border-color); font-size: 14px; }
+.close-row.total { font-size: 16px; font-weight: 800; border-bottom: 0; margin-bottom: 8px; }
+.close-row .pos { color: var(--success); } .close-row .warn { color: var(--warning); } .close-row .neg { color: var(--danger); }
+.close-diff { margin: 4px 0 14px; padding: 12px; border-radius: 12px; background: var(--input-bg); font-size: 14px; text-align: center; }
+.close-diff.ok { background: rgba(16,185,129,.14); color: var(--success); }
+.close-diff.more { background: rgba(59,130,246,.14); color: var(--primary); }
+.close-diff.less { background: rgba(239,68,68,.14); color: var(--danger); }

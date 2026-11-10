@@ -32,6 +32,16 @@
         </div>
     </div>
 
+    <div id="billModal" class="sa-modal">
+        <div class="sa-modal-content">
+            <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-circle-check" style="color: var(--success);"></i> Sale Done</h3>
+            <pre id="billPreview" class="bill-preview"></pre>
+            <button class="btn-success" onclick="shareBillWA()" style="background:#25D366;"><i class="fa-brands fa-whatsapp"></i> WhatsApp वर बिल पाठवा</button>
+            <button class="btn-outline" onclick="copyBill()" style="margin-top:8px;"><i class="fa-regular fa-copy"></i> Copy</button>
+            <button class="btn-primary" onclick="closeBill()" style="margin-top:8px;">Done</button>
+        </div>
+    </div>
+
     <div id="customConfirmModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center;">
             <div style="font-size: 40px; color: var(--warning); margin-bottom: 10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -51,6 +61,8 @@
         </div>
         <div class="menu-list">
             <div class="menu-item" onclick="switchTab('history'); toggleSidebar();"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+            <div class="menu-item" onclick="switchTab('insights'); toggleSidebar();"><i class="fa-solid fa-chart-pie"></i> Business Insights</div>
+            <div class="menu-item" onclick="switchTab('closing'); toggleSidebar();"><i class="fa-solid fa-lock"></i> Day Closing</div>
             <div class="menu-item text-danger" onclick="toggleSidebar(); clearHistory();"><i class="fa-solid fa-broom"></i> Clear History</div>
             <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
             <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
@@ -168,6 +180,7 @@
                 <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
                     <div class="stat-title" style="color: white;">Today's Sales</div>
                     <div class="stat-value" id="todaySalesDisplay" style="color: white;">₹0</div>
+                    <div class="stat-sub" id="salesCompare"></div>
                 </div>
                 <div class="stat-card" style="background: linear-gradient(135deg, #3B82F6, #2563EB); border: none; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">
                     <div class="stat-title" style="color: white;">Today's Profit</div>
@@ -293,7 +306,7 @@
                 <div id="saleArticleDetails" class="sub-card" style="display: none;">
                     <h4 id="saleArtName" style="color: var(--primary); margin: 0 0 15px 0; font-size: 16px;"></h4>
                     <label>Color & Size</label>
-                    <select id="saleSize"></select>
+                    <div id="saleChips" class="chip-wrap"></div><select id="saleSize" style="display:none;"></select>
                     <label>Quantity</label>
                     <input type="number" id="saleQty" value="1" min="1">
                     <label>Selling Price (₹)</label>
@@ -304,6 +317,8 @@
                 <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--warning); font-weight: 700;"><i class="fa-solid fa-receipt"></i> Current Bill</h4>
                 <div id="cartList" style="margin-bottom: 15px;"><p style="font-size: 14px; color: var(--text-muted); text-align: center;">No items added.</p></div>
                 
+                <label>Customer (optional)</label>
+                <div style="display:flex; gap:8px;"><input type="text" id="saleCustName" placeholder="नाव"><input type="tel" id="saleCustPhone" placeholder="Mobile" maxlength="10"></div>
                 <label>Discount (₹)</label>
                 <input type="number" id="saleDiscount" value="0" min="0" oninput="renderCart()">
 
@@ -365,6 +380,38 @@
             </div>
         </div>
 
+        <div id="insightsScreen" class="fade-in" style="display: none;">
+            <h2 class="page-title"><i class="fa-solid fa-chart-pie"></i> Business Insights</h2>
+            <div class="hist-tabs">
+                <button class="hist-tab" onclick="setInsDays(1, this)">आज</button>
+                <button class="hist-tab active" onclick="setInsDays(7, this)">7 दिवस</button>
+                <button class="hist-tab" onclick="setInsDays(30, this)">30 दिवस</button>
+            </div>
+            <div class="hist-summary">
+                <div class="hist-sum sale"><small>Sales</small><b id="insSales">₹0</b></div>
+                <div class="hist-sum net"><small>Net Profit</small><b id="insProfit">₹0</b></div>
+                <div class="hist-sum ret"><small>Bills</small><b id="insBills">0</b></div>
+            </div>
+            <div class="app-card"><h4 class="card-h"><i class="fa-solid fa-trophy" style="color:var(--warning);"></i> Top 5 विक्री</h4><div id="insTop"></div></div>
+            <div class="app-card"><h4 class="card-h"><i class="fa-solid fa-snowflake" style="color:var(--primary);"></i> <span id="insDeadTitle">न विकलेला stock</span></h4><div id="insDead"></div></div>
+        </div>
+
+        <div id="closingScreen" class="fade-in" style="display: none;">
+            <h2 class="page-title"><i class="fa-solid fa-lock"></i> Day Closing</h2>
+            <div class="app-card">
+                <div class="close-row"><span>एकूण Sales (<span id="clBills">0</span> बिले)</span><b id="clSales" class="pos">₹0</b></div>
+                <div class="close-row"><span>Returns</span><b id="clReturns" class="warn">-₹0</b></div>
+                <div class="close-row"><span>खर्च</span><b id="clExpenses" class="neg">-₹0</b></div>
+                <div class="close-row total"><span>आजचा Net</span><b id="clNet">₹0</b></div>
+                <label>सकाळचे गल्ल्यातले पैसे (₹)</label>
+                <input type="number" id="clOpening" value="0" oninput="calcClosing()">
+                <label>आत्ता गल्ल्यात मोजलेले पैसे (₹)</label>
+                <input type="number" id="clCounted" placeholder="0" oninput="calcClosing()">
+                <div id="clDiff" class="close-diff"></div>
+                <button class="btn-success" onclick="shareClosingWA()" style="background:#25D366;"><i class="fa-brands fa-whatsapp"></i> हिशोब WhatsApp वर पाठवा</button>
+            </div>
+        </div>
+
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
             <input type="date" id="histDate" onchange="loadHistory()">
@@ -391,10 +438,12 @@
                     <button class="btn-primary" onclick="startScanner('retArtNo')" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-camera"></i></button>
                     <button class="btn-warning" onclick="searchReturnArticle()" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
+                <button class="btn-outline" onclick="toggleRecentBills()" style="margin-bottom:12px;"><i class="fa-solid fa-receipt"></i> मागच्या बिलावरून निवडा</button>
+                <div id="recentBills" style="display:none; margin-bottom:12px;"></div>
                 <div id="retArticleDetails" class="sub-card" style="display: none;">
                     <h4 id="retArtName" style="color: var(--warning); margin-bottom: 15px; font-size: 16px;"></h4>
                     <label>Color & Size</label><select id="retSize"></select>
-                    <label>Quantity</label><input type="number" id="retQty" value="1" min="1">
+                    <label>Quantity</label><input type="number" id="retQty" value="1" min="1" oninput="updateRetPrice()">
                     <label>Refund (₹)</label><input type="number" id="retPrice" value="0">
                     <button class="btn-warning" onclick="processReturn()"><i class="fa-solid fa-check"></i> Confirm Return</button>
                 </div>
