@@ -434,3 +434,47 @@ body { height: 100vh; height: 100dvh; }
 .close-diff.ok { background: rgba(16,185,129,.14); color: var(--success); }
 .close-diff.more { background: rgba(59,130,246,.14); color: var(--primary); }
 .close-diff.less { background: rgba(239,68,68,.14); color: var(--danger); }
+
+/* ===== Labels ===== */
+.chk { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; color: var(--text-light); }
+.chk input, .lab-row input { width: 20px !important; height: 20px; margin: 0 !important; padding: 0; flex: 0 0 auto; accent-color: var(--primary); }
+.lab-actions { display: flex; gap: 10px; margin: 10px 0; }
+.lab-actions button { flex: 1; margin: 0; }
+.lab-row { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px dashed var(--border-color); font-size: 14px; color: var(--text-light); }
+.lab-name { flex: 1; min-width: 0; }
+.lab-row small { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+.lab-count { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.label-sheet { margin-top: 14px; background: #fff; color: #000; display: grid; gap: 2mm; padding: 3mm; border-radius: 10px; }
+.label-sheet:empty { display: none; }
+.label-sheet.a4 { grid-template-columns: repeat(3, 60mm); overflow-x: auto; }
+.label-sheet.roll50, .label-sheet.roll38 { grid-template-columns: max-content; gap: 3mm; overflow-x: auto; }
+.lbl { box-sizing: border-box; border: 0.3mm dashed #999; display: flex; align-items: center; gap: 1.5mm; padding: 1.5mm; overflow: hidden; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; }
+.label-sheet.a4 .lbl { width: 60mm; height: 30mm; }
+.label-sheet.roll50 .lbl { width: 50mm; height: 30mm; }
+.label-sheet.roll38 .lbl { width: 38mm; height: 25mm; }
+.lbl-code { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+.lbl-code svg { width: 100%; height: 100%; display: block; }
+.lbl.qr .lbl-code { width: 24mm; height: 24mm; }
+.label-sheet.roll38 .lbl.qr .lbl-code { width: 18mm; height: 18mm; }
+.lbl.bar { flex-direction: column; align-items: stretch; gap: 0.8mm; }
+.lbl.bar .lbl-code { width: 100%; height: 11mm; }
+.label-sheet.roll38 .lbl.bar .lbl-code { height: 8mm; }
+.lbl-info { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.15; }
+.lbl.bar .lbl-info { align-items: center; text-align: center; }
+.lbl-shop { font-size: 7pt; text-transform: uppercase; letter-spacing: .2pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lbl-name { font-size: 8pt; font-weight: 700; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lbl-no { font-size: 8pt; }
+.lbl-meta { font-size: 8pt; font-weight: 700; }
+.lbl-mrp { font-size: 10pt; margin-top: 0.6mm; }
+.label-sheet.roll38 .lbl-name, .label-sheet.roll38 .lbl-no, .label-sheet.roll38 .lbl-meta { font-size: 6.5pt; }
+.label-sheet.roll38 .lbl-mrp { font-size: 8pt; }
+@media print {
+    html, body { height: auto !important; overflow: visible !important; display: block !important; background: #fff !important; }
+    body * { visibility: hidden !important; }
+    #labelSheet, #labelSheet * { visibility: visible !important; }
+    .content-area { overflow: visible !important; height: auto !important; padding: 0 !important; display: block !important; }
+    #labelSheet { position: absolute !important; left: 0; top: 0; margin: 0 !important; padding: 0 !important; border-radius: 0; gap: 0 !important; }
+    .label-sheet.a4 { gap: 2mm !important; }
+    .lbl { border: none !important; break-inside: avoid; page-break-inside: avoid; }
+    .label-sheet.roll50 .lbl, .label-sheet.roll38 .lbl { page-break-after: always; }
+}

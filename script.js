@@ -6,6 +6,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let currentShopId = null;
 let isStaffMode = false;
+let currentShopName = '';
 
 let foundSaleArticle = null;
 let foundReturnArticle = null;
@@ -208,7 +209,7 @@ async function handleLogin() {
     const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: shop.auth_email, password: shop.pin, options: { emailRedirectTo: window.location.origin } });
 
     if (authError) { showToast("Login failed: " + authError.message, true); } 
-    else { currentUser = authData.user; currentShopId = shop.id; document.getElementById('headerShopName').innerText = shop.shop_name; showOwnerDashboard(); }
+    else { currentUser = authData.user; currentShopId = shop.id; currentShopName = shop.shop_name; document.getElementById('headerShopName').innerText = 'SJ Digital Labs'; showOwnerDashboard(); }
 }
 
 async function saveTarget() {
@@ -432,8 +433,8 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    if(isStaffMode && (tabName === 'insights' || tabName === 'closing' || tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
-    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen'];
+    if(isStaffMode && (tabName === 'insights' || tabName === 'closing' || tabName === 'labels' || tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
+    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen', 'labelsScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -450,6 +451,7 @@ function switchTab(tabName) {
     else if(tabName === 'target') { document.getElementById('targetScreen').style.display = 'block'; loadTargetData(); }
     else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = localDateStr(new Date()); loadReportData(); }
     else if(tabName === 'history') { document.getElementById('historyScreen').style.display = 'block'; document.getElementById('nav-hist').classList.add('active'); loadHistory(); }
+    else if(tabName === 'labels') { document.getElementById('labelsScreen').style.display = 'block'; loadLabels(); }
     else if(tabName === 'insights') { document.getElementById('insightsScreen').style.display = 'block'; loadInsights(); }
     else if(tabName === 'closing') { document.getElementById('closingScreen').style.display = 'block'; loadClosing(); }
     else if(tabName === 'lowStockAlert') { document.getElementById('lowStockAlertScreen').style.display = 'block'; loadLowStockAlerts(); }
@@ -568,7 +570,7 @@ async function loadLowStockAlerts() {
         });
     }
     if(lowStockHtml === '') {
-        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--success);"><i class="fa-solid fa-check-circle" style="font-size: 40px; margin-bottom: 10px;"></i><h3>All Good!</h3><p>सर्व शूजचा स्टॉक व्यवस्थित आहे.</p></div>';
+        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--success);"><i class="fa-solid fa-check-circle" style="font-size: 40px; margin-bottom: 10px;"></i><h3>All Good!</h3><p>All shoes are well stocked.</p></div>';
     } else {
         container.innerHTML = lowStockHtml;
     }
@@ -642,14 +644,14 @@ async function loadDashboardData() {
         transactionsHtml += row('var(--danger)', 'fa-money-bill-transfer', esc(e.reason), `-₹${e.amount}`);
     });
     if (transactionsHtml !== '') {
-        transactionsHtml = `<div class="day-sum"><span><b>${todaySales.length}</b> बिले</span><span><b>₹${tReturnAmt}</b> return</span><span><b>₹${tExpenseAmt}</b> खर्च</span></div>` + transactionsHtml;
+        transactionsHtml = `<div class="day-sum"><span><b>${todaySales.length}</b> bills</span><span><b>₹${tReturnAmt}</b> return</span><span><b>₹${tExpenseAmt}</b> expenses</span></div>` + transactionsHtml;
     }
     let ySales = 0;
     (Y.sales || []).forEach(s => ySales += s.total_amount); (Y.returns || []).forEach(r => ySales -= r.refund_amount);
     const cmp = document.getElementById('salesCompare');
     if (cmp) {
-        if (ySales > 0) { const p = Math.round(((tSalesAmt - ySales) / ySales) * 100); cmp.innerHTML = `${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}% कालपेक्षा`; }
-        else cmp.innerHTML = 'काल: ₹0';
+        if (ySales > 0) { const p = Math.round(((tSalesAmt - ySales) / ySales) * 100); cmp.innerHTML = `${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}% vs yesterday`; }
+        else cmp.innerHTML = 'Yesterday: ₹0';
     }
 
     const transDiv = document.getElementById('todayTransactions');
@@ -684,7 +686,7 @@ async function loadCredits() {
     if(!credits || credits.length === 0) { list.innerHTML = '<p style="text-align:center; font-size:14px; color:var(--text-muted);">No pending credits.</p>'; return; }
     credits.forEach(c => {
         let isPaid = c.status === 'paid';
-        let waLink = `https://wa.me/91${c.phone}?text=${encodeURIComponent(`नमस्कार ${c.customer_name}, तुमची आमच्या दुकानात ₹${c.amount} ची उधारी बाकी आहे. कृपया भेट द्या.`)}`;
+        let waLink = `https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hello ${c.customer_name}, you have a pending credit of ₹${c.amount} at our shop. Please visit us.`)}`;
         let actionBtn = `<a href="${waLink}" target="_blank" class="btn-small" style="background:#25D366; color:white; text-decoration:none; display:inline-flex; align-items:center; gap:5px; border-radius: 8px;"><i class="fa-brands fa-whatsapp"></i> Reminder</a>`;
         list.innerHTML += `
         <div class="credit-card ${isPaid ? 'paid' : ''}">
@@ -744,7 +746,7 @@ async function loadMyStockList() {
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId).order('created_at', { ascending: false });
     updateStockTotals(articles);
     stockListDiv.innerHTML = ''; 
-    if(!articles || articles.length === 0) { stockListDiv.innerHTML = emptyState('fa-box-open', 'अजून एकही article नाही', '<button class="btn-primary" onclick="switchTab(\'article\')" style="width:auto; padding:12px 22px;"><i class="fa-solid fa-plus"></i> पहिला article जोडा</button>'); return; }
+    if(!articles || articles.length === 0) { stockListDiv.innerHTML = emptyState('fa-box-open', 'No articles added yet', '<button class="btn-primary" onclick="switchTab(\'article\')" style="width:auto; padding:12px 22px;"><i class="fa-solid fa-plus"></i> Add your first article</button>'); return; }
 
     let filteredArticles = articles.filter(art => {
         let cat = art.category;
@@ -755,7 +757,7 @@ async function loadMyStockList() {
         return cat === `${currentGenderFilter} - ${currentTypeFilter}`;
     });
 
-    if(filteredArticles.length === 0) { stockListDiv.innerHTML = emptyState('fa-shoe-prints', `${currentGenderFilter} - ${currentTypeFilter} मध्ये article नाही`); return; }
+    if(filteredArticles.length === 0) { stockListDiv.innerHTML = emptyState('fa-shoe-prints', `${currentGenderFilter} - ${currentTypeFilter} - no articles found`); return; }
 
     filteredArticles.forEach(art => {
         let totalPairs = 0;
@@ -1173,7 +1175,7 @@ async function processReturn() {
     const qty = parseInt(document.getElementById('retQty').value);
     const refund = parseInt(document.getElementById('retPrice').value) || 0;
     if(!size || !qty || qty <= 0) { showToast("Invalid details!", true); return; }
-    if(refund <= 0) { showToast("Refund रक्कम टाका!", true); return; }
+    if(refund <= 0) { showToast("Enter the refund amount!", true); return; }
     const { error } = await supabaseClient.rpc('process_return', { p_article: String(foundReturnArticle.id), p_color: color || '', p_size: String(size), p_qty: qty, p_refund: refund });
     if (error) { showToast("Error: " + error.message, true); return; }
     showToast(`✅ Return done! Stock +${qty}`, false);
@@ -1186,16 +1188,16 @@ async function processReturn() {
 // ---------- Bill share ----------
 let billText = '', billPhone = '';
 function showBill(b) {
-    const shop = document.getElementById('headerShopName').innerText || 'Shop';
+    const shop = currentShopName || 'Shop';
     const no = b.id ? String(b.id).replace(/-/g, '').slice(-6).toUpperCase() : '------';
     const dt = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    let t = `🧾 *${shop}*\nबिल #${no}\n${dt}\n`;
-    if (b.name) t += `ग्राहक: ${b.name}\n`;
+    let t = `🧾 *${shop}*\nBill #${no}\n${dt}\n`;
+    if (b.name) t += `Customer: ${b.name}\n`;
     t += `------------------------\n`;
     b.items.forEach(i => { const c = (i.color && i.color !== 'Default') ? `${i.color} ` : ''; t += `${i.artNo} (${c}S${i.size}) x${i.qty} = ₹${i.qty * i.price}\n`; });
     t += `------------------------\n`;
-    if (b.discount > 0) t += `सूट: -₹${b.discount}\n`;
-    t += `*एकूण: ₹${b.total}*\n\nधन्यवाद! पुन्हा भेट द्या 🙏`;
+    if (b.discount > 0) t += `Discount: -₹${b.discount}\n`;
+    t += `*Total: ₹${b.total}*\n\nThank you! Please visit again 🙏`;
     billText = t; billPhone = b.phone;
     document.getElementById('billPreview').innerText = t.replace(/\*/g, '');
     document.getElementById('billModal').style.display = 'flex';
@@ -1228,7 +1230,7 @@ async function toggleRecentBills() {
     if (error) { box.innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
     recentBillItems = [];
     (data.sales || []).forEach(s => (s.items || []).forEach(i => recentBillItems.push({ ...i, date: s.sale_date })));
-    if (!recentBillItems.length) { box.innerHTML = emptyState('fa-receipt', 'मागच्या 7 दिवसांत बिल नाही'); return; }
+    if (!recentBillItems.length) { box.innerHTML = emptyState('fa-receipt', 'No bills in the last 7 days'); return; }
     box.innerHTML = recentBillItems.map((i, idx) => `<button type="button" class="bill-pick" onclick="pickReturnItem(${idx})"><span>[${esc(i.article_no)}] ${esc(i.name || '')} • S${esc(i.size)} × ${i.qty}<small>${new Date(i.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} ${fmtTime(i.date)}</small></span><b>₹${i.price}</b></button>`).join('');
 }
 async function pickReturnItem(idx) {
@@ -1246,6 +1248,99 @@ function skeleton(n) { return Array.from({ length: n }, () => '<div class="skele
 function emptyState(icon, text, btn) {
     return `<div class="empty-state"><i class="fa-solid ${icon}"></i><p>${text}</p>${btn || ''}</div>`;
 }
+
+
+// ---------- Print Labels ----------
+let labelArticles = [], labSel = new Set();
+async function loadLabels() {
+    document.getElementById('labList').innerHTML = skeleton(2);
+    const { data, error } = await supabaseClient.from('articles').select('id, article_no, name, mrp, stock_batches (color, size, remaining_qty)').eq('shop_id', currentShopId).order('article_no');
+    if (error) { document.getElementById('labList').innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
+    labelArticles = data || [];
+    document.getElementById('labelSheet').innerHTML = '';
+    renderLabelList();
+}
+function labStock(a) { return (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0); }
+function renderLabelList() {
+    const q = (document.getElementById('labSearch').value || '').toLowerCase();
+    const rows = labelArticles.filter(a => !q || String(a.article_no).toLowerCase().includes(q) || String(a.name || '').toLowerCase().includes(q));
+    document.getElementById('labList').innerHTML = rows.length ? rows.map(a => `
+        <label class="lab-row"><input type="checkbox" ${labSel.has(a.id) ? 'checked' : ''} onchange="toggleLab('${esc(a.id)}', this.checked)">
+        <span class="lab-name">[${esc(a.article_no)}] ${esc(a.name || '')}</span><small>${labStock(a)} pairs${a.mrp ? ' • ₹' + a.mrp : ''}</small></label>`).join('')
+        : emptyState('fa-box-open', 'No articles found');
+    updateLabCount();
+}
+function toggleLab(id, on) { if (on) labSel.add(id); else labSel.delete(id); updateLabCount(); }
+function labSelectAll(on) {
+    const q = (document.getElementById('labSearch').value || '').toLowerCase();
+    labelArticles.filter(a => !q || String(a.article_no).toLowerCase().includes(q) || String(a.name || '').toLowerCase().includes(q))
+        .forEach(a => on ? labSel.add(a.id) : labSel.delete(a.id));
+    renderLabelList();
+}
+function updateLabCount() { document.getElementById('labCount').innerText = `${labSel.size} article(s) selected`; }
+
+function labQrSvg(text) {
+    if (typeof qrcode === 'undefined') return null;
+    const qr = qrcode(0, 'M'); qr.addData(String(text)); qr.make();
+    const n = qr.getModuleCount(); let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c},${r}h1v1h-1z`;
+    return `<svg viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+function labBarSvg(text) {
+    if (typeof JsBarcode === 'undefined') return null;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    JsBarcode(svg, String(text), { format: 'CODE128', displayValue: false, height: 50, margin: 4, width: 2 });
+    const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
+    if (!svg.getAttribute('viewBox') && w && h) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.removeAttribute('width'); svg.removeAttribute('height');
+    return svg.outerHTML;
+}
+function buildLabels() {
+    const type = document.getElementById('labType').value, size = document.getElementById('labSize').value;
+    const mode = document.getElementById('labMode').value;
+    const copies = Math.max(1, Math.min(100, parseInt(document.getElementById('labCopies').value) || 1));
+    const showMrp = document.getElementById('labShowMrp').checked, showName = document.getElementById('labShowName').checked;
+    const items = [];
+    labelArticles.filter(a => labSel.has(a.id)).forEach(a => {
+        if (mode === 'copies') { for (let k = 0; k < copies; k++) items.push({ a, color: '', size: '' }); }
+        else {
+            const agg = {};
+            (a.stock_batches || []).forEach(b => { if (b.remaining_qty > 0) { let col = b.color || ''; if (col === 'Default') col = ''; const k = col + '|||' + String(b.size).trim(); agg[k] = (agg[k] || 0) + b.remaining_qty; } });
+            Object.keys(agg).forEach(k => { const [col, sz] = k.split('|||'); for (let n = 0; n < agg[k]; n++) items.push({ a, color: col, size: sz }); });
+        }
+    });
+    if (!items.length) { showToast('Select at least one article (with stock for "per pair" mode)', true); return false; }
+    if (items.length > 500) { showToast('Too many labels (' + items.length + '). Select fewer articles.', true); return false; }
+    const make = type === 'qr' ? labQrSvg : labBarSvg;
+    const svgCache = {};
+    let html = '';
+    for (const it of items) {
+        const key = it.a.article_no;
+        if (!(key in svgCache)) svgCache[key] = make(key);
+        if (!svgCache[key]) { showToast('Label library failed to load. Check internet and reload.', true); return false; }
+        const meta = [it.color, it.size ? 'S' + it.size : ''].filter(Boolean).join(' • ');
+        html += `<div class="lbl ${type}"><div class="lbl-code">${svgCache[key]}</div><div class="lbl-info">
+            <b class="lbl-shop">${esc(currentShopName)}</b>
+            ${showName && it.a.name ? `<span class="lbl-name">${esc(it.a.name)}</span>` : ''}
+            <span class="lbl-no">#${esc(it.a.article_no)}</span>
+            ${meta ? `<span class="lbl-meta">${esc(meta)}</span>` : ''}
+            ${showMrp && it.a.mrp ? `<b class="lbl-mrp">MRP ₹${it.a.mrp}</b>` : ''}</div></div>`;
+    }
+    const sheet = document.getElementById('labelSheet');
+    sheet.className = 'label-sheet ' + size;
+    sheet.innerHTML = html;
+    let ps = document.getElementById('labPageStyle');
+    if (!ps) { ps = document.createElement('style'); ps.id = 'labPageStyle'; document.head.appendChild(ps); }
+    ps.textContent = size === 'roll50' ? '@media print { @page { size: 50mm 30mm; margin: 0; } }'
+        : size === 'roll38' ? '@media print { @page { size: 38mm 25mm; margin: 0; } }'
+        : '@media print { @page { size: A4; margin: 8mm; } }';
+    return items.length;
+}
+function previewLabels() {
+    const n = buildLabels();
+    if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); }
+}
+function printLabels() { if (buildLabels()) setTimeout(() => window.print(), 300); }
 
 // ---------- Insights ----------
 let insDays = 7;
@@ -1278,13 +1373,13 @@ async function loadInsights() {
     const top = Object.entries(sold).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
     const max = top.length ? top[0][1].qty : 1;
     document.getElementById('insTop').innerHTML = top.length ? top.map(([no, v], i) => `
-        <div class="rank-row"><span class="rank-n">${i + 1}</span><div class="rank-body"><div class="rank-line"><span>[${esc(no)}] ${esc(v.name || '')}</span><b>${v.qty} जोडी</b></div><div class="rank-bar"><i style="width:${Math.round(v.qty / max * 100)}%"></i></div><small>₹${v.amt}</small></div></div>`).join('')
-        : emptyState('fa-chart-simple', 'या काळात विक्री नाही');
-    document.getElementById('insDeadTitle').innerText = `${insDays === 1 ? 'आज' : insDays + ' दिवस'} न विकलेला stock`;
+        <div class="rank-row"><span class="rank-n">${i + 1}</span><div class="rank-body"><div class="rank-line"><span>[${esc(no)}] ${esc(v.name || '')}</span><b>${v.qty} pairs</b></div><div class="rank-bar"><i style="width:${Math.round(v.qty / max * 100)}%"></i></div><small>₹${v.amt}</small></div></div>`).join('')
+        : emptyState('fa-chart-simple', 'No sales in this period');
+    document.getElementById('insDeadTitle').innerText = `Unsold stock (${insDays === 1 ? 'today' : insDays + ' days'})`;
     const dead = (aRes.data || []).map(a => ({ no: a.article_no, name: a.name, stock: (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0) }))
         .filter(a => a.stock > 0 && !sold[a.no]).sort((a, b) => b.stock - a.stock);
-    document.getElementById('insDead').innerHTML = dead.length ? dead.map(a => `<div class="close-row"><span>[${esc(a.no)}] ${esc(a.name || '')}</span><b>${a.stock} जोडी</b></div>`).join('')
-        : emptyState('fa-circle-check', 'सगळे article विकले गेले 👍');
+    document.getElementById('insDead').innerHTML = dead.length ? dead.map(a => `<div class="close-row"><span>[${esc(a.no)}] ${esc(a.name || '')}</span><b>${a.stock} pairs</b></div>`).join('')
+        : emptyState('fa-circle-check', 'All articles have sold 👍');
 }
 
 // ---------- Day Closing ----------
@@ -1307,17 +1402,17 @@ function calcClosing() {
     const cv = document.getElementById('clCounted').value;
     const box = document.getElementById('clDiff');
     const expected = open + closingNet;
-    if (cv === '') { box.className = 'close-diff'; box.innerHTML = `गल्ल्यात हवेत: <b>₹${expected}</b>`; return; }
+    if (cv === '') { box.className = 'close-diff'; box.innerHTML = `Expected in drawer: <b>₹${expected}</b>`; return; }
     const diff = (parseInt(cv) || 0) - expected;
     box.className = 'close-diff ' + (diff === 0 ? 'ok' : (diff > 0 ? 'more' : 'less'));
-    box.innerHTML = `गल्ल्यात हवेत: <b>₹${expected}</b><br>` + (diff === 0 ? '✅ हिशोब बरोबर' : (diff > 0 ? `⬆ ₹${diff} जास्त` : `⬇ ₹${Math.abs(diff)} कमी`));
+    box.innerHTML = `Expected in drawer: <b>₹${expected}</b><br>` + (diff === 0 ? '✅ Cash matches' : (diff > 0 ? `⬆ ₹${diff} extra` : `⬇ ₹${Math.abs(diff)} short`));
 }
 function shareClosingWA() {
-    const shop = document.getElementById('headerShopName').innerText || 'Shop';
+    const shop = currentShopName || 'Shop';
     const open = parseInt(document.getElementById('clOpening').value) || 0;
     const cv = document.getElementById('clCounted').value;
-    let t = `🔒 *${shop} - आजचा हिशोब*\n${new Date().toLocaleDateString('en-IN')}\n------------------------\nबिले: ${closingData.bills}\nSales: ₹${closingData.s}\nReturns: -₹${closingData.rt}\nखर्च: -₹${closingData.e}\n*Net: ₹${closingNet}*\n------------------------\nसकाळचे: ₹${open}\nहवेत: ₹${open + closingNet}`;
-    if (cv !== '') t += `\nमोजलेले: ₹${cv}`;
+    let t = `🔒 *${shop} - Today's Summary*\n${new Date().toLocaleDateString('en-IN')}\n------------------------\nBills: ${closingData.bills}\nSales: ₹${closingData.s}\nReturns: -₹${closingData.rt}\nExpenses: -₹${closingData.e}\n*Net: ₹${closingNet}*\n------------------------\nOpening: ₹${open}\nExpected: ₹${open + closingNet}`;
+    if (cv !== '') t += `\nCounted: ₹${cv}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, '_blank');
 }
 
@@ -1333,7 +1428,7 @@ function delBtn(kind, id) {
     return isStaffMode ? '' : `<button class="hist-del" onclick="deleteHistory('${kind}','${id}')"><i class="fa-solid fa-trash"></i></button>`;
 }
 function deleteHistory(kind, id) {
-    const msg = kind === 'sale' ? 'हे बिल delete करायचं? (stock परत जमा होईल)' : kind === 'return' ? 'ही return नोंद delete करायची? (stock कमी होईल)' : 'हा खर्च delete करायचा?';
+    const msg = kind === 'sale' ? 'Delete this bill? (Stock will be added back)' : kind === 'return' ? 'Delete this return entry? (Stock will be reduced)' : 'Delete this expense?';
     askConfirm(msg, async () => {
         const fn = { sale: 'delete_sale', return: 'delete_return', expense: 'delete_expense' }[kind];
         const { error } = await supabaseClient.rpc(fn, { p_id: String(id) });
@@ -1345,7 +1440,7 @@ function deleteHistory(kind, id) {
 function clearHistory() {
     const dateEl = document.getElementById('histDate');
     const d = (dateEl && dateEl.value) || localDateStr(new Date());
-    askConfirm(`${d} ची सगळी History (Sales, Returns, Expenses) delete करायची? Stock बदलणार नाही.`, async () => {
+    askConfirm(`Delete ALL history (Sales, Returns, Expenses) for ${d}? Stock will not change.`, async () => {
         const r = dayRange(d);
         const { error } = await supabaseClient.rpc('clear_history', { p_from: r[0], p_to: r[1] });
         if (error) { showToast('Error: ' + error.message, true); return; }
@@ -1372,19 +1467,19 @@ async function loadHistory() {
     let rows = [];
     sales.forEach(s => rows.push({ t: s.sale_date, type: 'sale', html: `
         <div class="hist-card sale"><div class="hist-head"><span class="hist-badge sale"><i class="fa-solid fa-bag-shopping"></i> Sale</span><span class="hist-right"><span class="hist-time">${fmtTime(s.sale_date)}</span>${delBtn('sale', s.id)}</span></div>
-        ${(s.items||[]).length ? '' : '<div class="hist-line muted"><span>⚠ जुनं अर्धवट बिल (items नाहीत) — delete करा</span></div>'}
+        ${(s.items||[]).length ? '' : '<div class="hist-line muted"><span>⚠ Old incomplete bill (no items) - please delete</span></div>'}
         ${(s.items||[]).map(i => `<div class="hist-line"><span>[${esc(i.article_no)}] ${esc(i.name||'')} • S${esc(i.size)} × ${i.qty}</span><b>₹${i.qty * i.price}</b></div>`).join('')}
         ${s.discount_amount > 0 ? `<div class="hist-line muted"><span>Discount</span><b>-₹${s.discount_amount}</b></div>` : ''}
         <div class="hist-total"><span>Total</span><b class="pos">+₹${s.total_amount}</b></div></div>` }));
     rets.forEach(x => rows.push({ t: x.return_date, type: 'return', html: `
         <div class="hist-card ret"><div class="hist-head"><span class="hist-badge ret"><i class="fa-solid fa-rotate-left"></i> Return</span><span class="hist-right"><span class="hist-time">${fmtTime(x.return_date)}</span>${delBtn('return', x.id)}</span></div>
         <div class="hist-line"><span>[${esc(x.article_no||'-')}] ${esc(x.name||'')} • S${esc(x.size)} × ${x.quantity}</span><b class="warn">-₹${x.refund_amount}</b></div>
-        <div class="hist-line muted"><span>Stock +${x.quantity} जोडी परत जमा</span></div></div>` }));
+        <div class="hist-line muted"><span>Stock +${x.quantity} pairs added back</span></div></div>` }));
     exps.forEach(x => rows.push({ t: x.expense_date, type: 'expense', html: `
         <div class="hist-card exp"><div class="hist-head"><span class="hist-badge exp"><i class="fa-solid fa-money-bill-transfer"></i> Expense</span><span class="hist-right"><span class="hist-time">${fmtTime(x.expense_date)}</span>${delBtn('expense', x.id)}</span></div>
         <div class="hist-line"><span>${esc(x.reason)}</span><b class="neg">-₹${x.amount}</b></div></div>` }));
     rows = rows.filter(x => histFilter === 'all' || x.type === histFilter).sort((a, b) => new Date(b.t) - new Date(a.t));
-    list.innerHTML = rows.length ? rows.map(x => x.html).join('') : emptyState('fa-folder-open', 'या दिवशी काहीही नोंद नाही');
+    list.innerHTML = rows.length ? rows.map(x => x.html).join('') : emptyState('fa-folder-open', 'No records for this day');
 }
 
 async function downloadExcel() {
@@ -1413,6 +1508,7 @@ async function handleLogout() {
     isStaffMode = false;
     currentShopId = null;
     cart = [];
+    currentShopName = ''; document.getElementById('headerShopName').innerText = 'SJ Digital Labs';
     localStorage.removeItem('isStaff'); 
     document.getElementById('topHeader').style.display = 'none';
     document.getElementById('bottomNav').style.display = 'none';
@@ -1446,7 +1542,7 @@ async function checkSession() {
                     return;
                 }
                 currentShopId = shop.id;
-                document.getElementById('headerShopName').innerText = shop.shop_name;
+                currentShopName = shop.shop_name; document.getElementById('headerShopName').innerText = 'SJ Digital Labs';
                 isStaffMode = localStorage.getItem('isStaff') === 'true'; 
                 showOwnerDashboard(); 
             }
