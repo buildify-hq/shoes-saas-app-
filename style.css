@@ -343,3 +343,7 @@ body { height: 100vh; height: 100dvh; }
 .net-cash-flow-box .amount.positive { color: var(--success); }
 .net-cash-flow-box .amount.negative { color: var(--danger); }
 .staff-pin-display { font-size: 36px; font-weight: 800; letter-spacing: 8px; padding: 18px; margin-bottom: 20px; background: var(--input-bg); border: 2px dashed var(--primary); border-radius: 14px; color: var(--primary); }
+
+/* Stock screen: Gents / Ladies / Kids in one row */
+#stockScreen .stats-grid { grid-template-columns: repeat(3, 1fr); }
+#stockScreen .stat-card.total { grid-column: span 3; }

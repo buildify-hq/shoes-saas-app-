@@ -38,6 +38,24 @@ function dayRange(dateStr) {
     const end = new Date(start); end.setDate(end.getDate() + 1);
     return [start.toISOString(), end.toISOString()];
 }
+function updateStockTotals(articles) {
+    let g = 0, l = 0, k = 0;
+    (articles || []).forEach(art => {
+        let t = 0;
+        (art.stock_batches || []).forEach(b => { t += b.remaining_qty; });
+        let cat = art.category || '';
+        if (['Formal', 'Sport', 'Sandal', 'Chappal', 'Slippers'].includes(cat)) cat = 'Men';
+        if (cat === 'LadiesSandal') cat = 'Ladies';
+        if (cat === 'Kids') cat = 'Boys';
+        if (cat.includes('Ladies')) l += t;
+        else if (cat.includes('Boys') || cat.includes('Girls')) k += t;
+        else g += t;
+    });
+    document.getElementById('gentsStockDisplay').innerText = g + ' P';
+    document.getElementById('ladiesStockDisplay').innerText = l + ' P';
+    document.getElementById('kidsStockDisplay').innerText = k + ' P';
+    document.getElementById('totalAllStockDisplay').innerText = (g + l + k) + ' Pairs';
+}
 function initStockTab() {
     const box = document.getElementById('typeFilterContainer');
     if (box && box.children.length === 0) {
@@ -712,6 +730,7 @@ async function loadMyStockList() {
     const stockListDiv = document.getElementById('stockList');
     if(!currentShopId) return;
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId).order('created_at', { ascending: false });
+    updateStockTotals(articles);
     stockListDiv.innerHTML = ''; 
     if(!articles || articles.length === 0) { stockListDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No articles added yet.</p>'; return; }
 
