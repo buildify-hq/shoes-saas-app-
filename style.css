@@ -347,3 +347,36 @@ body { height: 100vh; height: 100dvh; }
 /* Stock screen: Gents / Ladies / Kids in one row */
 #stockScreen .stats-grid { grid-template-columns: repeat(3, 1fr); }
 #stockScreen .stat-card.total { grid-column: span 3; }
+
+/* ===== Professional polish + History ===== */
+.app-card { border-radius: 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+.page-title { font-size: 19px; letter-spacing: .3px; }
+.btn-primary, .btn-success, .btn-warning, .btn-danger { box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+.bottom-nav .nav-item { flex: 1; }
+.nav-item.active { background: rgba(37,99,235,.12); border-radius: 12px; padding: 4px 0; }
+
+.hist-top { display: flex; gap: 10px; align-items: flex-start; }
+.hist-top input { flex: 1; margin-bottom: 12px; }
+.hist-top button { width: auto; padding: 14px 18px; margin-bottom: 12px; }
+.hist-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.hist-sum { background: var(--card-dark); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px 8px; text-align: center; }
+.hist-sum small { display: block; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.hist-sum b { font-size: 16px; font-weight: 800; }
+.hist-sum.sale b { color: var(--success); } .hist-sum.ret b { color: var(--warning); } .hist-sum.net b { color: var(--primary); }
+.hist-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; }
+.hist-tab { width: auto; flex: 0 0 auto; margin: 0; padding: 8px 16px; font-size: 13px; border-radius: 20px; background: var(--card-dark); color: var(--text-muted); border: 1px solid var(--border-color); box-shadow: none; }
+.hist-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.hist-card { background: var(--card-dark); border: 1px solid var(--border-color); border-left: 4px solid var(--success); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+.hist-card.ret { border-left-color: var(--warning); } .hist-card.exp { border-left-color: var(--danger); }
+.hist-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.hist-badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.hist-badge.sale { color: var(--success); background: rgba(16,185,129,.14); }
+.hist-badge.ret { color: var(--warning); background: rgba(245,158,11,.14); }
+.hist-badge.exp { color: var(--danger); background: rgba(239,68,68,.14); }
+.hist-time { font-size: 12px; color: var(--text-muted); }
+.hist-line { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 5px 0; }
+.hist-line.muted { color: var(--text-muted); font-size: 12px; }
+.hist-total { display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); margin-top: 6px; padding-top: 8px; font-size: 14px; font-weight: 700; }
+.hist-card .pos { color: var(--success); } .hist-card .warn { color: var(--warning); } .hist-card .neg { color: var(--danger); }
+.hist-empty { text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 14px; }
+.hist-empty i { font-size: 32px; display: block; margin-bottom: 8px; }

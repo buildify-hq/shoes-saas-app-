@@ -432,7 +432,7 @@ function showOwnerDashboard() {
 
 function switchTab(tabName) {
     if(isStaffMode && (tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
-    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen'];
+    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -448,6 +448,7 @@ function switchTab(tabName) {
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
     else if(tabName === 'target') { document.getElementById('targetScreen').style.display = 'block'; loadTargetData(); }
     else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = localDateStr(new Date()); loadReportData(); }
+    else if(tabName === 'history') { document.getElementById('historyScreen').style.display = 'block'; document.getElementById('nav-hist').classList.add('active'); loadHistory(); }
     else if(tabName === 'lowStockAlert') { document.getElementById('lowStockAlertScreen').style.display = 'block'; loadLowStockAlerts(); }
 }
 
@@ -1023,44 +1024,24 @@ function clearCart() {
 
 async function confirmSale() {
     if(cart.length === 0) { showToast("Cart is empty!", true); return; }
-    let subTotal = 0; let totalProfit = 0;
-    cart.forEach(item => { subTotal += (item.qty * item.price); totalProfit += (item.qty * (item.price - (item.cost || 0))); });
+    let subTotal = 0;
+    cart.forEach(item => { subTotal += (item.qty * item.price); });
     let discount = parseInt(document.getElementById('saleDiscount').value) || 0;
     if(discount < 0) { showToast("Discount cannot be negative!", true); return; }
     if(discount >= subTotal) { showToast("Discount cannot be greater than Subtotal!", true); return; }
-    let totalAmount = subTotal - discount;
-    totalProfit -= discount; 
     const btn = document.getElementById('confirmSaleBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
     try {
-        const { data: saleData, error: saleError } = await supabaseClient.from('sales').insert([{ shop_id: currentShopId, total_amount: totalAmount, total_profit: totalProfit, discount_amount: discount }]).select();
-        if(saleError) throw saleError;
-        for(let item of cart) {
-            const { error: siErr } = await supabaseClient.from('sale_items').insert([{ sale_id: saleData[0].id, article_id: item.id, size: item.size, quantity: item.qty, selling_price: item.price, cost_price: item.cost }]);
-            if (siErr) throw siErr;
-            const { data: batches } = await supabaseClient.from('stock_batches').select('id, remaining_qty, color').eq('article_id', item.id).eq('size', item.size).gt('remaining_qty', 0).order('entry_date', { ascending: true });
-            let qtyToDeduct = item.qty;
-            if (batches) {
-                for (let b of batches) {
-                    if (qtyToDeduct <= 0) break;
-                    let bColor = b.color || ''; if (bColor === 'Default') bColor = '';
-                    let itemColor = item.color || ''; if (itemColor === 'Default') itemColor = '';
-                    if (bColor === itemColor) {
-                        let deduct = Math.min(b.remaining_qty, qtyToDeduct);
-                        const { error: upErr } = await supabaseClient.from('stock_batches').update({ remaining_qty: b.remaining_qty - deduct }).eq('id', b.id);
-                        if (upErr) throw upErr;
-                        qtyToDeduct -= deduct;
-                    }
-                }
-            }
-        }
-        cart = []; 
+        const items = cart.map(i => ({ article_id: i.id, size: String(i.size), qty: i.qty, price: i.price, cost: i.cost || 0, color: i.color || '' }));
+        const { error } = await supabaseClient.rpc('confirm_sale', { p_discount: discount, p_items: items });
+        if (error) throw error;
+        cart = [];
         document.getElementById('saleDiscount').value = 0;
         renderCart();
         showToast("Sale Confirmed! 🎉", false);
-        switchTab(isStaffMode ? 'sale' : 'dashboard');
-    } catch (err) { showToast("Error: " + err.message, true); } 
+        switchTab(isStaffMode ? 'history' : 'dashboard');
+    } catch (err) { showToast("Error: " + err.message, true); }
     finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Confirm Sale'; }
 }
 
@@ -1150,33 +1131,58 @@ async function searchReturnArticle() {
 }
 
 async function processReturn() {
-    const colorSizeStr = document.getElementById('retSize').value;
-    const parts = colorSizeStr.split('|||');
-    const color = parts[0];
-    const size = parts[1];
+    const parts = document.getElementById('retSize').value.split('|||');
+    const color = parts[0], size = parts[1];
     const qty = parseInt(document.getElementById('retQty').value);
     const refund = parseInt(document.getElementById('retPrice').value) || 0;
     if(!size || !qty || qty <= 0) { showToast("Invalid details!", true); return; }
-    
-    let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', foundReturnArticle.id).eq('size', size);
-    if(color && color !== 'Default') { query = query.eq('color', color); } else { query = query.or('color.is.null,color.eq.Default,color.eq.'); }
-    
-    const { data: existingBatch } = await query.limit(1).maybeSingle();
-
-    if (existingBatch) {
-        await supabaseClient.from('stock_batches').update({ 
-            remaining_qty: existingBatch.remaining_qty + qty,
-            initial_qty: existingBatch.initial_qty + qty 
-        }).eq('id', existingBatch.id);
-    } else {
-        await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: foundReturnArticle.cost_price || 0 }]);
-    }
-
-    await supabaseClient.from('returns').insert([{ shop_id: currentShopId, article_id: foundReturnArticle.id, size: size, quantity: qty, refund_amount: refund }]);
-    showToast(`✅ Returned & Stock Added!`, false);
+    const { error } = await supabaseClient.rpc('process_return', { p_article: String(foundReturnArticle.id), p_color: color || '', p_size: String(size), p_qty: qty, p_refund: refund });
+    if (error) { showToast("Error: " + error.message, true); return; }
+    showToast(`✅ Return done! Stock +${qty}`, false);
     document.getElementById('retArticleDetails').style.display = 'none';
     document.getElementById('retArtNo').value = '';
-    switchTab(isStaffMode ? 'sale' : 'dashboard');
+    switchTab('history');
+}
+
+// ---------- History ----------
+let histFilter = 'all';
+function setHistFilter(f, el) {
+    histFilter = f;
+    document.querySelectorAll('#historyScreen .hist-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    loadHistory();
+}
+function fmtTime(iso) { return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
+async function loadHistory() {
+    const dateEl = document.getElementById('histDate');
+    if(!dateEl.value) dateEl.value = localDateStr(new Date());
+    const list = document.getElementById('historyList');
+    list.innerHTML = '<div class="hist-empty"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+    const r = dayRange(dateEl.value);
+    const { data, error } = await supabaseClient.rpc('get_history', { p_from: r[0], p_to: r[1] });
+    if (error) { list.innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
+    const sales = data.sales || [], rets = data.returns || [], exps = data.expenses || [];
+    let sTotal = 0, rTotal = 0, eTotal = 0;
+    sales.forEach(s => sTotal += s.total_amount); rets.forEach(x => rTotal += x.refund_amount); exps.forEach(x => eTotal += x.amount);
+    document.getElementById('histSales').innerText = '₹' + sTotal;
+    document.getElementById('histReturns').innerText = '₹' + rTotal;
+    document.getElementById('histNet').innerText = '₹' + (sTotal - rTotal - eTotal);
+
+    let rows = [];
+    sales.forEach(s => rows.push({ t: s.sale_date, type: 'sale', html: `
+        <div class="hist-card sale"><div class="hist-head"><span class="hist-badge sale"><i class="fa-solid fa-bag-shopping"></i> Sale</span><span class="hist-time">${fmtTime(s.sale_date)}</span></div>
+        ${(s.items||[]).map(i => `<div class="hist-line"><span>[${esc(i.article_no)}] ${esc(i.name||'')} • S${esc(i.size)} × ${i.qty}</span><b>₹${i.qty * i.price}</b></div>`).join('')}
+        ${s.discount_amount > 0 ? `<div class="hist-line muted"><span>Discount</span><b>-₹${s.discount_amount}</b></div>` : ''}
+        <div class="hist-total"><span>Total</span><b class="pos">+₹${s.total_amount}</b></div></div>` }));
+    rets.forEach(x => rows.push({ t: x.return_date, type: 'return', html: `
+        <div class="hist-card ret"><div class="hist-head"><span class="hist-badge ret"><i class="fa-solid fa-rotate-left"></i> Return</span><span class="hist-time">${fmtTime(x.return_date)}</span></div>
+        <div class="hist-line"><span>[${esc(x.article_no||'-')}] ${esc(x.name||'')} • S${esc(x.size)} × ${x.quantity}</span><b class="warn">-₹${x.refund_amount}</b></div>
+        <div class="hist-line muted"><span>Stock +${x.quantity} जोडी परत जमा</span></div></div>` }));
+    exps.forEach(x => rows.push({ t: x.expense_date, type: 'expense', html: `
+        <div class="hist-card exp"><div class="hist-head"><span class="hist-badge exp"><i class="fa-solid fa-money-bill-transfer"></i> Expense</span><span class="hist-time">${fmtTime(x.expense_date)}</span></div>
+        <div class="hist-line"><span>${esc(x.reason)}</span><b class="neg">-₹${x.amount}</b></div></div>` }));
+    rows = rows.filter(x => histFilter === 'all' || x.type === histFilter).sort((a, b) => new Date(b.t) - new Date(a.t));
+    list.innerHTML = rows.length ? rows.map(x => x.html).join('') : '<div class="hist-empty"><i class="fa-regular fa-folder-open"></i><p>या दिवशी काहीही नोंद नाही</p></div>';
 }
 
 async function downloadExcel() {

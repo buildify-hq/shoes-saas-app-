@@ -58,6 +58,7 @@
                 <span id="menuAlertBadge" style="display:none; background: var(--danger); color: white; border-radius: 50%; padding: 2px 8px; font-size: 11px; margin-left: auto;">0</span>
             </div>
             
+            <div class="menu-item" onclick="switchTab('return'); toggleSidebar();"><i class="fa-solid fa-rotate-left"></i> Return Item</div>
             <div class="menu-item" onclick="switchTab('credits'); toggleSidebar();"><i class="fa-solid fa-book"></i> Udhaar Khata</div>
             <div class="menu-item" onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i> Staff Salary & Advance</div>
             <div class="menu-item" onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</div>
@@ -362,6 +363,23 @@
             </div>
         </div>
 
+        <div id="historyScreen" class="fade-in" style="display: none;">
+            <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
+            <div class="hist-top"><input type="date" id="histDate" onchange="loadHistory()"><button class="btn-warning" onclick="switchTab('return')"><i class="fa-solid fa-rotate-left"></i> Return</button></div>
+            <div class="hist-summary">
+                <div class="hist-sum sale"><small>Sales</small><b id="histSales">₹0</b></div>
+                <div class="hist-sum ret"><small>Returns</small><b id="histReturns">₹0</b></div>
+                <div class="hist-sum net"><small>Net Cash</small><b id="histNet">₹0</b></div>
+            </div>
+            <div class="hist-tabs">
+                <button class="hist-tab active" onclick="setHistFilter('all', this)">All</button>
+                <button class="hist-tab" onclick="setHistFilter('sale', this)">Sales</button>
+                <button class="hist-tab" onclick="setHistFilter('return', this)">Returns</button>
+                <button class="hist-tab" onclick="setHistFilter('expense', this)">Expense</button>
+            </div>
+            <div id="historyList"></div>
+        </div>
+
         <div id="returnScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
@@ -482,6 +500,9 @@
         </div>
         <div class="nav-item" onclick="switchTab('sale')" id="nav-sale">
             <i class="fa-solid fa-cash-register nav-icon"></i> Sale
+        </div>
+        <div class="nav-item" onclick="switchTab('history')" id="nav-hist">
+            <i class="fa-solid fa-clock-rotate-left nav-icon"></i> History
         </div>
         <div class="nav-item" onclick="toggleSidebar()" id="nav-more">
             <i class="fa-solid fa-bars nav-icon"></i> Menu
