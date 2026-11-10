@@ -1667,9 +1667,22 @@ async function checkSession() {
                     showToast("Subscription expired / inactive! Contact Admin.", true);
                     return;
                 }
+                
+                // 🌟 Force Logout for Staff if PIN is removed by Owner
+                const currentStaffMode = localStorage.getItem('isStaff') === 'true';
+                if (currentStaffMode && !shop.staff_pin) {
+                    await supabaseClient.auth.signOut();
+                    localStorage.removeItem('isStaff');
+                    document.getElementById('loginScreen').style.display = 'block';
+                    document.getElementById('topHeader').style.display = 'none';
+                    document.getElementById('bottomNav').style.display = 'none';
+                    showToast("Staff access revoked! Owner removed the PIN.", true);
+                    return;
+                }
+
                 currentShopId = shop.id;
                 currentShopName = shop.shop_name; document.getElementById('headerShopName').innerText = 'SJ Digital Labs';
-                isStaffMode = localStorage.getItem('isStaff') === 'true'; 
+                isStaffMode = currentStaffMode; 
                 showOwnerDashboard(); 
             }
         }
