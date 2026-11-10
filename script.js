@@ -409,12 +409,13 @@ function showOwnerDashboard() {
     document.getElementById('topHeader').style.display = 'flex'; 
     document.getElementById('bottomNav').style.display = 'flex';
     
+    document.getElementById('menuBtn').style.display = isStaffMode ? 'none' : 'inline-block';
     if(isStaffMode) {
         document.getElementById('nav-dash').style.display = 'none';
         let navMore = document.getElementById('nav-more');
         navMore.setAttribute('onclick', 'handleLogout()');
         navMore.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket nav-icon"></i> Logout';
-        navMore.style.display = 'flex';
+        navMore.style.display = 'none';
         document.getElementById('nav-stock').style.display = 'flex';
         document.getElementById('nav-sale').style.display = 'flex';
         switchTab('sale');
@@ -423,7 +424,7 @@ function showOwnerDashboard() {
         let navMore = document.getElementById('nav-more');
         navMore.setAttribute('onclick', 'toggleSidebar()');
         navMore.innerHTML = '<i class="fa-solid fa-bars nav-icon"></i> Menu';
-        navMore.style.display = 'flex';
+        navMore.style.display = 'none';
         document.getElementById('nav-stock').style.display = 'flex';
         document.getElementById('nav-sale').style.display = 'flex';
         switchTab('dashboard');
@@ -1165,6 +1166,17 @@ function deleteHistory(kind, id) {
         if (error) { showToast('Error: ' + error.message, true); return; }
         showToast('Deleted ✅', false);
         loadHistory();
+    });
+}
+function clearHistory() {
+    const dateEl = document.getElementById('histDate');
+    const d = (dateEl && dateEl.value) || localDateStr(new Date());
+    askConfirm(`${d} ची सगळी History (Sales, Returns, Expenses) delete करायची? Stock बदलणार नाही.`, async () => {
+        const r = dayRange(d);
+        const { error } = await supabaseClient.rpc('clear_history', { p_from: r[0], p_to: r[1] });
+        if (error) { showToast('Error: ' + error.message, true); return; }
+        showToast('History cleared ✅', false);
+        switchTab('history');
     });
 }
 function fmtTime(iso) { return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }

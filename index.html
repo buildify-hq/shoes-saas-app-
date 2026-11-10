@@ -50,6 +50,8 @@
             <span class="close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></span>
         </div>
         <div class="menu-list">
+            <div class="menu-item" onclick="switchTab('history'); toggleSidebar();"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+            <div class="menu-item text-danger" onclick="toggleSidebar(); clearHistory();"><i class="fa-solid fa-broom"></i> Clear History</div>
             <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
             <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
             
@@ -70,6 +72,7 @@
 
     <div class="top-header" id="topHeader">
         <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="menu-toggle" id="menuBtn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></span>
             <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="header-logo">
             <h2 id="headerShopName">SJ Digital Labs</h2>
         </div>
@@ -503,9 +506,7 @@
         <div class="nav-item" onclick="switchTab('history')" id="nav-hist">
             <i class="fa-solid fa-clock-rotate-left nav-icon"></i> History
         </div>
-        <div class="nav-item" onclick="toggleSidebar()" id="nav-more">
-            <i class="fa-solid fa-bars nav-icon"></i> Menu
-        </div>
+        <div class="nav-item" id="nav-more" style="display:none;"></div>
     </div>
 
     <!-- 🛠️ साधी स्क्रिप्ट, कोणतेही मॉड्यूल नाही -->

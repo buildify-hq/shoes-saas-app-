@@ -392,3 +392,6 @@ body { height: 100vh; height: 100dvh; }
 .hist-right { display: flex; align-items: center; gap: 10px; }
 .hist-del { width: 34px; height: 34px; padding: 0; margin: 0; border-radius: 10px; background: rgba(239,68,68,.14); color: var(--danger); font-size: 14px; box-shadow: none; }
 .hist-card { padding: 12px 14px; }
+
+.menu-toggle { font-size: 22px; padding: 6px 4px; cursor: pointer; }
+.bottom-nav .nav-item { flex: 1; }
