@@ -420,7 +420,6 @@ function showOwnerDashboard() {
         navMore.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket nav-icon"></i> Logout';
         navMore.style.display = 'none';
         
-        // स्टाफसाठी फक्त History आणि Logout दाखवा
         menuItems.forEach(item => {
             const text = item.innerText || '';
             if (text.includes('History') || text.includes('Logout')) {
@@ -440,7 +439,6 @@ function showOwnerDashboard() {
         navMore.innerHTML = '<i class="fa-solid fa-bars nav-icon"></i> Menu';
         navMore.style.display = 'none';
         
-        // ओनरसाठी सगळे मेनू परत दाखवा
         menuItems.forEach(item => { item.style.display = 'flex'; });
 
         document.getElementById('nav-stock').style.display = 'flex';
@@ -450,7 +448,6 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    // स्टाफला या सगळ्या स्क्रीन्सवर बंदी
     if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert'].includes(tabName)) {
         showToast("Access Denied! Only Owner can access this.", true);
         return;
@@ -480,19 +477,37 @@ function switchTab(tabName) {
 }
 
 async function loadStaffPin() {
-    const { data } = await supabaseClient.from('shops').select('staff_pin').eq('id', currentShopId).single();
+    const { data, error } = await supabaseClient.from('shops').select('staff_pin').eq('id', currentShopId).single();
+    if (error) {
+        console.error("Error fetching staff pin:", error);
+    }
     document.getElementById('displayStaffPin').innerText = (data && data.staff_pin) ? data.staff_pin : '----';
 }
 
 async function generateStaffPin() {
     const newPin = Math.floor(100000 + Math.random() * 900000).toString();
-    await supabaseClient.from('shops').update({ staff_pin: newPin }).eq('id', currentShopId);
+    showToast("Saving new PIN...", false);
+    
+    const { error } = await supabaseClient.from('shops').update({ staff_pin: newPin }).eq('id', currentShopId);
+    
+    if (error) {
+        showToast("Database Error: " + error.message, true);
+        console.error(error);
+        return; 
+    }
+    
     document.getElementById('displayStaffPin').innerText = newPin;
-    showToast("New Staff PIN Generated!", false);
+    showToast("✅ New Staff PIN Generated!", false);
 }
 
 async function resetStaffPin() {
-    await supabaseClient.from('shops').update({ staff_pin: null }).eq('id', currentShopId);
+    showToast("Removing PIN...", false);
+    const { error } = await supabaseClient.from('shops').update({ staff_pin: null }).eq('id', currentShopId);
+    
+    if (error) {
+        showToast("Database Error: " + error.message, true);
+        return;
+    }
     document.getElementById('displayStaffPin').innerText = '----';
     showToast("Staff PIN Removed!", false);
 }
@@ -1668,7 +1683,7 @@ async function checkSession() {
                     return;
                 }
                 
-                // 🌟 Force Logout for Staff if PIN is removed by Owner
+                // Force Logout for Staff if PIN is removed by Owner
                 const currentStaffMode = localStorage.getItem('isStaff') === 'true';
                 if (currentStaffMode && !shop.staff_pin) {
                     await supabaseClient.auth.signOut();
