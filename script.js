@@ -448,8 +448,8 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    // 🌟 स्टाफसाठी बंदी
-    if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert', 'bulkImport'].includes(tabName)) {
+    // 🌟 स्टाफसाठी बंदी (expense सुद्धा ॲड केला आहे)
+    if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert', 'bulkImport', 'expense'].includes(tabName)) {
         showToast("Access Denied! Only Owner can access this.", true);
         return;
     }
@@ -601,7 +601,6 @@ async function loadLowStockAlerts() {
 
             (art.stock_batches || []).forEach(b => {
                 totalPairs += b.remaining_qty;
-                // जे साईज उपलब्ध आहेत ते दाखवण्यासाठी
                 if (b.remaining_qty > 0) {
                     let c = b.color || ''; if(c === 'Default') c = '';
                     let s = String(b.size).trim();
@@ -610,7 +609,7 @@ async function loadLowStockAlerts() {
                 }
             });
 
-            // 🌟 नवीन लॉजिक: फक्त तेव्हाच अलर्ट दाखवा जेव्हा एकूण जोड्या २ किंवा त्यापेक्षा कमी असतील
+            // 🌟 फक्त तेव्हाच अलर्ट दाखवा जेव्हा एकूण जोड्या २ किंवा त्यापेक्षा कमी असतील
             if (totalPairs <= 2) {
                 let badgeColor = totalPairs === 0 ? 'var(--danger)' : 'var(--warning)';
                 lowStockHtml += `
@@ -623,7 +622,6 @@ async function loadLowStockAlerts() {
                     <div style="font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 5px;">Available Sizes:</div>
                     <div>${sizeDetails.length ? sizeDetails.join('') : '<span style="color:var(--danger); font-weight:bold;">Out of Stock</span>'}</div>
                     
-                    <!-- 🌟 नवीन बटणं: स्टॉक ॲड करा आणि आर्टिकल डिलीट करा -->
                     <div style="display:flex; gap:8px; margin-top:12px; border-top: 1px dashed var(--border-color); padding-top:12px;">
                         <button class="btn-primary" onclick="quickAddStock('${esc(art.article_no)}')" style="flex:1; margin:0; padding:8px; font-size:12px; border-radius:8px;">
                             <i class="fa-solid fa-plus"></i> Add Stock
@@ -644,7 +642,6 @@ async function loadLowStockAlerts() {
     }
 }
 
-// 🌟 नवीन फंक्शन: स्टॉक ॲड करण्यासाठी थेट पेजवर पाठवण्यासाठी
 function quickAddStock(artNo) {
     switchTab('purchase');
     document.getElementById('purArtNo').value = artNo;
@@ -679,7 +676,6 @@ async function loadDashboardData() {
             else if(cat.includes('Boys') || cat.includes('Girls')) kidsTotal += artTotal;
             else gentsTotal += artTotal; 
             
-            // 🌟 डॅशबोर्ड बॅजसाठी पण एकूण जोड्या २ किंवा कमी असल्यासच
             if(artTotal <= 2) {
                 lowStockItemsCount++;
             }
@@ -697,6 +693,10 @@ async function loadDashboardData() {
     } else {
         badge.style.display = 'none';
     }
+
+    // 🌟 स्टाफसाठी प्रॉफिट कार्ड लपवणे
+    const profitCard = document.getElementById('todayProfitDisplay');
+    if (profitCard) profitCard.parentElement.style.display = isStaffMode ? 'none' : 'block';
 
     const tr = dayRange(localDateStr(new Date()));
     const yd = new Date(); yd.setDate(yd.getDate() - 1);
@@ -1028,11 +1028,31 @@ async function saveArticle() {
     switchTab('stock');
 }
 
+// ==========================================
+// 🌟 MANUAL SALE / DIRECT SALE (NEW)
+// ==========================================
 async function searchSaleArticle() {
     const artNo = document.getElementById('saleArtNo').value;
     if(!artNo) return;
     const { data: articles, error } = await supabaseClient.from('articles').select(`id, article_no, name, category, mrp, cost_price, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId).eq('article_no', artNo).single();
-    if (error || !articles) { showToast("Article not found!", true); document.getElementById('saleArticleDetails').style.display = 'none'; return; }
+    
+    if (error || !articles) { 
+        // माल नाही सापडला तर Manual Entry चा पर्याय दाखवा
+        foundSaleArticle = null;
+        document.getElementById('saleArtName').innerText = `Not Found: ${artNo}`;
+        
+        const sizeSelect = document.getElementById('saleSize');
+        sizeSelect.innerHTML = `<option value="Manual|||M">No Size / Manual</option>`;
+        
+        const chipsDiv = document.getElementById('saleChips');
+        chipsDiv.innerHTML = `<div style="color:var(--danger); font-size:14px; margin-bottom:10px;">Article not found in stock.</div>
+                              <button class="btn-warning" onclick="setupManualSale('${esc(artNo)}')" style="width:auto; padding:8px 15px; font-size:13px;"><i class="fa-solid fa-plus"></i> Add to Bill Manually</button>`;
+        
+        document.getElementById('salePrice').value = 0;
+        document.getElementById('saleQty').value = 1;
+        document.getElementById('saleArticleDetails').style.display = 'block';
+        return; 
+    }
 
     foundSaleArticle = articles;
     document.getElementById('saleArtName').innerText = `[${articles.article_no}] ${articles.name}`;
@@ -1064,6 +1084,20 @@ async function searchSaleArticle() {
     document.getElementById('saleArticleDetails').style.display = 'block';
 }
 
+function setupManualSale(artNo) {
+    foundSaleArticle = {
+        id: 'manual_' + Date.now(), // बनावट आयडी
+        article_no: artNo,
+        name: 'Manual Item',
+        mrp: 0,
+        cost_price: 0
+    };
+    document.getElementById('saleArtName').innerText = `Manual Entry: ${artNo}`;
+    document.getElementById('saleChips').innerHTML = `<div style="color:var(--success); font-size:13px; font-weight:bold; margin-bottom:5px;">✔️ Ready to Add</div><div style="font-size:12px; color:var(--text-muted);">फक्त खाली विक्री किंमत टाका आणि 'Add to Bill' दाबा.</div>`;
+    document.getElementById('salePrice').focus();
+    showToast("Enter Selling Price & click Add", false);
+}
+
 function renderSaleChips(agg) {
     const wrap = document.getElementById('saleChips'); let html = '';
     for (const color in agg) {
@@ -1092,8 +1126,22 @@ function addToCart() {
     const size = parts[1];
     const qty = parseInt(document.getElementById('saleQty').value);
     const price = parseInt(document.getElementById('salePrice').value);
+    
     if(qty <= 0) { showToast("Quantity must be at least 1", true); return; }
+    if(price <= 0) { showToast("कृपया योग्य विक्री किंमत टाका!", true); return; }
 
+    // 🌟 जर Manual माल असेल तर स्टॉक चेक न करता थेट ॲड करा
+    if (foundSaleArticle && foundSaleArticle.id.startsWith('manual_')) {
+        cart.push({ id: foundSaleArticle.id, artNo: foundSaleArticle.article_no, color: '', size: 'M', qty: qty, price: price, cost: 0 });
+        renderCart();
+        document.getElementById('saleQty').value = 1;
+        document.getElementById('saleArticleDetails').style.display = 'none';
+        document.getElementById('saleArtNo').value = '';
+        showToast("Manual item added to bill.", false);
+        return;
+    }
+
+    // सामान्य स्टॉक चेक
     let totalAvailableForSize = foundSaleArticle.stock_batches.filter(b => { 
         let bColor = b.color || ''; if (bColor === 'Default') bColor = ''; 
         return bColor === color && String(b.size).trim() === size; 
@@ -1120,7 +1168,8 @@ function renderCart() {
     cart.forEach((item, index) => {
         subTotal += (item.qty * item.price);
         let displayColor = (item.color === '' || item.color === 'Default') ? '' : ` ${item.color} - `;
-        cartDiv.innerHTML += `<div class="cart-item"><span style="font-weight: 600;">${esc(item.artNo)} (${esc(displayColor)}S${esc(item.size)}) <br><span style="color: var(--text-muted); font-size: 12px;">Qty: ${item.qty}</span></span><span style="text-align:right; font-weight:800; color:var(--success); font-size: 16px;">₹${item.qty * item.price}</span><b style="color:var(--danger);cursor:pointer; padding-left:15px; font-size: 18px;" onclick="removeFromCart(${index})"><i class="fa-solid fa-circle-xmark"></i></b></div>`;
+        let displaySize = (item.size === 'M' || item.size === 'Manual') ? '' : `S${item.size}`;
+        cartDiv.innerHTML += `<div class="cart-item"><span style="font-weight: 600;">${esc(item.artNo)} (${esc(displayColor)}${esc(displaySize)}) <br><span style="color: var(--text-muted); font-size: 12px;">Qty: ${item.qty}</span></span><span style="text-align:right; font-weight:800; color:var(--success); font-size: 16px;">₹${item.qty * item.price}</span><b style="color:var(--danger);cursor:pointer; padding-left:15px; font-size: 18px;" onclick="removeFromCart(${index})"><i class="fa-solid fa-circle-xmark"></i></b></div>`;
     });
     let discount = parseInt(document.getElementById('saleDiscount').value) || 0;
     if(discount < 0) discount = 0;
@@ -1146,13 +1195,25 @@ async function confirmSale() {
     let discount = parseInt(document.getElementById('saleDiscount').value) || 0;
     if(discount < 0) { showToast("Discount cannot be negative!", true); return; }
     if(discount >= subTotal) { showToast("Discount cannot be greater than Subtotal!", true); return; }
+    
     const btn = document.getElementById('confirmSaleBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+    
     try {
-        const items = cart.map(i => ({ article_id: i.id, size: String(i.size), qty: i.qty, price: i.price, cost: i.cost || 0, color: i.color || '' }));
+        // 🌟 Manual मालाचा article_id null करणे
+        const items = cart.map(i => ({ 
+            article_id: i.id.startsWith('manual_') ? null : i.id, 
+            size: String(i.size), 
+            qty: i.qty, 
+            price: i.price, 
+            cost: i.cost || 0, 
+            color: i.color || '' 
+        }));
+        
         const { data: res, error } = await supabaseClient.rpc('confirm_sale', { p_discount: discount, p_items: items });
         if (error) throw error;
+        
         const billData = { id: res && res.sale_id, items: cart.map(c => ({ ...c })), subTotal, discount, total: subTotal - discount,
             name: document.getElementById('saleCustName').value.trim(), phone: document.getElementById('saleCustPhone').value.trim() };
         cart = [];
@@ -1277,7 +1338,13 @@ function showBill(b) {
     let t = `🧾 *${shop}*\nBill #${no}\n${dt}\n`;
     if (b.name) t += `Customer: ${b.name}\n`;
     t += `------------------------\n`;
-    b.items.forEach(i => { const c = (i.color && i.color !== 'Default') ? `${i.color} ` : ''; t += `${i.artNo} (${c}S${i.size}) x${i.qty} = ₹${i.qty * i.price}\n`; });
+    
+    b.items.forEach(i => { 
+        const c = (i.color && i.color !== 'Default') ? `${i.color} ` : ''; 
+        const s = (i.size === 'M' || i.size === 'Manual') ? '' : `S${i.size}`; // Manual साईज लपवणे
+        t += `${i.artNo} ${c}${s} x${i.qty} = ₹${i.qty * i.price}\n`; 
+    });
+    
     t += `------------------------\n`;
     if (b.discount > 0) t += `Discount: -₹${b.discount}\n`;
     t += `*Total: ₹${b.total}*\n\nThank you! Please visit again 🙏`;
