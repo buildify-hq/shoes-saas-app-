@@ -22,6 +22,30 @@ const SECRET_ADMIN_ID = 'sagar_admin';
 
 let html5QrcodeScanner = null;
 
+// ---------- Helpers ----------
+function esc(v) {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function localDateStr(d) {
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+function startOfTodayISO() {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString();
+}
+function dayRange(dateStr) {
+    const start = new Date(dateStr + 'T00:00:00');
+    const end = new Date(start); end.setDate(end.getDate() + 1);
+    return [start.toISOString(), end.toISOString()];
+}
+function initStockTab() {
+    const box = document.getElementById('typeFilterContainer');
+    if (box && box.children.length === 0) {
+        const activeBtn = document.querySelector('#genderFilterContainer .filter-btn.active');
+        setStockFilter(currentGenderFilter, activeBtn);
+    } else { loadMyStockList(); }
+}
+
 window.onload = () => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -131,7 +155,6 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
-    alert("Login बटन दाबलं! चेक करत आहे..."); // 🛠️ हे तुला बटन चालू आहे का ते सांगेल
     
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
@@ -139,7 +162,7 @@ async function handleLogin() {
     
     if (nameInput === SECRET_ADMIN_ID) {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: pinInput });
-        if (authError) { showToast("Auth Error: " + authError.message, true); alert("Auth Error: " + authError.message); } 
+        if (authError) { showToast("Auth Error: " + authError.message, true); } 
         else { 
             currentUser = authData.user; 
             document.getElementById('loginScreen').style.display = 'none';
@@ -151,7 +174,7 @@ async function handleLogin() {
         return;
     }
 
-    const { data: shop, error } = await supabaseClient.from('shops').select('*').ilike('shop_name', nameInput).maybeSingle();
+    const { data: shop, error } = await supabaseClient.from('shops').select('*').ilike('shop_name', nameInput.replace(/[\\%_]/g, '\\$&')).maybeSingle();
     if (error || !shop) { showToast("Shop not found! Check the name.", true); return; }
     if (shop.status !== 'active') { showToast("Shop is inactive. Contact Admin.", true); return; }
     if (!shop.expiry_date || new Date() > new Date(shop.expiry_date)) { showToast("Subscription expired! Contact Admin.", true); return; }
@@ -208,17 +231,17 @@ async function searchDashboardArticle() {
         Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
             sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
         });
-        let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
+        let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${esc(color)}</span>`;
         colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
     }
 
     resultDiv.innerHTML = `
     <div class="stock-card" style="border-left: 4px solid var(--primary); margin-top:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h4>[${articles.article_no}] ${articles.name || 'Unnamed'}</h4>
+            <h4>[${esc(articles.article_no)}] ${esc(articles.name) || 'Unnamed'}</h4>
             <span style="background:var(--primary); padding:6px 10px; border-radius:8px; font-size:13px; font-weight:bold; color:white;">Total: ${totalPairs}</span>
         </div>
-        <p style="margin:0 0 12px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${articles.category}</p>
+        <p style="margin:0 0 12px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${esc(articles.category)}</p>
         ${colorHtml || '<p style="font-size:13px; color:var(--danger);">Out of Stock</p>'}
     </div>`;
 }
@@ -243,17 +266,17 @@ async function loadSuperAdminData() {
         list.innerHTML += `
         <div class="sa-card">
             <div class="sa-card-top">
-                <div class="sa-avatar">${(s.owner_name || 'S').charAt(0).toUpperCase()}</div>
+                <div class="sa-avatar">${esc((s.owner_name || 'S').charAt(0).toUpperCase())}</div>
                 <div class="sa-info">
-                    <h4>${s.owner_name || 'Unknown'}</h4>
-                    <p><i class="fa-solid fa-store"></i> ${s.shop_name} • <i class="fa-solid fa-phone"></i> ${s.phone || 'N/A'}</p>
+                    <h4>${esc(s.owner_name) || 'Unknown'}</h4>
+                    <p><i class="fa-solid fa-store"></i> ${esc(s.shop_name)} • <i class="fa-solid fa-phone"></i> ${esc(s.phone) || 'N/A'}</p>
                     <div class="sa-valid"><i class="fa-regular fa-calendar-check"></i> Valid till: ${expiryStr}</div>
                 </div>
                 <div class="sa-toggle ${isActive ? 'active' : ''}" onclick="toggleShopStatus('${s.id}', '${s.status}')"></div>
             </div>
             <div class="sa-actions">
-                <a href="tel:${s.phone}" class="sa-act-btn call"><i class="fa-solid fa-phone"></i> Call</a>
-                <a href="https://wa.me/91${s.phone}" target="_blank" class="sa-act-btn wa"><i class="fa-brands fa-whatsapp"></i> WA</a>
+                <a href="tel:${esc(s.phone)}" class="sa-act-btn call"><i class="fa-solid fa-phone"></i> Call</a>
+                <a href="https://wa.me/91${esc(s.phone)}" target="_blank" class="sa-act-btn wa"><i class="fa-brands fa-whatsapp"></i> WA</a>
                 <button class="sa-act-btn add" onclick="add30Days('${s.id}', '${s.expiry_date}')"><i class="fa-solid fa-clock"></i> +30 Days</button>
                 <button class="sa-act-btn edit" onclick="editOwner('${s.id}')"><i class="fa-solid fa-pen"></i> Edit</button>
                 <button class="sa-act-btn del" onclick="askConfirm('Delete this shop completely?', () => deleteOwner('${s.id}'))"><i class="fa-solid fa-trash"></i> Delete</button>
@@ -327,7 +350,9 @@ async function saveOwner() {
         showToast("Owner Updated!", false);
     } else {
         const auth_email = `${shopName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@shoeshop.com`;
+        const { data: { session: adminSession } } = await supabaseClient.auth.getSession();
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: auth_email, password: pin, options: { data: { shop_name: shopName } } });
+        if (adminSession) { await supabaseClient.auth.setSession({ access_token: adminSession.access_token, refresh_token: adminSession.refresh_token }); }
         if(authError) { showToast("Error: " + authError.message, true); return; }
         const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         const { error: shopError } = await supabaseClient.from('shops').insert([{ owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry }]);
@@ -394,7 +419,7 @@ function switchTab(tabName) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
     if(tabName === 'dashboard') { document.getElementById('dashboardScreen').style.display = 'block'; document.getElementById('nav-dash').classList.add('active'); loadDashboardData(); } 
-    else if(tabName === 'stock') { document.getElementById('stockScreen').style.display = 'block'; document.getElementById('nav-stock').classList.add('active'); loadMyStockList(); } 
+    else if(tabName === 'stock') { document.getElementById('stockScreen').style.display = 'block'; document.getElementById('nav-stock').classList.add('active'); initStockTab(); } 
     else if(tabName === 'sale') { document.getElementById('saleScreen').style.display = 'block'; document.getElementById('nav-sale').classList.add('active'); document.getElementById('saleArticleDetails').style.display = 'none'; } 
     else if(tabName === 'staff') { document.getElementById('staffScreen').style.display = 'block'; } 
     else if(tabName === 'article') { document.getElementById('articleScreen').style.display = 'block'; updateArticleTypes(); } 
@@ -404,7 +429,7 @@ function switchTab(tabName) {
     else if(tabName === 'credits') { document.getElementById('creditsScreen').style.display = 'block'; loadCredits(); }
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
     else if(tabName === 'target') { document.getElementById('targetScreen').style.display = 'block'; loadTargetData(); }
-    else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadReportData(); }
+    else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = localDateStr(new Date()); loadReportData(); }
     else if(tabName === 'lowStockAlert') { document.getElementById('lowStockAlertScreen').style.display = 'block'; loadLowStockAlerts(); }
 }
 
@@ -439,7 +464,8 @@ function quickExpense(reason) {
 async function loadReportData() {
     const selectedDate = document.getElementById('reportDate').value;
     if (!selectedDate || !currentShopId) return;
-    const { data: sales } = await supabaseClient.from('sales').select('total_amount, total_profit').eq('shop_id', currentShopId).gte('sale_date', selectedDate).lt('sale_date', selectedDate + 'T23:59:59');
+    const [rStart, rEnd] = dayRange(selectedDate);
+    const { data: sales } = await supabaseClient.from('sales').select('total_amount, total_profit').eq('shop_id', currentShopId).gte('sale_date', rStart).lt('sale_date', rEnd);
     let totalSales = 0, totalProfit = 0;
     if (sales) { sales.forEach(s => { totalSales += s.total_amount; totalProfit += s.total_profit; }); }
     document.getElementById('reportSales').innerText = "₹" + totalSales;
@@ -452,72 +478,41 @@ async function loadReportData() {
 
 let mySalesChart = null;
 async function loadChartData(type) {
+    if (!currentShopId || typeof Chart === 'undefined') return;
     const btnWeekly = document.getElementById('btnWeekly');
     const btnMonthly = document.getElementById('btnMonthly');
+    const on = (b) => { b.style.background = 'linear-gradient(135deg, #1D4ED8, #1E40AF)'; b.style.color = 'white'; };
+    const off = (b) => { b.style.background = 'transparent'; b.style.color = 'var(--primary)'; };
+    if (type === 'weekly') { on(btnWeekly); off(btnMonthly); } else { on(btnMonthly); off(btnWeekly); }
+
+    const days = type === 'weekly' ? 7 : 28;
+    const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - (days - 1));
+    const { data: sales } = await supabaseClient.from('sales').select('total_amount, sale_date').eq('shop_id', currentShopId).gte('sale_date', start.toISOString());
+    const perDay = {};
+    (sales || []).forEach(x => { const k = localDateStr(new Date(x.sale_date)); perDay[k] = (perDay[k] || 0) + x.total_amount; });
+
+    let labels = [], salesData = [];
     if (type === 'weekly') {
-        btnWeekly.style.background = 'linear-gradient(135deg, #1D4ED8, #1E40AF)';
-        btnWeekly.style.color = 'white';
-        btnMonthly.style.background = 'transparent';
-        btnMonthly.style.color = 'var(--primary)';
-    } else {
-        btnMonthly.style.background = 'linear-gradient(135deg, #1D4ED8, #1E40AF)';
-        btnMonthly.style.color = 'white';
-        btnWeekly.style.background = 'transparent';
-        btnWeekly.style.color = 'var(--primary)';
-    }
-
-    let labels = [];
-    let salesData = [];
-    
-    if(type === 'weekly') {
-        for(let i=6; i>=0; i--) {
-            let d = new Date();
-            d.setDate(d.getDate() - i);
-            let dateStr = d.toISOString().split('T')[0];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(start); d.setDate(start.getDate() + i);
             labels.push(d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }));
-            const { data: sales } = await supabaseClient.from('sales').select('total_amount').eq('shop_id', currentShopId).gte('sale_date', dateStr).lt('sale_date', dateStr + 'T23:59:59');
-            let dayTotal = 0;
-            if(sales) { sales.forEach(s => dayTotal += s.total_amount); }
-            salesData.push(dayTotal);
+            salesData.push(perDay[localDateStr(d)] || 0);
         }
     } else {
-        for(let i=3; i>=0; i--) {
-            let endDate = new Date();
-            endDate.setDate(endDate.getDate() - (i * 7));
-            let startDate = new Date(endDate);
-            startDate.setDate(startDate.getDate() - 6);
-            
-            let startStr = startDate.toISOString().split('T')[0];
-            let endStr = endDate.toISOString().split('T')[0];
-            
-            labels.push(`Week ${4-i}`);
-            
-            const { data: sales } = await supabaseClient.from('sales').select('total_amount').eq('shop_id', currentShopId).gte('sale_date', startStr).lte('sale_date', endStr + 'T23:59:59');
-            let weekTotal = 0;
-            if(sales) { sales.forEach(s => weekTotal += s.total_amount); }
-            salesData.push(weekTotal);
+        for (let w = 0; w < 4; w++) {
+            let total = 0;
+            for (let i = 0; i < 7; i++) { const d = new Date(start); d.setDate(start.getDate() + w * 7 + i); total += perDay[localDateStr(d)] || 0; }
+            labels.push(`Week ${w + 1}`); salesData.push(total);
         }
     }
 
-    if(mySalesChart) { mySalesChart.destroy(); }
-
+    if (mySalesChart) { mySalesChart.destroy(); }
     const ctx = document.getElementById('salesChart').getContext('2d');
     mySalesChart = new Chart(ctx, {
         type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Sales (₹)',
-                data: salesData,
-                backgroundColor: 'rgba(29, 78, 216, 0.7)',
-                borderColor: 'rgba(29, 78, 216, 1)',
-                borderWidth: 1,
-                borderRadius: 6
-            }]
-        },
+        data: { labels: labels, datasets: [{ label: 'Sales (₹)', data: salesData, backgroundColor: 'rgba(29, 78, 216, 0.7)', borderColor: 'rgba(29, 78, 216, 1)', borderWidth: 1, borderRadius: 6 }] },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
                 y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94A3B8' } },
@@ -542,10 +537,10 @@ async function loadLowStockAlerts() {
                 lowStockHtml += `
                 <div class="app-card" style="border-left: 4px solid ${badgeColor}; padding: 15px; margin-bottom: 10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h4 style="margin:0; font-size:15px;">[${art.article_no}] ${art.name || 'Unnamed'}</h4>
+                        <h4 style="margin:0; font-size:15px;">[${esc(art.article_no)}] ${esc(art.name) || 'Unnamed'}</h4>
                         <span style="background:${badgeColor}; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${artTotal} Pairs Left</span>
                     </div>
-                    <p style="margin:5px 0 0 0; font-size:12px; color:var(--text-muted);">${art.category}</p>
+                    <p style="margin:5px 0 0 0; font-size:12px; color:var(--text-muted);">${esc(art.category)}</p>
                 </div>`;
             }
         });
@@ -578,7 +573,7 @@ async function loadDashboardData() {
             else if(cat.includes('Boys') || cat.includes('Girls')) kidsTotal += artTotal;
             else gentsTotal += artTotal; 
             
-            if(artTotal > 0 && artTotal <= 5) {
+            if(artTotal <= 5) {
                 lowStockItems.push({article_no: art.article_no, name: art.name, total: artTotal});
             }
         });
@@ -596,8 +591,8 @@ async function loadDashboardData() {
         badge.style.display = 'none';
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const { data: todaySales } = await supabaseClient.from('sales').select(`id, total_amount, total_profit, sale_items (quantity, size, articles(article_no, name))`).eq('shop_id', currentShopId).gte('sale_date', todayStr);
+    const todayStr = startOfTodayISO();
+    const { data: todaySales } = await supabaseClient.from('sales').select(`id, total_amount, total_profit, discount_amount, sale_items (quantity, size, selling_price, articles(article_no, name))`).eq('shop_id', currentShopId).gte('sale_date', todayStr);
     const { data: todayReturns } = await supabaseClient.from('returns').select(`quantity, refund_amount, size, articles(cost_price)`).eq('shop_id', currentShopId).gte('return_date', todayStr);
     const { data: todayExpenses } = await supabaseClient.from('expenses').select('*').eq('shop_id', currentShopId).gte('expense_date', todayStr);
 
@@ -608,7 +603,8 @@ async function loadDashboardData() {
         todaySales.forEach(s => {
             tSalesAmt += s.total_amount;
             tProfitAmt += s.total_profit;
-            if(s.sale_items) { s.sale_items.forEach(item => { transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--success); font-weight:600;"><span><i class="fa-solid fa-bag-shopping"></i> Sale: [${item.articles.article_no}] S${item.size} x${item.quantity}</span><span>+₹${item.quantity * (s.total_amount / s.sale_items.reduce((a,b)=>a+b.quantity,0))}</span></div>`; }); }
+            if(s.sale_items) { s.sale_items.forEach(item => { transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--success); font-weight:600;"><span><i class="fa-solid fa-bag-shopping"></i> Sale: [${esc(item.articles.article_no)}] S${item.size} x${item.quantity}</span><span>+₹${item.quantity * item.selling_price}</span></div>`; }); }
+            if(s.discount_amount > 0) { transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--warning); font-weight:600;"><span><i class="fa-solid fa-tag"></i> Discount</span><span>-₹${s.discount_amount}</span></div>`; }
         });
     }
     if(todayReturns) {
@@ -623,7 +619,7 @@ async function loadDashboardData() {
         todayExpenses.forEach(e => {
             tProfitAmt -= e.amount;
             tExpenseAmt += e.amount;
-            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--danger); font-weight:600;"><span><i class="fa-solid fa-money-bill-transfer"></i> ${e.reason}</span><span>-₹${e.amount}</span></div>`;
+            transactionsHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px dashed var(--border-color); color:var(--danger); font-weight:600;"><span><i class="fa-solid fa-money-bill-transfer"></i> ${esc(e.reason)}</span><span>-₹${e.amount}</span></div>`;
         });
     }
 
@@ -663,7 +659,7 @@ async function loadCredits() {
         let actionBtn = `<a href="${waLink}" target="_blank" class="btn-small" style="background:#25D366; color:white; text-decoration:none; display:inline-flex; align-items:center; gap:5px; border-radius: 8px;"><i class="fa-brands fa-whatsapp"></i> Reminder</a>`;
         list.innerHTML += `
         <div class="credit-card ${isPaid ? 'paid' : ''}">
-            <div><strong style="font-size: 16px;">${c.customer_name}</strong><br><span style="color:var(--text-muted); font-size: 13px;"><i class="fa-solid fa-phone"></i> ${c.phone}</span><br><span style="color:var(--warning); font-weight:800; font-size: 18px;">₹${c.amount}</span></div>
+            <div><strong style="font-size: 16px;">${esc(c.customer_name)}</strong><br><span style="color:var(--text-muted); font-size: 13px;"><i class="fa-solid fa-phone"></i> ${esc(c.phone)}</span><br><span style="color:var(--warning); font-weight:800; font-size: 18px;">₹${c.amount}</span></div>
             ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : `<div style="display:flex; flex-direction:column; gap:8px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
         </div>`;
     });
@@ -753,7 +749,7 @@ async function loadMyStockList() {
             Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
                 sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
             });
-            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
+            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${esc(color)}</span>`;
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
 
@@ -761,15 +757,15 @@ async function loadMyStockList() {
         if (totalPairs === 0) { alertBadge = `<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">Out of Stock</span>`; }
         else if (totalPairs <= 5) { alertBadge = `<span style="background: var(--warning); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">Low Stock</span>`; }
 
-        let delBtn = !isStaffMode ? `<button onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${art.id}', '${art.article_no}'))" style="position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: none; border-radius: 50%; color: var(--danger); cursor: pointer; z-index: 10;"><i class="fa-solid fa-trash" style="font-size: 14px;"></i></button>` : '';
+        let delBtn = !isStaffMode ? `<button onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${art.id}'))" style="position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: none; border-radius: 50%; color: var(--danger); cursor: pointer; z-index: 10;"><i class="fa-solid fa-trash" style="font-size: 14px;"></i></button>` : '';
 
         stockListDiv.innerHTML += `
         <div class="stock-card" style="border-left: 5px solid ${totalPairs > 5 ? 'var(--primary)' : (totalPairs > 0 ? 'var(--warning)' : 'var(--danger)')};">
             ${delBtn}
             <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
-                <h4>[${art.article_no}] ${art.name || 'Unnamed'} ${alertBadge}</h4>
+                <h4>[${esc(art.article_no)}] ${esc(art.name) || 'Unnamed'} ${alertBadge}</h4>
             </div>
-            <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${art.category}</p>
+            <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${esc(art.category)}</p>
             <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
                  <span style="background:var(--primary); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:800; color:white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);">Total: ${totalPairs}</span>
             </div>
@@ -810,15 +806,15 @@ async function searchStockArticle() {
             Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
                 sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
             });
-            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${color}</span>`;
+            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${esc(color)}</span>`;
             colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
         }
         stockListDiv.innerHTML += `
         <div class="stock-card" style="border-left: 5px solid ${totalPairs > 5 ? 'var(--primary)' : (totalPairs > 0 ? 'var(--warning)' : 'var(--danger)')};">
             <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
-                <h4>[${art.article_no}] ${art.name || 'Unnamed'}</h4>
+                <h4>[${esc(art.article_no)}] ${esc(art.name) || 'Unnamed'}</h4>
             </div>
-            <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${art.category}</p>
+            <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${esc(art.category)}</p>
             <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
                  <span style="background:var(--primary); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:800; color:white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);">Total: ${totalPairs}</span>
             </div>
@@ -827,7 +823,7 @@ async function searchStockArticle() {
     });
 }
 
-async function deleteArticle(articleId, articleNo) {
+async function deleteArticle(articleId) {
     if(isStaffMode) return;
     showToast("Deleting...", false);
     const { error } = await supabaseClient.from('articles').delete().eq('id', articleId);
@@ -881,7 +877,7 @@ function updateSizes() {
 async function saveArticle() {
     const artNo = document.getElementById('artNo').value.trim();
     if(artNo === "") { showToast("Article No is required!", true); return; }
-    const { data: existing } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).single();
+    const { data: existing } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).maybeSingle();
     if (existing) { showToast("Error: Article No already exists!", true); return; }
 
     const gender = document.getElementById('artGender').value;
@@ -896,20 +892,19 @@ async function saveArticle() {
     if (artError) { showToast("Error: " + artError.message, true); return; }
     const articleId = articleData[0].id;
     const colorSections = document.querySelectorAll('.color-section');
-    let totalAdded = 0;
-    for(let section of colorSections) {
-        const colorName = section.querySelector('.color-name').value.trim(); 
-        const inputs = section.querySelectorAll('input[type="number"]');
-        for(let input of inputs) {
-            if(input.value && parseInt(input.value) > 0) {
-                let sizeStr = input.className.split('size-input-')[1]; 
-                await supabaseClient.from('stock_batches').insert([{
-                    shop_id: currentShopId, article_id: articleId, size: sizeStr, color: colorName,
-                    initial_qty: parseInt(input.value), remaining_qty: parseInt(input.value), cost_price: document.getElementById('artCost').value ? parseInt(document.getElementById('artCost').value) : 0
-                }]);
-                totalAdded += parseInt(input.value);
-            }
-        }
+    const costVal = document.getElementById('artCost').value ? parseInt(document.getElementById('artCost').value) : 0;
+    const rows = [];
+    colorSections.forEach(section => {
+        const colorName = section.querySelector('.color-name').value.trim();
+        section.querySelectorAll('input[type="number"]').forEach(input => {
+            const q = parseInt(input.value);
+            if (q > 0) rows.push({ shop_id: currentShopId, article_id: articleId, size: input.className.split('size-input-')[1], color: colorName, initial_qty: q, remaining_qty: q, cost_price: costVal });
+        });
+    });
+    const totalAdded = rows.reduce((a, r) => a + r.initial_qty, 0);
+    if (rows.length > 0) {
+        const { error: batchError } = await supabaseClient.from('stock_batches').insert(rows);
+        if (batchError) { await supabaseClient.from('articles').delete().eq('id', articleId); showToast("Error: " + batchError.message, true); return; }
     }
     showToast(`Article Saved with ${totalAdded} pairs! 🎉`, false);
     document.getElementById('artNo').value = ""; document.getElementById('artName').value = "";
@@ -942,7 +937,7 @@ async function searchSaleArticle() {
     for (let color in aggregatedStock) {
         for (let size in aggregatedStock[color]) {
             let displayColor = (color === '') ? '' : `${color} - `;
-            sizeSelect.innerHTML += `<option value="${color}|||${size}">${displayColor}Size ${size} (Stock: ${aggregatedStock[color][size]})</option>`;
+            sizeSelect.innerHTML += `<option value="${esc(color)}|||${esc(size)}">${esc(displayColor)}Size ${esc(size)} (Stock: ${aggregatedStock[color][size]})</option>`;
             hasStock = true;
         }
     }
@@ -988,7 +983,7 @@ function renderCart() {
     cart.forEach((item, index) => {
         subTotal += (item.qty * item.price);
         let displayColor = (item.color === '' || item.color === 'Default') ? '' : ` ${item.color} - `;
-        cartDiv.innerHTML += `<div class="cart-item"><span style="font-weight: 600;">${item.artNo} (${displayColor}S${item.size}) <br><span style="color: var(--text-muted); font-size: 12px;">Qty: ${item.qty}</span></span><span style="text-align:right; font-weight:800; color:var(--success); font-size: 16px;">₹${item.qty * item.price}</span><b style="color:var(--danger);cursor:pointer; padding-left:15px; font-size: 18px;" onclick="removeFromCart(${index})"><i class="fa-solid fa-circle-xmark"></i></b></div>`;
+        cartDiv.innerHTML += `<div class="cart-item"><span style="font-weight: 600;">${esc(item.artNo)} (${esc(displayColor)}S${esc(item.size)}) <br><span style="color: var(--text-muted); font-size: 12px;">Qty: ${item.qty}</span></span><span style="text-align:right; font-weight:800; color:var(--success); font-size: 16px;">₹${item.qty * item.price}</span><b style="color:var(--danger);cursor:pointer; padding-left:15px; font-size: 18px;" onclick="removeFromCart(${index})"><i class="fa-solid fa-circle-xmark"></i></b></div>`;
     });
     let discount = parseInt(document.getElementById('saleDiscount').value) || 0;
     if(discount < 0) discount = 0;
@@ -1023,7 +1018,8 @@ async function confirmSale() {
         const { data: saleData, error: saleError } = await supabaseClient.from('sales').insert([{ shop_id: currentShopId, total_amount: totalAmount, total_profit: totalProfit, discount_amount: discount }]).select();
         if(saleError) throw saleError;
         for(let item of cart) {
-            await supabaseClient.from('sale_items').insert([{ sale_id: saleData[0].id, article_id: item.id, size: item.size, quantity: item.qty, selling_price: item.price, cost_price: item.cost }]);
+            const { error: siErr } = await supabaseClient.from('sale_items').insert([{ sale_id: saleData[0].id, article_id: item.id, size: item.size, quantity: item.qty, selling_price: item.price, cost_price: item.cost }]);
+            if (siErr) throw siErr;
             const { data: batches } = await supabaseClient.from('stock_batches').select('id, remaining_qty, color').eq('article_id', item.id).eq('size', item.size).gt('remaining_qty', 0).order('entry_date', { ascending: true });
             let qtyToDeduct = item.qty;
             if (batches) {
@@ -1033,7 +1029,8 @@ async function confirmSale() {
                     let itemColor = item.color || ''; if (itemColor === 'Default') itemColor = '';
                     if (bColor === itemColor) {
                         let deduct = Math.min(b.remaining_qty, qtyToDeduct);
-                        await supabaseClient.from('stock_batches').update({ remaining_qty: b.remaining_qty - deduct }).eq('id', b.id);
+                        const { error: upErr } = await supabaseClient.from('stock_batches').update({ remaining_qty: b.remaining_qty - deduct }).eq('id', b.id);
+                        if (upErr) throw upErr;
                         qtyToDeduct -= deduct;
                     }
                 }
@@ -1059,7 +1056,7 @@ async function searchPurchaseArticle() {
     colorSelect.innerHTML = '';
     let uniqueColors = new Set();
     articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColors.add(c); });
-    uniqueColors.forEach(color => { let displayColor = (color === '') ? 'No Color' : color; colorSelect.innerHTML += `<option value="${color}">${displayColor}</option>`; });
+    uniqueColors.forEach(color => { let displayColor = (color === '') ? 'No Color' : color; colorSelect.innerHTML += `<option value="${esc(color)}">${esc(displayColor)}</option>`; });
     updatePurchaseSizes();
     document.getElementById('purCost').value = articles.cost_price || 0;
     document.getElementById('purArticleDetails').style.display = 'block';
@@ -1071,7 +1068,7 @@ function updatePurchaseSizes() {
     sizeSelect.innerHTML = '';
     let uniqueSizes = new Set();
     foundPurchaseArticle.stock_batches.forEach(batch => { let bColor = batch.color || ''; if (bColor === 'Default') bColor = ''; if(bColor === color) uniqueSizes.add(String(batch.size).trim()); });
-    uniqueSizes.forEach(size => { sizeSelect.innerHTML += `<option value="${size}">Size ${size}</option>`; });
+    uniqueSizes.forEach(size => { sizeSelect.innerHTML += `<option value="${esc(size)}">Size ${esc(size)}</option>`; });
 }
 
 async function processPurchase() {
@@ -1128,7 +1125,7 @@ async function searchReturnArticle() {
     sizeSelect.innerHTML = '';
     let uniqueColorSizes = new Set();
     articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColorSizes.add(`${c}|||${String(batch.size).trim()}`); });
-    uniqueColorSizes.forEach(val => { const parts = val.split('|||'); const c = parts[0]; const s = parts[1]; let displayColor = (c === '') ? '' : `${c} - `; sizeSelect.innerHTML += `<option value="${val}">${displayColor}Size ${s}</option>`; });
+    uniqueColorSizes.forEach(val => { const parts = val.split('|||'); const c = parts[0]; const s = parts[1]; let displayColor = (c === '') ? '' : `${c} - `; sizeSelect.innerHTML += `<option value="${esc(val)}">${esc(displayColor)}Size ${esc(s)}</option>`; });
     document.getElementById('retQty').value = 1;
     document.getElementById('retArticleDetails').style.display = 'block';
 }
@@ -1184,26 +1181,6 @@ async function downloadExcel() {
     showToast("Excel Downloaded! 📥", false);
 }
 
-async function clearHistory() {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const { data: todaySales } = await supabaseClient.from('sales').select(`id, sale_items (article_id, size, quantity)`).eq('shop_id', currentShopId).gte('sale_date', todayStr);
-    if(todaySales) {
-        for(let sale of todaySales) {
-            if(sale.sale_items) {
-                for(let item of sale.sale_items) {
-                    const { data: batches } = await supabaseClient.from('stock_batches').select('id, remaining_qty').eq('article_id', item.article_id).eq('size', item.size).limit(1);
-                    if(batches && batches.length > 0) { await supabaseClient.from('stock_batches').update({ remaining_qty: batches[0].remaining_qty + item.quantity }).eq('id', batches[0].id); }
-                }
-            }
-        }
-    }
-    await supabaseClient.from('sales').delete().eq('shop_id', currentShopId).gte('sale_date', todayStr);
-    await supabaseClient.from('returns').delete().eq('shop_id', currentShopId).gte('return_date', todayStr);
-    await supabaseClient.from('expenses').delete().eq('shop_id', currentShopId).gte('expense_date', todayStr);
-    showToast("History cleared & stock restored!", false);
-    loadDashboardData();
-}
-
 async function handleLogout() {
     await supabaseClient.auth.signOut();
     isStaffMode = false;
@@ -1236,6 +1213,11 @@ async function checkSession() {
         } else {
             const { data: shop } = await supabaseClient.from('shops').select('*').eq('auth_email', currentUser.email).single();
             if(shop) {
+                if (shop.status !== 'active' || !shop.expiry_date || new Date() > new Date(shop.expiry_date)) {
+                    await supabaseClient.auth.signOut();
+                    showToast("Subscription expired / inactive! Contact Admin.", true);
+                    return;
+                }
                 currentShopId = shop.id;
                 document.getElementById('headerShopName').innerText = shop.shop_name;
                 isStaffMode = localStorage.getItem('isStaff') === 'true'; 
@@ -1245,11 +1227,9 @@ async function checkSession() {
     }
 }
 
-document.addEventListener('contextmenu', event => event.preventDefault());
-document.onkeydown = function(e) {
-    if (e.keyCode == 123) return false; 
-    if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-    if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
-    if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-    if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
-};
+// ---------- PWA ----------
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
+    });
+}

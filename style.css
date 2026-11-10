@@ -304,3 +304,42 @@ button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .quick-expense-btn { font-size: 12px !important; padding: 12px 8px !important; }
     .quick-expense-btn i { width: 40px !important; height: 40px !important; font-size: 18px !important; }
 }
+
+
+/* =========================================
+   FIXES: missing classes + mobile height
+   ========================================= */
+body { height: 100vh; height: 100dvh; }
+
+/* Article form: colors & sizes */
+.color-section { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+.color-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.color-header .color-name { flex: 1; width: auto !important; margin-bottom: 0 !important; }
+.color-header .btn-small { width: auto; flex-shrink: 0; }
+.size-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.size-grid label { text-align: center; font-size: 12px; margin-bottom: 4px; }
+.size-grid input { margin-bottom: 0; padding: 10px 4px; text-align: center; }
+
+/* Super Admin */
+.sa-search { position: relative; margin-bottom: 12px; }
+.sa-card-top { display: flex; align-items: center; gap: 12px; }
+.sa-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #1D4ED8, #8B5CF6); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0; }
+.sa-info { flex: 1; min-width: 0; }
+.sa-info h4 { margin: 0 0 4px 0; font-size: 15px; color: var(--text-light); }
+.sa-info p { margin: 0 0 4px 0; font-size: 12px; color: var(--text-muted); }
+.sa-valid { font-size: 11px; color: var(--success); font-weight: 600; }
+.sa-toggle { width: 46px; height: 26px; border-radius: 13px; background: var(--border-color); position: relative; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+.sa-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: 0.2s; }
+.sa-toggle.active { background: var(--success); }
+.sa-toggle.active::after { left: 23px; }
+
+/* Udhaar, Staff, Net cash */
+.credit-card { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--card-dark); border: 1px solid var(--border-color); border-left: 4px solid var(--warning); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.credit-card.paid { border-left-color: var(--success); opacity: 0.7; }
+.net-payable-box { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); border: 1px dashed var(--border-color); border-radius: 12px; padding: 14px; margin: 10px 0; }
+.net-cash-flow-box { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 2px dashed var(--border-color); }
+.net-cash-flow-box .title { font-weight: 700; font-size: 14px; }
+.net-cash-flow-box .amount { font-weight: 800; font-size: 18px; }
+.net-cash-flow-box .amount.positive { color: var(--success); }
+.net-cash-flow-box .amount.negative { color: var(--danger); }
+.staff-pin-display { font-size: 36px; font-weight: 800; letter-spacing: 8px; padding: 18px; margin-bottom: 20px; background: var(--input-bg); border: 2px dashed var(--primary); border-radius: 14px; color: var(--primary); }

@@ -5,13 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SJ Digital Labs</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <meta name="theme-color" content="#1D4ED8">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SJ Labs">
 </head>
 <body>
 
@@ -59,7 +64,6 @@
             <div class="menu-item" onclick="switchTab('target'); toggleSidebar();"><i class="fa-solid fa-bullseye"></i> Set Daily Target</div>
             <div class="menu-item" onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i> Sales Report</div>
             <div class="menu-item" onclick="downloadExcel(); toggleSidebar();"><i class="fa-solid fa-file-excel"></i> Export Excel Report</div>
-            <div class="menu-item text-danger" onclick="askConfirm('Clear Today\'s History? This will restore stock.', clearHistory); toggleSidebar();"><i class="fa-solid fa-trash"></i> Clear History</div>
             <div class="menu-item text-danger" onclick="handleLogout(); toggleSidebar();"><i class="fa-solid fa-power-off"></i> Logout</div>
         </div>
     </div>

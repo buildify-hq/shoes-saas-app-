@@ -1,47 +1,30 @@
-const CACHE_NAME = 'sj-labs-v1';
-const urlsToCache = [
-  './',
-  './index.html',
-  './style.css',
-  './script.js',
-  './manifest.json'
-];
+const CACHE_NAME = 'sj-labs-v2';   // अपडेट केल्यावर v3, v4... असं वाढव
+const urlsToCache = ['./', './index.html', './style.css', './script.js', './manifest.json'];
 
-// इन्स्टॉल होताना फाईल्स कॅशे करा
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(urlsToCache);
-      })
-  );
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache)));
 });
 
-// नेटवर्क नसताना कॅशेमधून फाईल्स दाखवा
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
-});
-
-// जुना कॅशे डिलीट करा
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((names) =>
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+// आधी नेटवर्क (नवीन फाईल्स), नेट नसेल तर कॅशे. फक्त आपल्याच साईटच्या फाईल्स.
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+        return res;
+      })
+      .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
   );
 });
