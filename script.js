@@ -448,13 +448,12 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    // 🌟 स्टाफसाठी बंदी (Bulk Import पण ॲड केलं)
+    // 🌟 स्टाफसाठी बंदी
     if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert', 'bulkImport'].includes(tabName)) {
         showToast("Access Denied! Only Owner can access this.", true);
         return;
     }
     
-    // 🌟 नवीन स्क्रीन ॲड केली
     const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen', 'labelsScreen', 'bulkImportScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -466,7 +465,7 @@ function switchTab(tabName) {
     else if(tabName === 'article') { document.getElementById('articleScreen').style.display = 'block'; updateArticleTypes(); } 
     else if(tabName === 'return') { document.getElementById('returnScreen').style.display = 'block'; document.getElementById('retArticleDetails').style.display = 'none'; } 
     else if(tabName === 'purchase') { document.getElementById('purchaseScreen').style.display = 'block'; document.getElementById('purArticleDetails').style.display = 'none'; }
-    else if(tabName === 'bulkImport') { document.getElementById('bulkImportScreen').style.display = 'block'; } // 🌟 नवीन
+    else if(tabName === 'bulkImport') { document.getElementById('bulkImportScreen').style.display = 'block'; }
     else if(tabName === 'expense') { document.getElementById('expenseScreen').style.display = 'block'; }
     else if(tabName === 'credits') { document.getElementById('creditsScreen').style.display = 'block'; loadCredits(); }
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
@@ -587,7 +586,7 @@ async function loadChartData(type) {
 }
 
 // ==========================================
-// 🌟 FEATURE 2: SIZE-WISE LOW STOCK ALERT
+// 🌟 FEATURE 2: SIZE-WISE LOW STOCK ALERT (UPDATED)
 // ==========================================
 async function loadLowStockAlerts() {
     const container = document.getElementById('lowStockListContainer');
@@ -602,8 +601,8 @@ async function loadLowStockAlerts() {
 
             (art.stock_batches || []).forEach(b => {
                 totalPairs += b.remaining_qty;
-                // जर साईजचा स्टॉक २ किंवा त्यापेक्षा कमी असेल तर अलर्ट दाखवा
-                if (b.remaining_qty <= 2) {
+                // 🌟 १ किंवा ० जोड्या असतील तरच अलर्ट दाखवा
+                if (b.remaining_qty <= 1) {
                     let c = b.color || ''; if(c === 'Default') c = '';
                     let s = String(b.size).trim();
                     let display = (c ? c + " - " : "") + "Size " + s;
@@ -622,6 +621,17 @@ async function loadLowStockAlerts() {
                     <p style="margin:0 0 8px 0; font-size:12px; color:var(--text-muted);">${esc(art.category)}</p>
                     <div style="font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 5px;">Low/Out of Stock Sizes:</div>
                     <div>${lowSizes.join('')}</div>
+                    
+                    <!-- 🌟 नवीन बटणं: स्टॉक ॲड करा आणि आर्टिकल डिलीट करा -->
+                    <div style="display:flex; gap:8px; margin-top:12px; border-top: 1px dashed var(--border-color); padding-top:12px;">
+                        <button class="btn-primary" onclick="quickAddStock('${esc(art.article_no)}')" style="flex:1; margin:0; padding:8px; font-size:12px; border-radius:8px;">
+                            <i class="fa-solid fa-plus"></i> Add Stock
+                        </button>
+                        ${!isStaffMode ? `
+                        <button class="btn-danger" onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${art.id}'))" style="flex:1; margin:0; padding:8px; font-size:12px; border-radius:8px;">
+                            <i class="fa-solid fa-trash"></i> Delete
+                        </button>` : ''}
+                    </div>
                 </div>`;
             }
         });
@@ -633,6 +643,13 @@ async function loadLowStockAlerts() {
     }
 }
 
+// 🌟 नवीन फंक्शन: स्टॉक ॲड करण्यासाठी थेट पेजवर पाठवण्यासाठी
+function quickAddStock(artNo) {
+    switchTab('purchase');
+    document.getElementById('purArtNo').value = artNo;
+    searchPurchaseArticle();
+}
+
 async function loadDashboardData() {
     if(!currentShopId) return;
     const { data: shopData } = await supabaseClient.from('shops').select('daily_target').eq('id', currentShopId).single();
@@ -641,7 +658,7 @@ async function loadDashboardData() {
     
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
     let gentsTotal = 0, ladiesTotal = 0, kidsTotal = 0;
-    let lowStockItemsCount = 0; // 🌟 साईजनुसार काउंट बदलला
+    let lowStockItemsCount = 0;
 
     if(articles) {
         articles.forEach(art => {
@@ -651,7 +668,8 @@ async function loadDashboardData() {
             if(art.stock_batches) { 
                 art.stock_batches.forEach(batch => { 
                     artTotal += batch.remaining_qty; 
-                    if (batch.remaining_qty <= 2) hasLowSize = true; // 🌟 साईज २ पेक्षा कमी असल्यास
+                    // 🌟 डॅशबोर्ड बॅजसाठी पण १ किंवा ० चा नियम
+                    if (batch.remaining_qty <= 1) hasLowSize = true; 
                 }); 
             }
 
@@ -927,7 +945,7 @@ async function deleteArticle(articleId) {
     showToast("Deleting...", false);
     const { error } = await supabaseClient.from('articles').delete().eq('id', articleId);
     if(error) { showToast("Error deleting: " + error.message, true); } 
-    else { showToast("Article Deleted! 🗑️", false); loadMyStockList(); loadDashboardData(); }
+    else { showToast("Article Deleted! 🗑️", false); loadMyStockList(); loadDashboardData(); switchTab('lowStockAlert'); }
 }
 
 function updateArticleTypes() {
@@ -1832,4 +1850,4 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
     });
-}
+    }
