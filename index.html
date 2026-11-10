@@ -58,7 +58,6 @@
                 <span id="menuAlertBadge" style="display:none; background: var(--danger); color: white; border-radius: 50%; padding: 2px 8px; font-size: 11px; margin-left: auto;">0</span>
             </div>
             
-            <div class="menu-item" onclick="switchTab('return'); toggleSidebar();"><i class="fa-solid fa-rotate-left"></i> Return Item</div>
             <div class="menu-item" onclick="switchTab('credits'); toggleSidebar();"><i class="fa-solid fa-book"></i> Udhaar Khata</div>
             <div class="menu-item" onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i> Staff Salary & Advance</div>
             <div class="menu-item" onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</div>
@@ -71,7 +70,6 @@
 
     <div class="top-header" id="topHeader">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <span class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></span>
             <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="header-logo">
             <h2 id="headerShopName">SJ Digital Labs</h2>
         </div>
@@ -281,6 +279,7 @@
 
         <div id="saleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
+            <button id="staffReturnBtn" class="btn-warning" onclick="switchTab('return')" style="display:none; margin-bottom:15px;"><i class="fa-solid fa-rotate-left"></i> Return Item</button>
             <div class="app-card">
                 <label>Search Article No.</label>
                 <div style="display: flex; gap: 8px;">
@@ -365,7 +364,7 @@
 
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
-            <div class="hist-top"><input type="date" id="histDate" onchange="loadHistory()"><button class="btn-warning" onclick="switchTab('return')"><i class="fa-solid fa-rotate-left"></i> Return</button></div>
+            <input type="date" id="histDate" onchange="loadHistory()">
             <div class="hist-summary">
                 <div class="hist-sum sale"><small>Sales</small><b id="histSales">₹0</b></div>
                 <div class="hist-sum ret"><small>Returns</small><b id="histReturns">₹0</b></div>

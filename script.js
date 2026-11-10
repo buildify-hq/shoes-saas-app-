@@ -438,7 +438,7 @@ function switchTab(tabName) {
 
     if(tabName === 'dashboard') { document.getElementById('dashboardScreen').style.display = 'block'; document.getElementById('nav-dash').classList.add('active'); loadDashboardData(); } 
     else if(tabName === 'stock') { document.getElementById('stockScreen').style.display = 'block'; document.getElementById('nav-stock').classList.add('active'); initStockTab(); } 
-    else if(tabName === 'sale') { document.getElementById('saleScreen').style.display = 'block'; document.getElementById('nav-sale').classList.add('active'); document.getElementById('saleArticleDetails').style.display = 'none'; } 
+    else if(tabName === 'sale') { document.getElementById('saleScreen').style.display = 'block'; document.getElementById('nav-sale').classList.add('active'); document.getElementById('saleArticleDetails').style.display = 'none'; document.getElementById('staffReturnBtn').style.display = isStaffMode ? 'flex' : 'none'; } 
     else if(tabName === 'staff') { document.getElementById('staffScreen').style.display = 'block'; } 
     else if(tabName === 'article') { document.getElementById('articleScreen').style.display = 'block'; updateArticleTypes(); } 
     else if(tabName === 'return') { document.getElementById('returnScreen').style.display = 'block'; document.getElementById('retArticleDetails').style.display = 'none'; } 
@@ -1117,7 +1117,7 @@ async function saveExpense() {
 async function searchReturnArticle() {
     const artNo = document.getElementById('retArtNo').value;
     if(!artNo) return;
-    const { data: articles, error } = await supabaseClient.from('articles').select(`id, article_no, name, cost_price, stock_batches (color, size)`).eq('shop_id', currentShopId).eq('article_no', artNo).single();
+    const { data: articles, error } = await supabaseClient.from('articles').select(`id, article_no, name, cost_price, mrp, stock_batches (color, size)`).eq('shop_id', currentShopId).eq('article_no', artNo).single();
     if (error || !articles) { showToast("Article not found!", true); document.getElementById('retArticleDetails').style.display = 'none'; return; }
     foundReturnArticle = articles;
     document.getElementById('retArtName').innerText = `[${articles.article_no}] ${articles.name}`;
@@ -1127,6 +1127,7 @@ async function searchReturnArticle() {
     articles.stock_batches.forEach(batch => { let c = batch.color || ''; if (c === 'Default') c = ''; uniqueColorSizes.add(`${c}|||${String(batch.size).trim()}`); });
     uniqueColorSizes.forEach(val => { const parts = val.split('|||'); const c = parts[0]; const s = parts[1]; let displayColor = (c === '') ? '' : `${c} - `; sizeSelect.innerHTML += `<option value="${esc(val)}">${esc(displayColor)}Size ${esc(s)}</option>`; });
     document.getElementById('retQty').value = 1;
+    document.getElementById('retPrice').value = articles.mrp || 0;
     document.getElementById('retArticleDetails').style.display = 'block';
 }
 
@@ -1136,6 +1137,7 @@ async function processReturn() {
     const qty = parseInt(document.getElementById('retQty').value);
     const refund = parseInt(document.getElementById('retPrice').value) || 0;
     if(!size || !qty || qty <= 0) { showToast("Invalid details!", true); return; }
+    if(refund <= 0) { showToast("Refund रक्कम टाका!", true); return; }
     const { error } = await supabaseClient.rpc('process_return', { p_article: String(foundReturnArticle.id), p_color: color || '', p_size: String(size), p_qty: qty, p_refund: refund });
     if (error) { showToast("Error: " + error.message, true); return; }
     showToast(`✅ Return done! Stock +${qty}`, false);
@@ -1151,6 +1153,19 @@ function setHistFilter(f, el) {
     document.querySelectorAll('#historyScreen .hist-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
     loadHistory();
+}
+function delBtn(kind, id) {
+    return isStaffMode ? '' : `<button class="hist-del" onclick="deleteHistory('${kind}','${id}')"><i class="fa-solid fa-trash"></i></button>`;
+}
+function deleteHistory(kind, id) {
+    const msg = kind === 'sale' ? 'हे बिल delete करायचं? (stock परत जमा होईल)' : kind === 'return' ? 'ही return नोंद delete करायची? (stock कमी होईल)' : 'हा खर्च delete करायचा?';
+    askConfirm(msg, async () => {
+        const fn = { sale: 'delete_sale', return: 'delete_return', expense: 'delete_expense' }[kind];
+        const { error } = await supabaseClient.rpc(fn, { p_id: String(id) });
+        if (error) { showToast('Error: ' + error.message, true); return; }
+        showToast('Deleted ✅', false);
+        loadHistory();
+    });
 }
 function fmtTime(iso) { return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
 async function loadHistory() {
@@ -1170,16 +1185,17 @@ async function loadHistory() {
 
     let rows = [];
     sales.forEach(s => rows.push({ t: s.sale_date, type: 'sale', html: `
-        <div class="hist-card sale"><div class="hist-head"><span class="hist-badge sale"><i class="fa-solid fa-bag-shopping"></i> Sale</span><span class="hist-time">${fmtTime(s.sale_date)}</span></div>
+        <div class="hist-card sale"><div class="hist-head"><span class="hist-badge sale"><i class="fa-solid fa-bag-shopping"></i> Sale</span><span class="hist-right"><span class="hist-time">${fmtTime(s.sale_date)}</span>${delBtn('sale', s.id)}</span></div>
+        ${(s.items||[]).length ? '' : '<div class="hist-line muted"><span>⚠ जुनं अर्धवट बिल (items नाहीत) — delete करा</span></div>'}
         ${(s.items||[]).map(i => `<div class="hist-line"><span>[${esc(i.article_no)}] ${esc(i.name||'')} • S${esc(i.size)} × ${i.qty}</span><b>₹${i.qty * i.price}</b></div>`).join('')}
         ${s.discount_amount > 0 ? `<div class="hist-line muted"><span>Discount</span><b>-₹${s.discount_amount}</b></div>` : ''}
         <div class="hist-total"><span>Total</span><b class="pos">+₹${s.total_amount}</b></div></div>` }));
     rets.forEach(x => rows.push({ t: x.return_date, type: 'return', html: `
-        <div class="hist-card ret"><div class="hist-head"><span class="hist-badge ret"><i class="fa-solid fa-rotate-left"></i> Return</span><span class="hist-time">${fmtTime(x.return_date)}</span></div>
+        <div class="hist-card ret"><div class="hist-head"><span class="hist-badge ret"><i class="fa-solid fa-rotate-left"></i> Return</span><span class="hist-right"><span class="hist-time">${fmtTime(x.return_date)}</span>${delBtn('return', x.id)}</span></div>
         <div class="hist-line"><span>[${esc(x.article_no||'-')}] ${esc(x.name||'')} • S${esc(x.size)} × ${x.quantity}</span><b class="warn">-₹${x.refund_amount}</b></div>
         <div class="hist-line muted"><span>Stock +${x.quantity} जोडी परत जमा</span></div></div>` }));
     exps.forEach(x => rows.push({ t: x.expense_date, type: 'expense', html: `
-        <div class="hist-card exp"><div class="hist-head"><span class="hist-badge exp"><i class="fa-solid fa-money-bill-transfer"></i> Expense</span><span class="hist-time">${fmtTime(x.expense_date)}</span></div>
+        <div class="hist-card exp"><div class="hist-head"><span class="hist-badge exp"><i class="fa-solid fa-money-bill-transfer"></i> Expense</span><span class="hist-right"><span class="hist-time">${fmtTime(x.expense_date)}</span>${delBtn('expense', x.id)}</span></div>
         <div class="hist-line"><span>${esc(x.reason)}</span><b class="neg">-₹${x.amount}</b></div></div>` }));
     rows = rows.filter(x => histFilter === 'all' || x.type === histFilter).sort((a, b) => new Date(b.t) - new Date(a.t));
     list.innerHTML = rows.length ? rows.map(x => x.html).join('') : '<div class="hist-empty"><i class="fa-regular fa-folder-open"></i><p>या दिवशी काहीही नोंद नाही</p></div>';
