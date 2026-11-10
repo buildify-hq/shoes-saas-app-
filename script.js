@@ -174,7 +174,6 @@ async function executeStaffRelease(name, amount) {
 }
 
 async function handleLogin() {
-    
     const nameInput = document.getElementById('loginShopName').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
     if(!nameInput || !pinInput) { showToast("Please enter Shop Name and PIN", true); return; }
@@ -411,21 +410,39 @@ function showOwnerDashboard() {
     document.getElementById('bottomNav').style.display = 'flex';
     
     document.getElementById('menuBtn').style.display = isStaffMode ? 'none' : 'inline-block';
+    
+    const menuItems = document.querySelectorAll('.sidebar .menu-item');
+    
     if(isStaffMode) {
         document.getElementById('nav-dash').style.display = 'none';
         let navMore = document.getElementById('nav-more');
         navMore.setAttribute('onclick', 'handleLogout()');
         navMore.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket nav-icon"></i> Logout';
         navMore.style.display = 'none';
+        
+        // स्टाफसाठी फक्त History आणि Logout दाखवा
+        menuItems.forEach(item => {
+            const text = item.innerText || '';
+            if (text.includes('History') || text.includes('Logout')) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
         document.getElementById('nav-stock').style.display = 'flex';
         document.getElementById('nav-sale').style.display = 'flex';
-        switchTab('sale');
+        switchTab('sale'); 
     } else {
         document.getElementById('nav-dash').style.display = 'flex';
         let navMore = document.getElementById('nav-more');
         navMore.setAttribute('onclick', 'toggleSidebar()');
         navMore.innerHTML = '<i class="fa-solid fa-bars nav-icon"></i> Menu';
         navMore.style.display = 'none';
+        
+        // ओनरसाठी सगळे मेनू परत दाखवा
+        menuItems.forEach(item => { item.style.display = 'flex'; });
+
         document.getElementById('nav-stock').style.display = 'flex';
         document.getElementById('nav-sale').style.display = 'flex';
         switchTab('dashboard');
@@ -433,7 +450,12 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    if(isStaffMode && (tabName === 'insights' || tabName === 'closing' || tabName === 'labels' || tabName === 'dashboard' || tabName === 'staff' || tabName === 'staffPin' || tabName === 'target')) return; 
+    // स्टाफला या सगळ्या स्क्रीन्सवर बंदी
+    if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert'].includes(tabName)) {
+        showToast("Access Denied! Only Owner can access this.", true);
+        return;
+    }
+    
     const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen', 'labelsScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1482,6 +1504,7 @@ async function loadHistory() {
     list.innerHTML = rows.length ? rows.map(x => x.html).join('') : emptyState('fa-folder-open', 'No records for this day');
 }
 
+// ---------- Excel Export & Full Backup ----------
 async function downloadExcel() {
     if(!currentShopId) return;
     const { data: allData } = await supabaseClient.from('sales').select(`sale_date, total_amount, total_profit, sale_items (quantity, size, selling_price, articles(article_no, name))`).eq('shop_id', currentShopId).order('sale_date', { ascending: false });
@@ -1490,7 +1513,15 @@ async function downloadExcel() {
         allData.forEach(s => {
             if(s.sale_items) {
                 s.sale_items.forEach(item => {
-                    excelData.push({ Date: new Date(s.sale_date).toLocaleDateString(), "Article No": item.articles.article_no, "Name": item.articles.name, "Size": item.size, "Qty": item.quantity, "Total Amount": s.total_amount, "Profit": s.total_profit });
+                    excelData.push({ 
+                        Date: new Date(s.sale_date).toLocaleDateString(), 
+                        "Article No": item.articles?.article_no || 'DELETED', 
+                        "Name": item.articles?.name || '-', 
+                        "Size": item.size, 
+                        "Qty": item.quantity, 
+                        "Total Amount": s.total_amount, 
+                        "Profit": s.total_profit 
+                    });
                 });
             }
         });
@@ -1501,6 +1532,101 @@ async function downloadExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
     XLSX.writeFile(wb, "Sales_Report.xlsx");
     showToast("Excel Downloaded! 📥", false);
+}
+
+async function downloadFullBackup() {
+    if (!currentShopId) return;
+    showToast("Backup तयार होत आहे... कृपया थांबा ⏳", false);
+
+    try {
+        const [articlesRes, salesRes, returnsRes, expensesRes, creditsRes, purchasesRes] = await Promise.all([
+            supabaseClient.from('articles').select('article_no, name, category, cost_price, mrp, stock_batches(color, size, initial_qty, remaining_qty)').eq('shop_id', currentShopId),
+            supabaseClient.from('sales').select('sale_date, total_amount, total_profit, discount_amount, sale_items(quantity, size, selling_price, articles(article_no, name))').eq('shop_id', currentShopId),
+            supabaseClient.from('returns').select('return_date, quantity, refund_amount, size, articles(article_no, name)').eq('shop_id', currentShopId),
+            supabaseClient.from('expenses').select('expense_date, reason, amount').eq('shop_id', currentShopId),
+            supabaseClient.from('credits').select('created_at, customer_name, phone, amount, status').eq('shop_id', currentShopId),
+            supabaseClient.from('purchases').select('purchase_date, quantity, cost_price, size, supplier_name, articles(article_no, name)').eq('shop_id', currentShopId)
+        ]);
+
+        const wb = XLSX.utils.book_new();
+
+        // 1. Stock Sheet
+        let stockData = [];
+        (articlesRes.data || []).forEach(art => {
+            (art.stock_batches || []).forEach(batch => {
+                stockData.push({
+                    "Article No": art.article_no, "Name": art.name, "Category": art.category,
+                    "Color": batch.color || '-', "Size": batch.size, 
+                    "Initial Stock": batch.initial_qty, "Remaining Stock": batch.remaining_qty,
+                    "Cost Price": art.cost_price, "MRP": art.mrp
+                });
+            });
+        });
+        if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Stock Details");
+
+        // 2. Sales Sheet
+        let salesData = [];
+        (salesRes.data || []).forEach(sale => {
+            (sale.sale_items || []).forEach(item => {
+                salesData.push({
+                    "Date": new Date(sale.sale_date).toLocaleString(),
+                    "Article No": item.articles?.article_no || 'DELETED',
+                    "Name": item.articles?.name || '-',
+                    "Size": item.size, "Qty": item.quantity,
+                    "Selling Price": item.selling_price, "Total Amount": sale.total_amount,
+                    "Profit": sale.total_profit, "Bill Discount": sale.discount_amount
+                });
+            });
+        });
+        if(salesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesData), "Sales History");
+
+        // 3. Returns Sheet
+        let returnsData = (returnsRes.data || []).map(ret => ({
+            "Date": new Date(ret.return_date).toLocaleString(),
+            "Article No": ret.articles?.article_no || 'DELETED',
+            "Name": ret.articles?.name || '-',
+            "Size": ret.size, "Qty": ret.quantity, "Refund Amount": ret.refund_amount
+        }));
+        if(returnsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(returnsData), "Returns");
+
+        // 4. Expenses Sheet
+        let expensesData = (expensesRes.data || []).map(exp => ({
+            "Date": new Date(exp.expense_date).toLocaleString(),
+            "Reason": exp.reason, "Amount": exp.amount
+        }));
+        if(expensesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expensesData), "Expenses");
+
+        // 5. Udhaar Khata Sheet
+        let creditsData = (creditsRes.data || []).map(cred => ({
+            "Date": new Date(cred.created_at).toLocaleString(),
+            "Customer": cred.customer_name, "Phone": cred.phone, 
+            "Amount": cred.amount, "Status": cred.status
+        }));
+        if(creditsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(creditsData), "Udhaar Khata");
+
+        // 6. Purchases Sheet
+        let purchasesData = (purchasesRes.data || []).map(pur => ({
+            "Date": new Date(pur.purchase_date).toLocaleString(),
+            "Article No": pur.articles?.article_no || 'DELETED',
+            "Name": pur.articles?.name || '-',
+            "Size": pur.size, "Qty": pur.quantity, "Cost": pur.cost_price, "Supplier": pur.supplier_name
+        }));
+        if(purchasesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(purchasesData), "Purchases");
+
+        // Save Excel
+        if (wb.SheetNames.length === 0) {
+            showToast("Backup साठी डेटा उपलब्ध नाही!", true);
+            return;
+        }
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${dateStr}.xlsx`);
+        showToast("✅ Full Backup यशस्वीरित्या डाउनलोड झाला!", false);
+
+    } catch (err) {
+        console.error(err);
+        showToast("Backup मध्ये एरर आला: " + err.message, true);
+    }
 }
 
 async function handleLogout() {
