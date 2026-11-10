@@ -448,12 +448,14 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert'].includes(tabName)) {
+    // 🌟 स्टाफसाठी बंदी (Bulk Import पण ॲड केलं)
+    if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert', 'bulkImport'].includes(tabName)) {
         showToast("Access Denied! Only Owner can access this.", true);
         return;
     }
     
-    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen', 'labelsScreen'];
+    // 🌟 नवीन स्क्रीन ॲड केली
+    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen', 'labelsScreen', 'bulkImportScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -464,6 +466,7 @@ function switchTab(tabName) {
     else if(tabName === 'article') { document.getElementById('articleScreen').style.display = 'block'; updateArticleTypes(); } 
     else if(tabName === 'return') { document.getElementById('returnScreen').style.display = 'block'; document.getElementById('retArticleDetails').style.display = 'none'; } 
     else if(tabName === 'purchase') { document.getElementById('purchaseScreen').style.display = 'block'; document.getElementById('purArticleDetails').style.display = 'none'; }
+    else if(tabName === 'bulkImport') { document.getElementById('bulkImportScreen').style.display = 'block'; } // 🌟 नवीन
     else if(tabName === 'expense') { document.getElementById('expenseScreen').style.display = 'block'; }
     else if(tabName === 'credits') { document.getElementById('creditsScreen').style.display = 'block'; loadCredits(); }
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
@@ -583,31 +586,48 @@ async function loadChartData(type) {
     });
 }
 
+// ==========================================
+// 🌟 FEATURE 2: SIZE-WISE LOW STOCK ALERT
+// ==========================================
 async function loadLowStockAlerts() {
     const container = document.getElementById('lowStockListContainer');
     container.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Loading...</p>';
-    const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
+    const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId);
     
     let lowStockHtml = '';
     if(articles) {
         articles.forEach(art => {
-            let artTotal = 0;
-            if(art.stock_batches) { art.stock_batches.forEach(batch => { artTotal += batch.remaining_qty; }); }
-            if(artTotal <= 5 && artTotal >= 0) {
-                let badgeColor = artTotal === 0 ? 'var(--danger)' : 'var(--warning)';
+            let lowSizes = [];
+            let totalPairs = 0;
+
+            (art.stock_batches || []).forEach(b => {
+                totalPairs += b.remaining_qty;
+                // जर साईजचा स्टॉक २ किंवा त्यापेक्षा कमी असेल तर अलर्ट दाखवा
+                if (b.remaining_qty <= 2) {
+                    let c = b.color || ''; if(c === 'Default') c = '';
+                    let s = String(b.size).trim();
+                    let display = (c ? c + " - " : "") + "Size " + s;
+                    lowSizes.push(`<span style="background: rgba(239,68,68,0.15); color: var(--danger); padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; display:inline-block; margin-bottom:4px;">${display}: ${b.remaining_qty}</span>`);
+                }
+            });
+
+            if (lowSizes.length > 0) {
+                let badgeColor = totalPairs === 0 ? 'var(--danger)' : 'var(--warning)';
                 lowStockHtml += `
                 <div class="app-card" style="border-left: 4px solid ${badgeColor}; padding: 15px; margin-bottom: 10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
                         <h4 style="margin:0; font-size:15px;">[${esc(art.article_no)}] ${esc(art.name) || 'Unnamed'}</h4>
-                        <span style="background:${badgeColor}; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${artTotal} Pairs Left</span>
+                        <span style="background:${badgeColor}; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">Total: ${totalPairs}</span>
                     </div>
-                    <p style="margin:5px 0 0 0; font-size:12px; color:var(--text-muted);">${esc(art.category)}</p>
+                    <p style="margin:0 0 8px 0; font-size:12px; color:var(--text-muted);">${esc(art.category)}</p>
+                    <div style="font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 5px;">Low/Out of Stock Sizes:</div>
+                    <div>${lowSizes.join('')}</div>
                 </div>`;
             }
         });
     }
     if(lowStockHtml === '') {
-        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--success);"><i class="fa-solid fa-check-circle" style="font-size: 40px; margin-bottom: 10px;"></i><h3>All Good!</h3><p>All shoes are well stocked.</p></div>';
+        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--success);"><i class="fa-solid fa-check-circle" style="font-size: 40px; margin-bottom: 10px;"></i><h3>All Good!</h3><p>All shoes have enough stock in all sizes.</p></div>';
     } else {
         container.innerHTML = lowStockHtml;
     }
@@ -621,11 +641,20 @@ async function loadDashboardData() {
     
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
     let gentsTotal = 0, ladiesTotal = 0, kidsTotal = 0;
-    let lowStockItems = [];
+    let lowStockItemsCount = 0; // 🌟 साईजनुसार काउंट बदलला
+
     if(articles) {
         articles.forEach(art => {
             let artTotal = 0;
-            if(art.stock_batches) { art.stock_batches.forEach(batch => { artTotal += batch.remaining_qty; }); }
+            let hasLowSize = false;
+            
+            if(art.stock_batches) { 
+                art.stock_batches.forEach(batch => { 
+                    artTotal += batch.remaining_qty; 
+                    if (batch.remaining_qty <= 2) hasLowSize = true; // 🌟 साईज २ पेक्षा कमी असल्यास
+                }); 
+            }
+
             let cat = art.category;
             if(cat === 'Formal' || cat === 'Sport' || cat === 'Sandal' || cat === 'Chappal' || cat === 'Slippers') cat = 'Men';
             if(cat === 'LadiesSandal') cat = 'Ladies';
@@ -634,8 +663,8 @@ async function loadDashboardData() {
             else if(cat.includes('Boys') || cat.includes('Girls')) kidsTotal += artTotal;
             else gentsTotal += artTotal; 
             
-            if(artTotal <= 5) {
-                lowStockItems.push({article_no: art.article_no, name: art.name, total: artTotal});
+            if(hasLowSize || artTotal === 0) {
+                lowStockItemsCount++;
             }
         });
     }
@@ -645,9 +674,9 @@ async function loadDashboardData() {
     document.getElementById('totalAllStockDisplay').innerText = (gentsTotal + ladiesTotal + kidsTotal) + " Pairs";
 
     let badge = document.getElementById('menuAlertBadge');
-    if(lowStockItems.length > 0) {
+    if(lowStockItemsCount > 0) {
         badge.style.display = 'inline-block';
-        badge.innerText = lowStockItems.length;
+        badge.innerText = lowStockItemsCount;
     } else {
         badge.style.display = 'none';
     }
@@ -1642,6 +1671,100 @@ async function downloadFullBackup() {
         console.error(err);
         showToast("Backup मध्ये एरर आला: " + err.message, true);
     }
+}
+
+// ==========================================
+// 🌟 FEATURE 1: BULK IMPORT FUNCTIONS
+// ==========================================
+function downloadImportTemplate() {
+    const headers = [["Gender", "Type", "Article No", "Name", "Cost Price", "MRP", "Color", "Size", "Qty"]];
+    const ws = XLSX.utils.aoa_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "Bulk_Import_Template.xlsx");
+}
+
+async function processExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const statusDiv = document.getElementById('importStatus');
+    statusDiv.innerHTML = '<span style="color:var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Excel वाचत आहे... कृपया थांबा.</span>';
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            if (json.length === 0) throw new Error("Excel फाईल रिकामी आहे!");
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (let i = 0; i < json.length; i++) {
+                const row = json[i];
+                const artNo = String(row['Article No'] || '').trim();
+                const size = String(row['Size'] || '').trim();
+                const qty = parseInt(row['Qty']) || 0;
+                
+                if (!artNo || !size || qty <= 0) { errorCount++; continue; }
+
+                const gender = row['Gender'] || 'Men';
+                const type = row['Type'] || 'Formal';
+                const name = row['Name'] || 'Unnamed';
+                const cost = parseInt(row['Cost Price']) || 0;
+                const mrp = parseInt(row['MRP']) || 0;
+                const color = String(row['Color'] || '').trim();
+                const category = `${gender} - ${type}`;
+
+                // १. आर्टिकल शोधा किंवा तयार करा
+                let { data: artData } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).maybeSingle();
+                let articleId;
+
+                if (!artData) {
+                    const { data: newArt, error: artErr } = await supabaseClient.from('articles').insert([{
+                        shop_id: currentShopId, article_no: artNo, name: name, category: category, cost_price: cost, mrp: mrp
+                    }]).select();
+                    if (artErr) { console.error(artErr); errorCount++; continue; }
+                    articleId = newArt[0].id;
+                } else {
+                    articleId = artData.id;
+                }
+
+                // २. स्टॉक बॅच अपडेट किंवा इन्सर्ट करा
+                let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', articleId).eq('size', size);
+                if(color) query = query.eq('color', color); else query = query.or('color.is.null,color.eq.Default,color.eq.');
+                
+                const { data: batch } = await query.limit(1).maybeSingle();
+
+                if (batch) {
+                    await supabaseClient.from('stock_batches').update({
+                        remaining_qty: batch.remaining_qty + qty,
+                        initial_qty: batch.initial_qty + qty
+                    }).eq('id', batch.id);
+                } else {
+                    await supabaseClient.from('stock_batches').insert([{
+                        shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost
+                    }]);
+                }
+                successCount++;
+            }
+
+            statusDiv.innerHTML = `<span style="color:var(--success);">✅ यशस्वी: ${successCount} रांगा ॲड झाल्या. ${errorCount > 0 ? '<br><span style="color:var(--danger);">चुका: ' + errorCount + ' (कृपया डेटा तपासा)</span>' : ''}</span>`;
+            event.target.value = ''; // Reset input
+            showToast(`Bulk Import Complete! ${successCount} rows added.`, false);
+            
+            if (typeof loadDashboardData === 'function') loadDashboardData();
+
+        } catch (err) {
+            statusDiv.innerHTML = `<span style="color:var(--danger);">❌ एरर: ${err.message}</span>`;
+            showToast("Error parsing file: " + err.message, true);
+        }
+    };
+    reader.readAsArrayBuffer(file);
 }
 
 async function handleLogout() {
