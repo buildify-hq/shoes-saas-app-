@@ -822,6 +822,57 @@ function setStockFilter(gender, btnElement) {
     loadMyStockList();
 }
 
+
+// ---------- Compact stock rows (fast for 1000+ articles) ----------
+const STOCK_PAGE = 40;
+let stockRenderList = [], stockRenderCount = 0, stockSearchT;
+function debounceStockSearch() { clearTimeout(stockSearchT); stockSearchT = setTimeout(searchStockArticle, 350); }
+function stockRowHtml(art) {
+    let total = 0; const grouped = {};
+    (art.stock_batches || []).forEach(b => {
+        total += b.remaining_qty;
+        if (b.remaining_qty > 0) {
+            let col = b.color || ''; if (col === 'Default') col = '';
+            const s = String(b.size).trim();
+            if (!grouped[col]) grouped[col] = {};
+            grouped[col][s] = (grouped[col][s] || 0) + b.remaining_qty;
+        }
+    });
+    const colors = Object.keys(grouped);
+    let detail = '';
+    colors.forEach(col => {
+        let sizes = '';
+        Object.keys(grouped[col]).sort((a, b) => Number(a) - Number(b)).forEach(sz => {
+            const q = grouped[col][sz];
+            sizes += `<span class="size-badge${q <= 2 ? ' low' : ''}">S${esc(sz)}: ${q}</span>`;
+        });
+        detail += `<div class="color-group-display">${col ? `<span class="color-title"><i class="fa-solid fa-palette"></i> ${esc(col)}</span>` : ''}<div>${sizes}</div></div>`;
+    });
+    if (!detail) detail = '<p class="srow-out">Out of stock</p>';
+    const status = total === 0 ? 'out' : (total <= 5 ? 'low' : 'ok');
+    const del = isStaffMode ? '' : `<button class="srow-del" onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${esc(art.id)}'))"><i class="fa-solid fa-trash"></i> Delete article</button>`;
+    const sub = [art.category, colors.length > 1 ? colors.length + ' colors' : ''].filter(Boolean).map(esc).join(' • ');
+    return `<div class="srow ${status}">
+        <div class="srow-main" onclick="this.parentElement.classList.toggle('open')">
+            <div class="srow-info"><div class="srow-title"><b>${esc(art.article_no)}</b><span>${esc(art.name) || 'Unnamed'}</span></div><div class="srow-sub">${sub}</div></div>
+            <div class="srow-qty ${status}">${total}<small>pairs</small></div>
+            <i class="fa-solid fa-chevron-down srow-arrow"></i>
+        </div>
+        <div class="srow-detail">${detail}${del}</div></div>`;
+}
+function renderStockRows(list) {
+    stockRenderList = list; stockRenderCount = 0;
+    document.getElementById('stockList').innerHTML = `<div class="stock-count">${list.length} article${list.length === 1 ? '' : 's'}</div><div id="stockRows"></div><div id="stockMore"></div>`;
+    moreStockRows();
+}
+function moreStockRows() {
+    const next = stockRenderList.slice(stockRenderCount, stockRenderCount + STOCK_PAGE);
+    document.getElementById('stockRows').insertAdjacentHTML('beforeend', next.map(stockRowHtml).join(''));
+    stockRenderCount += next.length;
+    const left = stockRenderList.length - stockRenderCount;
+    document.getElementById('stockMore').innerHTML = left > 0 ? `<button class="btn-outline" onclick="moreStockRows()">Show more (${left} left)</button>` : '';
+}
+
 async function loadMyStockList() {
     const stockListDiv = document.getElementById('stockList');
     if(!currentShopId) return;
@@ -842,52 +893,7 @@ async function loadMyStockList() {
 
     if(filteredArticles.length === 0) { stockListDiv.innerHTML = emptyState('fa-shoe-prints', `${currentGenderFilter} - ${currentTypeFilter} - no articles found`); return; }
 
-    filteredArticles.forEach(art => {
-        let totalPairs = 0;
-        let groupedByColor = {};
-        if(art.stock_batches) {
-            art.stock_batches.forEach(b => {
-                totalPairs += b.remaining_qty;
-                if(b.remaining_qty > 0) {
-                    let c = b.color || ''; 
-                    if(c === 'Default') c = '';
-                    let s = String(b.size).trim();
-                    
-                    if(!groupedByColor[c]) groupedByColor[c] = {};
-                    if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
-                    groupedByColor[c][s] += b.remaining_qty;
-                }
-            });
-        }
-        let colorHtml = '';
-        for(let color in groupedByColor) {
-            let sizesHtml = '';
-            Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
-                sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
-            });
-            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${esc(color)}</span>`;
-            colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
-        }
-
-        let alertBadge = '';
-        if (totalPairs === 0) { alertBadge = `<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">Out of Stock</span>`; }
-        else if (totalPairs <= 5) { alertBadge = `<span style="background: var(--warning); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">Low Stock</span>`; }
-
-        let delBtn = !isStaffMode ? `<button onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${art.id}'))" style="position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: none; border-radius: 50%; color: var(--danger); cursor: pointer; z-index: 10;"><i class="fa-solid fa-trash" style="font-size: 14px;"></i></button>` : '';
-
-        stockListDiv.innerHTML += `
-        <div class="stock-card" style="border-left: 5px solid ${totalPairs > 5 ? 'var(--primary)' : (totalPairs > 0 ? 'var(--warning)' : 'var(--danger)')};">
-            ${delBtn}
-            <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
-                <h4>[${esc(art.article_no)}] ${esc(art.name) || 'Unnamed'} ${alertBadge}</h4>
-            </div>
-            <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${esc(art.category)}</p>
-            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
-                 <span style="background:var(--primary); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:800; color:white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);">Total: ${totalPairs}</span>
-            </div>
-            ${colorHtml || '<p style="font-size:14px; color:var(--danger); font-weight: bold;">Out of Stock</p>'}
-        </div>`;
-    });
+    renderStockRows(filteredArticles);
 }
 
 async function searchStockArticle() {
@@ -897,46 +903,9 @@ async function searchStockArticle() {
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (color, size, remaining_qty)`).eq('shop_id', currentShopId);
     let filtered = articles.filter(art => (art.article_no && art.article_no.toLowerCase().includes(searchTerm)) || (art.name && art.name.toLowerCase().includes(searchTerm)));
     stockListDiv.innerHTML = ''; 
-    if(filtered.length === 0) { stockListDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center; padding: 20px;">No articles found.</p>'; return; }
+    if(filtered.length === 0) { stockListDiv.innerHTML = emptyState('fa-magnifying-glass', 'No articles found'); return; }
 
-    filtered.forEach(art => {
-        let totalPairs = 0;
-        let groupedByColor = {};
-        if(art.stock_batches) {
-            art.stock_batches.forEach(b => {
-                totalPairs += b.remaining_qty;
-                if(b.remaining_qty > 0) {
-                    let c = b.color || ''; 
-                    if(c === 'Default') c = '';
-                    let s = String(b.size).trim();
-                    
-                    if(!groupedByColor[c]) groupedByColor[c] = {};
-                    if(!groupedByColor[c][s]) groupedByColor[c][s] = 0;
-                    groupedByColor[c][s] += b.remaining_qty;
-                }
-            });
-        }
-        let colorHtml = '';
-        for(let color in groupedByColor) {
-            let sizesHtml = '';
-            Object.keys(groupedByColor[color]).sort((a,b)=>Number(a)-Number(b)).forEach(size => { 
-                sizesHtml += `<span class="size-badge">S${size}: ${groupedByColor[color][size]}</span>`; 
-            });
-            let colorTitle = (color === '') ? '' : `<span class="color-title"><i class="fa-solid fa-palette"></i> ${esc(color)}</span>`;
-            colorHtml += `<div class="color-group-display">${colorTitle}<div>${sizesHtml}</div></div>`;
-        }
-        stockListDiv.innerHTML += `
-        <div class="stock-card" style="border-left: 5px solid ${totalPairs > 5 ? 'var(--primary)' : (totalPairs > 0 ? 'var(--warning)' : 'var(--danger)')};">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding-right: 35px;">
-                <h4>[${esc(art.article_no)}] ${esc(art.name) || 'Unnamed'}</h4>
-            </div>
-            <p style="margin:0 0 15px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${esc(art.category)}</p>
-            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
-                 <span style="background:var(--primary); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:800; color:white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);">Total: ${totalPairs}</span>
-            </div>
-            ${colorHtml || '<p style="font-size:14px; color:var(--danger); font-weight: bold;">Out of Stock</p>'}
-        </div>`;
-    });
+    renderStockRows(filtered);
 }
 
 async function deleteArticle(articleId) {
