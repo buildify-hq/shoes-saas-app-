@@ -409,7 +409,7 @@ function showOwnerDashboard() {
     document.getElementById('topHeader').style.display = 'flex'; 
     document.getElementById('bottomNav').style.display = 'flex';
     
-    document.getElementById('menuBtn').style.display = isStaffMode ? 'none' : 'inline-block';
+    document.getElementById('menuBtn').style.display = isStaffMode ? 'none' : 'flex';
     
     const menuItems = document.querySelectorAll('.sidebar .menu-item');
     

@@ -559,3 +559,10 @@ html, body { overflow-x: hidden; }
 .srow.open .srow-detail { display: block; }
 .srow-out { margin: 0; color: var(--danger); font-weight: 700; font-size: 13px; }
 .srow-del { width: auto; margin: 10px 0 0; padding: 8px 14px; font-size: 12px; border-radius: 8px; background: rgba(239,68,68,.12); color: var(--danger); border: 1px solid rgba(239,68,68,.35); box-shadow: none; display: inline-flex; align-items: center; gap: 6px; }
+
+/* v12 : header icon centering + compact Home quick expenses */
+.menu-toggle i, .theme-toggle i, .logout-icon i { line-height: 1; }
+.quick-expense-chart { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 8px !important; }
+.quick-expense-btn { padding: 10px 2px !important; font-size: 11px !important; border-radius: 12px !important; min-height: 0 !important; }
+.quick-expense-btn > div { width: 34px !important; height: 34px !important; margin-bottom: 6px !important; }
+.quick-expense-btn > div i { font-size: 15px !important; width: auto !important; height: auto !important; }
