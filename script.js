@@ -1062,6 +1062,12 @@ function addToCart() {
     const qty = parseInt(document.getElementById('saleQty').value);
     const price = parseInt(document.getElementById('salePrice').value);
     if(qty <= 0) { showToast("Quantity must be at least 1", true); return; }
+    if(isNaN(price) || price <= 0) { showToast("Enter a valid selling price", true); return; }
+    const costNow = foundSaleArticle.cost_price || 0;
+    if(!window._belowCostOK && costNow > 0 && price < costNow) {
+        askConfirm(`Selling price ₹${price} is below cost ₹${costNow}. Add anyway?`, () => { window._belowCostOK = true; addToCart(); window._belowCostOK = false; });
+        return;
+    }
 
     let totalAvailableForSize = foundSaleArticle.stock_batches.filter(b => { 
         let bColor = b.color || ''; if (bColor === 'Default') bColor = ''; 
@@ -1566,7 +1572,7 @@ async function downloadExcel() {
 
 async function downloadFullBackup() {
     if (!currentShopId) return;
-    showToast("Backup तयार होत आहे... कृपया थांबा ⏳", false);
+    showToast("Preparing backup... please wait ⏳", false);
 
     try {
         const [articlesRes, salesRes, returnsRes, expensesRes, creditsRes, purchasesRes] = await Promise.all([
@@ -1645,17 +1651,17 @@ async function downloadFullBackup() {
 
         // Save Excel
         if (wb.SheetNames.length === 0) {
-            showToast("Backup साठी डेटा उपलब्ध नाही!", true);
+            showToast("No data available for backup!", true);
             return;
         }
 
         const dateStr = new Date().toISOString().split('T')[0];
         XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${dateStr}.xlsx`);
-        showToast("✅ Full Backup यशस्वीरित्या डाउनलोड झाला!", false);
+        showToast("✅ Full Backup downloaded successfully!", false);
 
     } catch (err) {
         console.error(err);
-        showToast("Backup मध्ये एरर आला: " + err.message, true);
+        showToast("Backup error: " + err.message, true);
     }
 }
 
@@ -1675,7 +1681,7 @@ async function processExcelUpload(event) {
     if (!file) return;
 
     const statusDiv = document.getElementById('importStatus');
-    statusDiv.innerHTML = '<span style="color:var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Excel वाचत आहे... कृपया थांबा.</span>';
+    statusDiv.innerHTML = '<span style="color:var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Reading Excel... please wait.</span>';
     
     const reader = new FileReader();
     reader.onload = async function(e) {
@@ -1685,7 +1691,7 @@ async function processExcelUpload(event) {
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(sheet);
 
-            if (json.length === 0) throw new Error("Excel फाईल रिकामी आहे!");
+            if (json.length === 0) throw new Error("Excel file is empty!");
 
             let successCount = 0;
             let errorCount = 0;
@@ -1739,14 +1745,14 @@ async function processExcelUpload(event) {
                 successCount++;
             }
 
-            statusDiv.innerHTML = `<span style="color:var(--success);">✅ यशस्वी: ${successCount} रांगा ॲड झाल्या. ${errorCount > 0 ? '<br><span style="color:var(--danger);">चुका: ' + errorCount + ' (कृपया डेटा तपासा)</span>' : ''}</span>`;
+            statusDiv.innerHTML = `<span style="color:var(--success);">✅ Success: ${successCount} rows added. ${errorCount > 0 ? '<br><span style="color:var(--danger);">Errors: ' + errorCount + ' (please check your data)</span>' : ''}</span>`;
             event.target.value = ''; // Reset input
             showToast(`Bulk Import Complete! ${successCount} rows added.`, false);
             
             if (typeof loadDashboardData === 'function') loadDashboardData();
 
         } catch (err) {
-            statusDiv.innerHTML = `<span style="color:var(--danger);">❌ एरर: ${err.message}</span>`;
+            statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error: ${err.message}</span>`;
             showToast("Error parsing file: " + err.message, true);
         }
     };
@@ -1819,3 +1825,40 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
     });
 }
+
+// ---------- Low stock WhatsApp share ----------
+async function shareLowStockWA() {
+    const { data, error } = await supabaseClient.from('articles').select('article_no, name, stock_batches (remaining_qty)').eq('shop_id', currentShopId);
+    if (error) { showToast('Error: ' + error.message, true); return; }
+    const low = (data || []).map(a => ({ a, total: (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0) })).filter(x => x.total <= 2).sort((x, y) => x.total - y.total);
+    if (!low.length) { showToast('No low stock articles 👍', false); return; }
+    let t = `⚠️ *Low Stock - ${currentShopName || 'Shop'}*\n${new Date().toLocaleDateString('en-IN')}\n------------------------\n`;
+    low.forEach(x => { t += `${x.a.article_no} ${x.a.name || ''} - ${x.total === 0 ? 'OUT OF STOCK' : x.total + ' left'}\n`; });
+    t += `------------------------\nTotal: ${low.length} article(s)`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+}
+
+// ---------- History day navigation ----------
+function shiftHistDay(delta) {
+    const el = document.getElementById('histDate');
+    const d = new Date((el.value || localDateStr(new Date())) + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    if (d > new Date()) { showToast('Future dates have no records', true); return; }
+    el.value = localDateStr(d);
+    loadHistory();
+}
+
+// ---------- Auto logout after 10 min idle ----------
+let idleTimer;
+const IDLE_MS = 10 * 60 * 1000;
+function resetIdle() {
+    clearTimeout(idleTimer);
+    if (!currentShopId) return;
+    idleTimer = setTimeout(() => {
+        if (!currentShopId) return;
+        if (cart.length > 0) { resetIdle(); return; }
+        showToast('Logged out due to inactivity', true);
+        handleLogout();
+    }, IDLE_MS);
+}
+['click', 'touchstart', 'keydown', 'scroll'].forEach(ev => document.addEventListener(ev, resetIdle, { passive: true }));

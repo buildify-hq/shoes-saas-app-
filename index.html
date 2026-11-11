@@ -62,33 +62,28 @@
             <span class="close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></span>
         </div>
         <div class="menu-list">
-            <div class="menu-item" onclick="switchTab('history'); toggleSidebar();"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
-            <div class="menu-item" onclick="switchTab('insights'); toggleSidebar();"><i class="fa-solid fa-chart-pie"></i> Business Insights</div>
-            <div class="menu-item" onclick="switchTab('closing'); toggleSidebar();"><i class="fa-solid fa-lock"></i> Day Closing</div>
-            <div class="menu-item" onclick="switchTab('labels'); toggleSidebar();"><i class="fa-solid fa-qrcode"></i> Print Labels</div>
-            <div class="menu-item text-danger" onclick="toggleSidebar(); clearHistory();"><i class="fa-solid fa-broom"></i> Clear History</div>
-            <div class="menu-item" onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i> Add New Article</div>
-            
-            <!-- 🌟 नवीन बटण: Bulk Import -->
-            <div class="menu-item" onclick="switchTab('bulkImport'); toggleSidebar();" style="color: var(--warning);"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</div>
-            
-            <div class="menu-item" onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i> Add Stock (Existing)</div>
-            
-            <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();">
-                <i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert
-                <span id="menuAlertBadge" style="display:none; background: var(--danger); color: white; border-radius: 50%; padding: 2px 8px; font-size: 11px; margin-left: auto;">0</span>
-            </div>
-            
-            <div class="menu-item" onclick="switchTab('credits'); toggleSidebar();"><i class="fa-solid fa-book"></i> Udhaar Khata</div>
-            <div class="menu-item" onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i> Staff Salary & Advance</div>
-            <div class="menu-item" onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</div>
-            <div class="menu-item" onclick="switchTab('target'); toggleSidebar();"><i class="fa-solid fa-bullseye"></i> Set Daily Target</div>
-            <div class="menu-item" onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i> Sales Report</div>
-            <div class="menu-item" onclick="downloadExcel(); toggleSidebar();"><i class="fa-solid fa-file-excel"></i> Export Excel Report</div>
-            
-            <div class="menu-item" onclick="downloadFullBackup(); toggleSidebar();" style="color: var(--success);"><i class="fa-solid fa-cloud-arrow-down"></i> Full Backup (Excel)</div>
-            
-            <div class="menu-item text-danger" onclick="handleLogout(); toggleSidebar();"><i class="fa-solid fa-power-off"></i> Logout</div>
+            <div class="menu-section">Reports</div>
+            <div class="menu-item " onclick="switchTab('history'); toggleSidebar();"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></div>
+            <div class="menu-item " onclick="switchTab('insights'); toggleSidebar();"><i class="fa-solid fa-chart-pie"></i><span>Business Insights</span></div>
+            <div class="menu-item " onclick="switchTab('closing'); toggleSidebar();"><i class="fa-solid fa-lock"></i><span>Day Closing</span></div>
+            <div class="menu-item " onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i><span>Sales Report</span></div>
+            <div class="menu-section">Stock</div>
+            <div class="menu-item " onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i><span>Add New Article</span></div>
+            <div class="menu-item " onclick="switchTab('bulkImport'); toggleSidebar();"><i class="fa-solid fa-file-import"></i><span>Bulk Import Stock</span></div>
+            <div class="menu-item " onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i><span>Add Stock (Existing)</span></div>
+            <div class="menu-item " onclick="switchTab('labels'); toggleSidebar();"><i class="fa-solid fa-qrcode"></i><span>Print Labels</span></div>
+            <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();"><i class="fa-solid fa-triangle-exclamation"></i><span>Low Stock Alert</span><span id="menuAlertBadge" class="menu-badge" style="display:none;">0</span></div>
+            <div class="menu-section">Money & Staff</div>
+            <div class="menu-item " onclick="switchTab('credits'); toggleSidebar();"><i class="fa-solid fa-book"></i><span>Udhaar Khata</span></div>
+            <div class="menu-item " onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i><span>Staff Salary & Advance</span></div>
+            <div class="menu-item " onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i><span>Manage Staff PIN</span></div>
+            <div class="menu-item " onclick="switchTab('target'); toggleSidebar();"><i class="fa-solid fa-bullseye"></i><span>Set Daily Target</span></div>
+            <div class="menu-section">Data</div>
+            <div class="menu-item " onclick="downloadExcel(); toggleSidebar();"><i class="fa-solid fa-file-excel"></i><span>Export Excel Report</span></div>
+            <div class="menu-item good" onclick="downloadFullBackup(); toggleSidebar();"><i class="fa-solid fa-cloud-arrow-down"></i><span>Full Backup (Excel)</span></div>
+            <div class="menu-item text-danger" onclick="toggleSidebar(); clearHistory();"><i class="fa-solid fa-broom"></i><span>Clear History</span></div>
+            <div class="menu-sep"></div>
+            <div class="menu-item text-danger" onclick="handleLogout(); toggleSidebar();"><i class="fa-solid fa-power-off"></i><span>Logout</span></div>
         </div>
     </div>
 
@@ -252,7 +247,7 @@
             
             <div class="app-card" style="padding: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 99; background: var(--card-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" onkeyup="if(event.key === 'Enter') searchStockArticle()">
+                    <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" oninput="debounceStockSearch()" onkeyup="if(event.key === 'Enter') { clearTimeout(stockSearchT); searchStockArticle(); }">
                     <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
             </div>
@@ -282,7 +277,7 @@
             <div class="app-card">
                 <div style="background: rgba(29, 78, 216, 0.1); border: 1px solid var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
                     <p style="font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.5;">
-                        <b>सूचना:</b> खालील बटणावर क्लिक करून टेम्पलेट डाउनलोड करा. त्यात मालाची माहिती भरा आणि ती फाईल येथे अपलोड करा. (एक्सेलमध्ये <b>Article No, Size, Qty</b> अनिवार्य आहे).
+                        <b>Note:</b> Download the template with the button below, fill in your stock details, then upload the file here. (<b>Article No, Size, Qty</b> are mandatory in the Excel).
                     </p>
                 </div>
                 <button class="btn-outline" onclick="downloadImportTemplate()" style="margin-bottom: 15px;"><i class="fa-solid fa-download"></i> Download Excel Template</button>
@@ -301,7 +296,8 @@
 
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
-            <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">खालील शूजचा स्टॉक कमी आहे. कोणता साईज संपलाय ते तपासा आणि लगेच भरून काढा!</p>
+            <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Stock for these shoes is running low. Check which sizes are out and restock soon!</p>
+            <button class="btn-success" onclick="shareLowStockWA()" style="background:#25D366; margin-bottom: 12px;"><i class="fa-brands fa-whatsapp"></i> Share list on WhatsApp</button>
             <div id="lowStockListContainer"></div>
         </div>
 
@@ -476,7 +472,11 @@
 
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
-            <input type="date" id="histDate" onchange="loadHistory()">
+            <div class="hist-nav">
+                <button onclick="shiftHistDay(-1)" aria-label="Previous day"><i class="fa-solid fa-chevron-left"></i></button>
+                <input type="date" id="histDate" onchange="loadHistory()">
+                <button onclick="shiftHistDay(1)" aria-label="Next day"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
             <div class="hist-summary">
                 <div class="hist-sum sale"><small>Sales</small><b id="histSales">₹0</b></div>
                 <div class="hist-sum ret"><small>Returns</small><b id="histReturns">₹0</b></div>
