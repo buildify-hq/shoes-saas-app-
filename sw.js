@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sj-labs-v13';   // अपडेट केल्यावर v3, v4... असं वाढव
+const CACHE_NAME = 'sj-labs-v14';   // अपडेट केल्यावर v3, v4... असं वाढव
 const urlsToCache = ['./', './index.html', './style.css', './script.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {

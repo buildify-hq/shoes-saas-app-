@@ -460,7 +460,7 @@ function switchTab(tabName) {
 
     if(tabName === 'dashboard') { document.getElementById('dashboardScreen').style.display = 'block'; document.getElementById('nav-dash').classList.add('active'); loadDashboardData(); } 
     else if(tabName === 'stock') { document.getElementById('stockScreen').style.display = 'block'; document.getElementById('nav-stock').classList.add('active'); initStockTab(); } 
-    else if(tabName === 'sale') { document.getElementById('saleScreen').style.display = 'block'; document.getElementById('nav-sale').classList.add('active'); document.getElementById('saleArticleDetails').style.display = 'none'; document.getElementById('staffReturnBtn').style.display = isStaffMode ? 'flex' : 'none'; } 
+    else if(tabName === 'sale') { document.getElementById('saleScreen').style.display = 'block'; document.getElementById('nav-sale').classList.add('active'); document.getElementById('saleArticleDetails').style.display = 'none'; document.getElementById('staffReturnBtn').style.display = isStaffMode ? 'flex' : 'none'; updateHeldCount(); } 
     else if(tabName === 'staff') { document.getElementById('staffScreen').style.display = 'block'; } 
     else if(tabName === 'article') { document.getElementById('articleScreen').style.display = 'block'; updateArticleTypes(); } 
     else if(tabName === 'return') { document.getElementById('returnScreen').style.display = 'block'; document.getElementById('retArticleDetails').style.display = 'none'; } 
@@ -1434,6 +1434,10 @@ async function loadInsights() {
         <div class="rank-row"><span class="rank-n">${i + 1}</span><div class="rank-body"><div class="rank-line"><span>[${esc(no)}] ${esc(v.name || '')}</span><b>${v.qty} pairs</b></div><div class="rank-bar"><i style="width:${Math.round(v.qty / max * 100)}%"></i></div><small>₹${v.amt}</small></div></div>`).join('')
         : emptyState('fa-chart-simple', 'No sales in this period');
     document.getElementById('insDeadTitle').innerText = `Unsold stock (${insDays === 1 ? 'today' : insDays + ' days'})`;
+    const stockMap = (aRes.data || []).map(a => ({ no: a.article_no, name: a.name, stock: (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0) }));
+    const reorder = stockMap.filter(a => sold[a.no]).map(a => { const rate = sold[a.no].qty / insDays; return { ...a, rate, days: a.stock / rate }; })
+        .filter(a => a.days <= 7).sort((x, y) => x.days - y.days).slice(0, 10);
+    document.getElementById('insReorder').innerHTML = reorder.length ? reorder.map(a => `<div class="close-row"><span>[${esc(a.no)}] ${esc(a.name || '')}<small class="sub-muted">${a.stock} left • sells ~${a.rate.toFixed(1)}/day</small></span><b class="${a.days < 2 ? 'neg' : 'warn'}">${a.stock === 0 ? 'Out' : '~' + Math.max(1, Math.round(a.days)) + ' day(s)'}</b></div>`).join('') : emptyState('fa-circle-check', 'Nothing needs reordering soon 👍');
     const dead = (aRes.data || []).map(a => ({ no: a.article_no, name: a.name, stock: (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0) }))
         .filter(a => a.stock > 0 && !sold[a.no]).sort((a, b) => b.stock - a.stock);
     document.getElementById('insDead').innerHTML = dead.length ? dead.map(a => `<div class="close-row"><span>[${esc(a.no)}] ${esc(a.name || '')}</span><b>${a.stock} pairs</b></div>`).join('')
@@ -1862,3 +1866,38 @@ function resetIdle() {
     }, IDLE_MS);
 }
 ['click', 'touchstart', 'keydown', 'scroll'].forEach(ev => document.addEventListener(ev, resetIdle, { passive: true }));
+
+// ---------- Hold / resume bills ----------
+function heldKey() { return 'heldBills_' + currentShopId; }
+function getHeld() { try { return JSON.parse(localStorage.getItem(heldKey()) || '[]'); } catch (e) { return []; } }
+function setHeld(a) { try { localStorage.setItem(heldKey(), JSON.stringify(a)); } catch (e) { showToast('Could not save held bill', true); } updateHeldCount(); }
+function updateHeldCount() { const el = document.getElementById('heldCount'); if (el) { const n = getHeld().length; el.innerText = n ? `(${n})` : ''; } }
+function holdBill() {
+    if (!cart.length) { showToast('Add items to the bill first', true); return; }
+    const held = getHeld();
+    if (held.length >= 5) { showToast('Maximum 5 held bills', true); return; }
+    held.push({ t: Date.now(), cart: cart, name: document.getElementById('saleCustName').value, phone: document.getElementById('saleCustPhone').value, discount: document.getElementById('saleDiscount').value });
+    setHeld(held);
+    cart = []; renderCart();
+    document.getElementById('saleCustName').value = ''; document.getElementById('saleCustPhone').value = ''; document.getElementById('saleDiscount').value = 0;
+    showToast('Bill held ⏸', false);
+}
+function openHeld() {
+    const held = getHeld();
+    document.getElementById('heldList').innerHTML = held.length ? held.map((b, i) => {
+        const items = b.cart.reduce((s, c) => s + c.qty, 0), total = b.cart.reduce((s, c) => s + c.qty * c.price, 0);
+        return `<div class="held-row"><span>${items} pair(s) • ₹${total}<small>${esc(b.name || 'No customer')} • ${new Date(b.t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</small></span>
+            <span style="display:flex; gap:6px;"><button class="btn-success" onclick="resumeHeld(${i})">Resume</button><button class="btn-danger" onclick="deleteHeld(${i})"><i class="fa-solid fa-trash"></i></button></span></div>`;
+    }).join('') : emptyState('fa-pause', 'No held bills');
+    document.getElementById('heldModal').style.display = 'flex';
+}
+function closeHeld() { document.getElementById('heldModal').style.display = 'none'; }
+function resumeHeld(i) {
+    if (cart.length) { showToast('Finish or hold the current bill first', true); return; }
+    const held = getHeld(); const b = held.splice(i, 1)[0]; if (!b) return;
+    setHeld(held);
+    cart = b.cart;
+    document.getElementById('saleCustName').value = b.name || ''; document.getElementById('saleCustPhone').value = b.phone || ''; document.getElementById('saleDiscount').value = b.discount || 0;
+    renderCart(); closeHeld(); showToast('Bill resumed', false);
+}
+function deleteHeld(i) { const held = getHeld(); held.splice(i, 1); setHeld(held); openHeld(); }

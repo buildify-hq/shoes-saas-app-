@@ -34,6 +34,14 @@
         </div>
     </div>
 
+    <div id="heldModal" class="sa-modal">
+        <div class="sa-modal-content">
+            <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-pause" style="color: var(--warning);"></i> Held Bills</h3>
+            <div id="heldList"></div>
+            <button class="btn-outline" onclick="closeHeld()" style="margin-top:8px;">Close</button>
+        </div>
+    </div>
+
     <div id="billModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-circle-check" style="color: var(--success);"></i> Sale Done</h3>
@@ -357,6 +365,10 @@
                 </div>
                 
                 <button class="btn-primary" id="confirmSaleBtn" onclick="confirmSale()" style="padding: 18px; font-size: 16px;"><i class="fa-solid fa-check-double"></i> Confirm Sale</button>
+                <div class="two-btn">
+                    <button class="btn-outline" onclick="holdBill()"><i class="fa-solid fa-pause"></i> Hold Bill</button>
+                    <button class="btn-outline" onclick="openHeld()"><i class="fa-solid fa-list"></i> Held <span id="heldCount"></span></button>
+                </div>
                 <div style="display: flex; gap: 12px; margin-top: 10px;">
                     <button class="btn-danger" onclick="clearCart()" style="flex: 1;"><i class="fa-solid fa-xmark"></i> Cancel</button>
                     <button class="btn-outline" onclick="switchTab('dashboard')" style="flex: 1;"><i class="fa-solid fa-arrow-left"></i> Back</button>
@@ -422,6 +434,7 @@
                 <div class="hist-sum ret"><small>Bills</small><b id="insBills">0</b></div>
             </div>
             <div class="app-card"><h4 class="card-h"><i class="fa-solid fa-trophy" style="color:var(--warning);"></i> Top 5 Sellers</h4><div id="insTop"></div></div>
+            <div class="app-card"><h4 class="card-h"><i class="fa-solid fa-cart-flatbed" style="color:var(--danger);"></i> Reorder soon</h4><div id="insReorder"></div></div>
             <div class="app-card"><h4 class="card-h"><i class="fa-solid fa-snowflake" style="color:var(--primary);"></i> <span id="insDeadTitle">Unsold stock</span></h4><div id="insDead"></div></div>
         </div>
 
@@ -472,10 +485,10 @@
 
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
-            <div class="hist-nav">
-                <button onclick="shiftHistDay(-1)" aria-label="Previous day"><i class="fa-solid fa-chevron-left"></i></button>
-                <input type="date" id="histDate" onchange="loadHistory()">
-                <button onclick="shiftHistDay(1)" aria-label="Next day"><i class="fa-solid fa-chevron-right"></i></button>
+            <div class="hist-nav" style="display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:8px; margin-bottom:12px; align-items:stretch;">
+                <button onclick="shiftHistDay(-1)" aria-label="Previous day" style="width:44px; min-height:44px; padding:0; margin:0; border-radius:12px; background:var(--card-dark); color:var(--text-light); border:1px solid var(--border-color); box-shadow:none;"><i class="fa-solid fa-chevron-left"></i></button>
+                <input type="date" id="histDate" onchange="loadHistory()" style="margin-bottom:0; text-align:center;">
+                <button onclick="shiftHistDay(1)" aria-label="Next day" style="width:44px; min-height:44px; padding:0; margin:0; border-radius:12px; background:var(--card-dark); color:var(--text-light); border:1px solid var(--border-color); box-shadow:none;"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
             <div class="hist-summary">
                 <div class="hist-sum sale"><small>Sales</small><b id="histSales">₹0</b></div>
