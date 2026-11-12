@@ -17,6 +17,7 @@ let currentGenderFilter = 'Men';
 let currentTypeFilter = 'Formal';
 
 let confirmCallback = null; 
+let currentBillData = null;
 
 const ADMIN_EMAIL = 'admin14@shoeshop.com'; 
 const SECRET_ADMIN_ID = 'sagar_admin';      
@@ -30,9 +31,6 @@ function esc(v) {
 function localDateStr(d) {
     const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
-}
-function startOfTodayISO() {
-    const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString();
 }
 function dayRange(dateStr) {
     const start = new Date(dateStr + 'T00:00:00');
@@ -90,7 +88,6 @@ function toggleTheme() {
     const currentTheme = html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', newTheme);
-    
     document.getElementById('themeIcon').innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
     localStorage.setItem('theme', newTheme);
 }
@@ -128,7 +125,6 @@ async function onScanSuccess(text) {
     document.getElementById(target).value = code;
     if (target === 'artNo') { showToast('Barcode saved as Article No.'); return; }
 
-    // Is this code already an article in this shop?
     const { data, error } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', code).maybeSingle();
     if (error) { showToast('Error: ' + error.message, true); return; }
     if (!data) {
@@ -148,9 +144,7 @@ async function onScanSuccess(text) {
     showToast("Barcode Scanned!");
 }
 async function beginScan(cameraConfig) {
-    // native BarcodeDetector (Chrome/Android) reads 1D barcodes (EAN/UPC/Code128...) much better
     html5QrcodeScanner = new Html5Qrcode('reader', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
-    // wide scan box: 1D barcodes are wide, not square
     const qrbox = (w, hgt) => ({ width: Math.max(120, Math.floor(Math.min(w * 0.9, 320))), height: Math.max(80, Math.floor(Math.min(hgt * 0.6, 200))) });
     await html5QrcodeScanner.start(cameraConfig, { fps: 12, qrbox: qrbox }, onScanSuccess, () => {});
 }
@@ -166,17 +160,17 @@ async function startScanner(targetInputId) {
     try {
         await stopScannerInstance();
         try {
-            await beginScan({ facingMode: 'environment' });          // back camera first
+            await beginScan({ facingMode: 'environment' });
         } catch (e) {
             const cams = await Html5Qrcode.getCameras();
             if (!cams.length) throw e;
             scannerCams = cams;
             const idx = cams.findIndex(c => /back|rear|environment/i.test(c.label));
-            scannerCamIdx = idx >= 0 ? idx : cams.length - 1;       // else last camera (usually back)
+            scannerCamIdx = idx >= 0 ? idx : cams.length - 1;
             await beginScan(cams[scannerCamIdx].id);
             return;
         }
-        try {                                                       // remember which camera is running
+        try {
             scannerCams = await Html5Qrcode.getCameras();
             const did = html5QrcodeScanner.getRunningTrackSettings().deviceId;
             const k = scannerCams.findIndex(c => c.id === did);
@@ -280,7 +274,8 @@ async function handleLogin() {
 async function saveTarget() {
     const target = parseInt(document.getElementById('targetInput').value) || 0;
     if(target < 0) { showToast("Target cannot be negative!", true); return; } 
-    await supabaseClient.from('shops').update({ daily_target: target }).eq('id', currentShopId);
+    const { error } = await supabaseClient.from('shops').update({ daily_target: target }).eq('id', currentShopId);
+    if(error) { showToast("Error updating target!", true); return; }
     showToast("Target Updated!");
     switchTab('dashboard');
 }
@@ -367,31 +362,6 @@ async function loadSuperAdminData() {
             </div>
         </div>`;
     });
-}
-
-async function loadAdminReport() {
-    document.getElementById('adminReportContainer').style.display = 'block';
-    
-    const { data: shops, error } = await supabaseClient.from('shops').select('*');
-    if (error) { showToast("Error loading report!", true); return; }
-
-    const today = new Date();
-    let activeCount = 0;
-    let expiredCount = 0;
-
-    shops.forEach(shop => {
-        if (shop.status === 'active' && shop.expiry_date && new Date(shop.expiry_date) > today) {
-            activeCount++;
-        } else {
-            expiredCount++;
-        }
-    });
-
-    document.getElementById('adminTotalShops').innerText = shops.length;
-    document.getElementById('adminActiveShops').innerText = activeCount;
-    document.getElementById('adminExpiredShops').innerText = expiredCount;
-    
-    document.getElementById('adminReportContainer').scrollIntoView({ behavior: 'smooth' });
 }
 
 function openOwnerModal(mode) {
@@ -514,8 +484,7 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    // 🌟 स्टाफसाठी बंदी
-    if(isStaffMode && ['insights', 'closing', 'labels', 'dashboard', 'staff', 'staffPin', 'target', 'reports', 'credits', 'article', 'purchase', 'lowStockAlert', 'bulkImport'].includes(tabName)) {
+    if(isStaffMode && ['closing', 'dashboard', 'staff', 'target', 'reports', 'article', 'purchase', 'lowStockAlert', 'insights', 'labels', 'staffPin', 'bulkImport'].includes(tabName)) {
         showToast("Access Denied! Only Owner can access this.", true);
         return;
     }
@@ -531,7 +500,6 @@ function switchTab(tabName) {
     else if(tabName === 'article') { document.getElementById('articleScreen').style.display = 'block'; updateArticleTypes(); } 
     else if(tabName === 'return') { document.getElementById('returnScreen').style.display = 'block'; document.getElementById('retArticleDetails').style.display = 'none'; } 
     else if(tabName === 'purchase') { document.getElementById('purchaseScreen').style.display = 'block'; document.getElementById('purArticleDetails').style.display = 'none'; }
-    else if(tabName === 'bulkImport') { document.getElementById('bulkImportScreen').style.display = 'block'; }
     else if(tabName === 'expense') { document.getElementById('expenseScreen').style.display = 'block'; }
     else if(tabName === 'credits') { document.getElementById('creditsScreen').style.display = 'block'; loadCredits(); }
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
@@ -542,28 +510,20 @@ function switchTab(tabName) {
     else if(tabName === 'insights') { document.getElementById('insightsScreen').style.display = 'block'; loadInsights(); }
     else if(tabName === 'closing') { document.getElementById('closingScreen').style.display = 'block'; loadClosing(); }
     else if(tabName === 'lowStockAlert') { document.getElementById('lowStockAlertScreen').style.display = 'block'; loadLowStockAlerts(); }
+    else if(tabName === 'bulkImport') { document.getElementById('bulkImportScreen').style.display = 'block'; }
 }
 
 async function loadStaffPin() {
     const { data, error } = await supabaseClient.from('shops').select('staff_pin').eq('id', currentShopId).single();
-    if (error) {
-        console.error("Error fetching staff pin:", error);
-    }
+    if (error) { console.error("Error fetching staff pin:", error); }
     document.getElementById('displayStaffPin').innerText = (data && data.staff_pin) ? data.staff_pin : '----';
 }
 
 async function generateStaffPin() {
     const newPin = Math.floor(100000 + Math.random() * 900000).toString();
     showToast("Saving new PIN...", false);
-    
     const { error } = await supabaseClient.from('shops').update({ staff_pin: newPin }).eq('id', currentShopId);
-    
-    if (error) {
-        showToast("Database Error: " + error.message, true);
-        console.error(error);
-        return; 
-    }
-    
+    if (error) { showToast("Database Error: " + error.message, true); return; }
     document.getElementById('displayStaffPin').innerText = newPin;
     showToast("✅ New Staff PIN Generated!", false);
 }
@@ -571,11 +531,7 @@ async function generateStaffPin() {
 async function resetStaffPin() {
     showToast("Removing PIN...", false);
     const { error } = await supabaseClient.from('shops').update({ staff_pin: null }).eq('id', currentShopId);
-    
-    if (error) {
-        showToast("Database Error: " + error.message, true);
-        return;
-    }
+    if (error) { showToast("Database Error: " + error.message, true); return; }
     document.getElementById('displayStaffPin').innerText = '----';
     showToast("Staff PIN Removed!", false);
 }
@@ -651,9 +607,6 @@ async function loadChartData(type) {
     });
 }
 
-// ==========================================
-// 🌟 FEATURE 2: TOTAL SIZE-WISE LOW STOCK ALERT
-// ==========================================
 async function loadLowStockAlerts() {
     const container = document.getElementById('lowStockListContainer');
     container.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Loading...</p>';
@@ -667,7 +620,6 @@ async function loadLowStockAlerts() {
 
             (art.stock_batches || []).forEach(b => {
                 totalPairs += b.remaining_qty;
-                // जे साईज उपलब्ध आहेत ते दाखवण्यासाठी
                 if (b.remaining_qty > 0) {
                     let c = b.color || ''; if(c === 'Default') c = '';
                     let s = String(b.size).trim();
@@ -676,7 +628,6 @@ async function loadLowStockAlerts() {
                 }
             });
 
-            // 🌟 नवीन लॉजिक: फक्त तेव्हाच अलर्ट दाखवा जेव्हा एकूण जोड्या २ किंवा त्यापेक्षा कमी असतील
             if (totalPairs <= 2) {
                 let badgeColor = totalPairs === 0 ? 'var(--danger)' : 'var(--warning)';
                 lowStockHtml += `
@@ -689,7 +640,6 @@ async function loadLowStockAlerts() {
                     <div style="font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 5px;">Available Sizes:</div>
                     <div>${sizeDetails.length ? sizeDetails.join('') : '<span style="color:var(--danger); font-weight:bold;">Out of Stock</span>'}</div>
                     
-                    <!-- 🌟 नवीन बटणं: स्टॉक ॲड करा आणि आर्टिकल डिलीट करा -->
                     <div style="display:flex; gap:8px; margin-top:12px; border-top: 1px dashed var(--border-color); padding-top:12px;">
                         <button class="btn-primary" onclick="quickAddStock('${esc(art.article_no)}')" style="flex:1; margin:0; padding:8px; font-size:12px; border-radius:8px;">
                             <i class="fa-solid fa-plus"></i> Add Stock
@@ -710,7 +660,6 @@ async function loadLowStockAlerts() {
     }
 }
 
-// 🌟 नवीन फंक्शन: स्टॉक ॲड करण्यासाठी थेट पेजवर पाठवण्यासाठी
 function quickAddStock(artNo) {
     switchTab('purchase');
     document.getElementById('purArtNo').value = artNo;
@@ -730,13 +679,7 @@ async function loadDashboardData() {
     if(articles) {
         articles.forEach(art => {
             let artTotal = 0;
-            
-            if(art.stock_batches) { 
-                art.stock_batches.forEach(batch => { 
-                    artTotal += batch.remaining_qty; 
-                }); 
-            }
-
+            if(art.stock_batches) { art.stock_batches.forEach(batch => { artTotal += batch.remaining_qty; }); }
             let cat = art.category;
             if(cat === 'Formal' || cat === 'Sport' || cat === 'Sandal' || cat === 'Chappal' || cat === 'Slippers') cat = 'Men';
             if(cat === 'LadiesSandal') cat = 'Ladies';
@@ -744,11 +687,7 @@ async function loadDashboardData() {
             if(cat.includes('Ladies')) ladiesTotal += artTotal;
             else if(cat.includes('Boys') || cat.includes('Girls')) kidsTotal += artTotal;
             else gentsTotal += artTotal; 
-            
-            // 🌟 डॅशबोर्ड बॅजसाठी पण एकूण जोड्या २ किंवा कमी असल्यासच
-            if(artTotal <= 2) {
-                lowStockItemsCount++;
-            }
+            if(artTotal <= 2) { lowStockItemsCount++; }
         });
     }
     document.getElementById('gentsStockDisplay').innerText = gentsTotal + " P";
@@ -757,12 +696,8 @@ async function loadDashboardData() {
     document.getElementById('totalAllStockDisplay').innerText = (gentsTotal + ladiesTotal + kidsTotal) + " Pairs";
 
     let badge = document.getElementById('menuAlertBadge');
-    if(lowStockItemsCount > 0) {
-        badge.style.display = 'inline-block';
-        badge.innerText = lowStockItemsCount;
-    } else {
-        badge.style.display = 'none';
-    }
+    if(lowStockItemsCount > 0) { badge.style.display = 'inline-block'; badge.innerText = lowStockItemsCount; } 
+    else { badge.style.display = 'none'; }
 
     const tr = dayRange(localDateStr(new Date()));
     const yd = new Date(); yd.setDate(yd.getDate() - 1);
@@ -828,40 +763,6 @@ async function loadDashboardData() {
     }
 }
 
-async function loadCredits() {
-    const list = document.getElementById('creditsList');
-    const { data: credits } = await supabaseClient.from('credits').select('*').eq('shop_id', currentShopId).order('created_at', { ascending: false });
-    list.innerHTML = '';
-    if(!credits || credits.length === 0) { list.innerHTML = '<p style="text-align:center; font-size:14px; color:var(--text-muted);">No pending credits.</p>'; return; }
-    credits.forEach(c => {
-        let isPaid = c.status === 'paid';
-        let waLink = `https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hello ${c.customer_name}, you have a pending credit of ₹${c.amount} at our shop. Please visit us.`)}`;
-        let actionBtn = `<a href="${waLink}" target="_blank" class="btn-small" style="background:#25D366; color:white; text-decoration:none; display:inline-flex; align-items:center; gap:5px; border-radius: 8px;"><i class="fa-brands fa-whatsapp"></i> Reminder</a>`;
-        list.innerHTML += `
-        <div class="credit-card ${isPaid ? 'paid' : ''}">
-            <div><strong style="font-size: 16px;">${esc(c.customer_name)}</strong><br><span style="color:var(--text-muted); font-size: 13px;"><i class="fa-solid fa-phone"></i> ${esc(c.phone)}</span><br><span style="color:var(--warning); font-weight:800; font-size: 18px;">₹${c.amount}</span></div>
-            ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : `<div style="display:flex; flex-direction:column; gap:8px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
-        </div>`;
-    });
-}
-
-async function saveCredit() {
-    const name = document.getElementById('credName').value;
-    const phone = document.getElementById('credPhone').value;
-    const amount = parseInt(document.getElementById('credAmount').value);
-    if(!name || !amount || amount <= 0) { showToast("Enter valid name and amount!", true); return; } 
-    await supabaseClient.from('credits').insert([{ shop_id: currentShopId, customer_name: name, phone: phone, amount: amount }]);
-    showToast("Credit Added!", false);
-    document.getElementById('credName').value = ''; document.getElementById('credPhone').value = ''; document.getElementById('credAmount').value = '';
-    loadCredits();
-}
-
-async function markCreditPaid(id) {
-    await supabaseClient.from('credits').update({ status: 'paid' }).eq('id', id);
-    showToast("Marked as Paid!", false);
-    loadCredits();
-}
-
 function setStockFilter(gender, btnElement) {
     currentGenderFilter = gender;
     document.querySelectorAll('#genderFilterContainer .filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -888,8 +789,6 @@ function setStockFilter(gender, btnElement) {
     loadMyStockList();
 }
 
-
-// ---------- Compact stock rows (fast for 1000+ articles) ----------
 const STOCK_PAGE = 40;
 let stockRenderList = [], stockRenderCount = 0, stockSearchT;
 function debounceStockSearch() { clearTimeout(stockSearchT); stockSearchT = setTimeout(searchStockArticle, 350); }
@@ -958,7 +857,6 @@ async function loadMyStockList() {
     });
 
     if(filteredArticles.length === 0) { stockListDiv.innerHTML = emptyState('fa-shoe-prints', `${currentGenderFilter} - ${currentTypeFilter} - no articles found`); return; }
-
     renderStockRows(filteredArticles);
 }
 
@@ -970,7 +868,6 @@ async function searchStockArticle() {
     let filtered = articles.filter(art => (art.article_no && art.article_no.toLowerCase().includes(searchTerm)) || (art.name && art.name.toLowerCase().includes(searchTerm)));
     stockListDiv.innerHTML = ''; 
     if(filtered.length === 0) { stockListDiv.innerHTML = emptyState('fa-magnifying-glass', 'No articles found'); return; }
-
     renderStockRows(filtered);
 }
 
@@ -1059,6 +956,7 @@ async function saveArticle() {
     }
     showToast(`Article Saved with ${totalAdded} pairs! 🎉`, false);
     document.getElementById('artNo').value = ""; document.getElementById('artName').value = "";
+    document.getElementById('artCost').value = ""; document.getElementById('artMrp').value = "";
     document.getElementById('colorContainer').innerHTML = ''; addColorSection();
     switchTab('stock');
 }
@@ -1076,8 +974,7 @@ async function searchSaleArticle() {
     let aggregatedStock = {};
     articles.stock_batches.forEach(batch => {
         if(batch.remaining_qty > 0) {
-            let c = batch.color || ''; 
-            if (c === 'Default') c = ''; 
+            let c = batch.color || ''; if (c === 'Default') c = ''; 
             let s = String(batch.size).trim();
             if(!aggregatedStock[c]) aggregatedStock[c] = {};
             if(!aggregatedStock[c][s]) aggregatedStock[c][s] = 0;
@@ -1194,6 +1091,7 @@ async function confirmSale() {
         const items = cart.map(i => ({ article_id: i.id, size: String(i.size), qty: i.qty, price: i.price, cost: i.cost || 0, color: i.color || '' }));
         const { data: res, error } = await supabaseClient.rpc('confirm_sale', { p_discount: discount, p_items: items });
         if (error) throw error;
+        
         const billData = { id: res && res.sale_id, items: cart.map(c => ({ ...c })), subTotal, discount, total: subTotal - discount,
             name: document.getElementById('saleCustName').value.trim(), phone: document.getElementById('saleCustPhone').value.trim() };
         cart = [];
@@ -1275,6 +1173,40 @@ async function saveExpense() {
     } catch (err) { showToast("Error: " + err.message, true); }
 }
 
+async function loadCredits() {
+    const list = document.getElementById('creditsList');
+    const { data: credits } = await supabaseClient.from('credits').select('*').eq('shop_id', currentShopId).order('created_at', { ascending: false });
+    list.innerHTML = '';
+    if(!credits || credits.length === 0) { list.innerHTML = '<p style="text-align:center; font-size:14px; color:var(--text-muted);">No pending credits.</p>'; return; }
+    credits.forEach(c => {
+        let isPaid = c.status === 'paid';
+        let waLink = `https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hello ${c.customer_name}, you have a pending credit of ₹${c.amount} at our shop. Please visit us.`)}`;
+        let actionBtn = `<a href="${waLink}" target="_blank" class="btn-small" style="background:#25D366; color:white; text-decoration:none; display:inline-flex; align-items:center; gap:5px; border-radius: 8px;"><i class="fa-brands fa-whatsapp"></i> Reminder</a>`;
+        list.innerHTML += `
+        <div class="credit-card ${isPaid ? 'paid' : ''}">
+            <div><strong style="font-size: 16px;">${esc(c.customer_name)}</strong><br><span style="color:var(--text-muted); font-size: 13px;"><i class="fa-solid fa-phone"></i> ${esc(c.phone)}</span><br><span style="color:var(--warning); font-weight:800; font-size: 18px;">₹${c.amount}</span></div>
+            ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : `<div style="display:flex; flex-direction:column; gap:8px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
+        </div>`;
+    });
+}
+
+async function saveCredit() {
+    const name = document.getElementById('credName').value;
+    const phone = document.getElementById('credPhone').value;
+    const amount = parseInt(document.getElementById('credAmount').value);
+    if(!name || !amount || amount <= 0) { showToast("Enter valid name and amount!", true); return; } 
+    await supabaseClient.from('credits').insert([{ shop_id: currentShopId, customer_name: name, phone: phone, amount: amount }]);
+    showToast("Credit Added!", false);
+    document.getElementById('credName').value = ''; document.getElementById('credPhone').value = ''; document.getElementById('credAmount').value = '';
+    loadCredits();
+}
+
+async function markCreditPaid(id) {
+    await supabaseClient.from('credits').update({ status: 'paid' }).eq('id', id);
+    showToast("Marked as Paid!", false);
+    loadCredits();
+}
+
 async function searchReturnArticle() {
     const artNo = document.getElementById('retArtNo').value;
     if(!artNo) return;
@@ -1308,31 +1240,59 @@ async function processReturn() {
     switchTab('history');
 }
 
-
-// ---------- Bill share ----------
-let billText = '', billPhone = '';
+// ---------- नवीन बिल शेअरिंग (WhatsApp Image) ----------
 function showBill(b) {
-    const shop = currentShopName || 'Shop';
-    const no = b.id ? String(b.id).replace(/-/g, '').slice(-6).toUpperCase() : '------';
-    const dt = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    let t = `🧾 *${shop}*\nBill #${no}\n${dt}\n`;
-    if (b.name) t += `Customer: ${b.name}\n`;
-    t += `------------------------\n`;
-    b.items.forEach(i => { const c = (i.color && i.color !== 'Default') ? `${i.color} ` : ''; t += `${i.artNo} (${c}S${i.size}) x${i.qty} = ₹${i.qty * i.price}\n`; });
-    t += `------------------------\n`;
-    if (b.discount > 0) t += `Discount: -₹${b.discount}\n`;
-    t += `*Total: ₹${b.total}*\n\nThank you! Please visit again 🙏`;
-    billText = t; billPhone = b.phone;
-    document.getElementById('billPreview').innerText = t.replace(/\*/g, '');
+    currentBillData = b;
+    document.getElementById('invCustName').innerText = b.name || 'Walk-in Customer';
+    document.getElementById('invCustPhone').innerText = b.phone || '-';
+    document.getElementById('invNo').innerText = '#' + (b.id ? String(b.id).replace(/-/g, '').slice(-6).toUpperCase() : 'TEMP');
+    document.getElementById('invDate').innerText = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    let itemsHtml = '';
+    b.items.forEach(i => {
+        itemsHtml += `
+        <tr style="border-bottom: 1px dashed #ccc;">
+            <td style="padding: 5px;">${i.artNo} (Size: ${i.size})<br><span style="font-size:10px; color:#555;">${i.name || ''}</span></td>
+            <td style="text-align: center; padding: 5px;">${i.qty}</td>
+            <td style="text-align: right; padding: 5px;">₹${i.price.toFixed(2)}</td>
+            <td style="text-align: right; padding: 5px;">₹${(i.qty * i.price).toFixed(2)}</td>
+        </tr>`;
+    });
+    document.getElementById('invItemsList').innerHTML = itemsHtml;
+    document.getElementById('invSubTotal').innerText = `₹${b.subTotal.toFixed(2)}`;
+    document.getElementById('invDiscount').innerText = `-₹${b.discount.toFixed(2)}`;
+    document.getElementById('invNetTotal').innerText = `₹${b.total.toFixed(2)}`;
     document.getElementById('billModal').style.display = 'flex';
 }
-function shareBillWA() {
-    const num = (billPhone || '').replace(/\D/g, '');
-    window.open(`https://wa.me/${num.length === 10 ? '91' + num : ''}?text=${encodeURIComponent(billText)}`, '_blank');
+
+async function downloadAndShareBill(btn) {
+    const captureArea = document.getElementById('invoiceCaptureArea');
+    const originalText = btn.innerHTML;
+    try {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+        const canvas = await html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' });
+        canvas.toBlob(async function(blob) {
+            const file = new File([blob], 'invoice.png', { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: 'Invoice', text: 'Thank you for your purchase!' });
+            } else {
+                const link = document.createElement('a');
+                link.download = `Invoice_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast("Image downloaded. Share manually.", false);
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 'image/png');
+    } catch (error) {
+        showToast("Error generating image: " + error.message, true);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
-function copyBill() {
-    if (navigator.clipboard) navigator.clipboard.writeText(billText.replace(/\*/g, '')).then(() => showToast('Copied ✅', false));
-}
+
 function closeBill() {
     document.getElementById('billModal').style.display = 'none';
     switchTab(isStaffMode ? 'history' : 'dashboard');
@@ -1372,99 +1332,6 @@ function skeleton(n) { return Array.from({ length: n }, () => '<div class="skele
 function emptyState(icon, text, btn) {
     return `<div class="empty-state"><i class="fa-solid ${icon}"></i><p>${text}</p>${btn || ''}</div>`;
 }
-
-
-// ---------- Print Labels ----------
-let labelArticles = [], labSel = new Set();
-async function loadLabels() {
-    document.getElementById('labList').innerHTML = skeleton(2);
-    const { data, error } = await supabaseClient.from('articles').select('id, article_no, name, mrp, stock_batches (color, size, remaining_qty)').eq('shop_id', currentShopId).order('article_no');
-    if (error) { document.getElementById('labList').innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
-    labelArticles = data || [];
-    document.getElementById('labelSheet').innerHTML = '';
-    renderLabelList();
-}
-function labStock(a) { return (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0); }
-function renderLabelList() {
-    const q = (document.getElementById('labSearch').value || '').toLowerCase();
-    const rows = labelArticles.filter(a => !q || String(a.article_no).toLowerCase().includes(q) || String(a.name || '').toLowerCase().includes(q));
-    document.getElementById('labList').innerHTML = rows.length ? rows.map(a => `
-        <label class="lab-row"><input type="checkbox" ${labSel.has(a.id) ? 'checked' : ''} onchange="toggleLab('${esc(a.id)}', this.checked)">
-        <span class="lab-name">[${esc(a.article_no)}] ${esc(a.name || '')}</span><small>${labStock(a)} pairs${a.mrp ? ' • ₹' + a.mrp : ''}</small></label>`).join('')
-        : emptyState('fa-box-open', 'No articles found');
-    updateLabCount();
-}
-function toggleLab(id, on) { if (on) labSel.add(id); else labSel.delete(id); updateLabCount(); }
-function labSelectAll(on) {
-    const q = (document.getElementById('labSearch').value || '').toLowerCase();
-    labelArticles.filter(a => !q || String(a.article_no).toLowerCase().includes(q) || String(a.name || '').toLowerCase().includes(q))
-        .forEach(a => on ? labSel.add(a.id) : labSel.delete(a.id));
-    renderLabelList();
-}
-function updateLabCount() { document.getElementById('labCount').innerText = `${labSel.size} article(s) selected`; }
-
-function labQrSvg(text) {
-    if (typeof qrcode === 'undefined') return null;
-    const qr = qrcode(0, 'M'); qr.addData(String(text)); qr.make();
-    const n = qr.getModuleCount(); let d = '';
-    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c},${r}h1v1h-1z`;
-    return `<svg viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
-}
-function labBarSvg(text) {
-    if (typeof JsBarcode === 'undefined') return null;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    JsBarcode(svg, String(text), { format: 'CODE128', displayValue: false, height: 50, margin: 4, width: 2 });
-    const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
-    if (!svg.getAttribute('viewBox') && w && h) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    svg.removeAttribute('width'); svg.removeAttribute('height');
-    return svg.outerHTML;
-}
-function buildLabels() {
-    const type = document.getElementById('labType').value, size = document.getElementById('labSize').value;
-    const mode = document.getElementById('labMode').value;
-    const copies = Math.max(1, Math.min(100, parseInt(document.getElementById('labCopies').value) || 1));
-    const showMrp = document.getElementById('labShowMrp').checked, showName = document.getElementById('labShowName').checked;
-    const items = [];
-    labelArticles.filter(a => labSel.has(a.id)).forEach(a => {
-        if (mode === 'copies') { for (let k = 0; k < copies; k++) items.push({ a, color: '', size: '' }); }
-        else {
-            const agg = {};
-            (a.stock_batches || []).forEach(b => { if (b.remaining_qty > 0) { let col = b.color || ''; if (col === 'Default') col = ''; const k = col + '|||' + String(b.size).trim(); agg[k] = (agg[k] || 0) + b.remaining_qty; } });
-            Object.keys(agg).forEach(k => { const [col, sz] = k.split('|||'); for (let n = 0; n < agg[k]; n++) items.push({ a, color: col, size: sz }); });
-        }
-    });
-    if (!items.length) { showToast('Select at least one article (with stock for "per pair" mode)', true); return false; }
-    if (items.length > 500) { showToast('Too many labels (' + items.length + '). Select fewer articles.', true); return false; }
-    const make = type === 'qr' ? labQrSvg : labBarSvg;
-    const svgCache = {};
-    let html = '';
-    for (const it of items) {
-        const key = it.a.article_no;
-        if (!(key in svgCache)) svgCache[key] = make(key);
-        if (!svgCache[key]) { showToast('Label library failed to load. Check internet and reload.', true); return false; }
-        const meta = [it.color, it.size ? 'S' + it.size : ''].filter(Boolean).join(' • ');
-        html += `<div class="lbl ${type}"><div class="lbl-code">${svgCache[key]}</div><div class="lbl-info">
-            <b class="lbl-shop">${esc(currentShopName)}</b>
-            ${showName && it.a.name ? `<span class="lbl-name">${esc(it.a.name)}</span>` : ''}
-            <span class="lbl-no">#${esc(it.a.article_no)}</span>
-            ${meta ? `<span class="lbl-meta">${esc(meta)}</span>` : ''}
-            ${showMrp && it.a.mrp ? `<b class="lbl-mrp">MRP ₹${it.a.mrp}</b>` : ''}</div></div>`;
-    }
-    const sheet = document.getElementById('labelSheet');
-    sheet.className = 'label-sheet ' + size;
-    sheet.innerHTML = html;
-    let ps = document.getElementById('labPageStyle');
-    if (!ps) { ps = document.createElement('style'); ps.id = 'labPageStyle'; document.head.appendChild(ps); }
-    ps.textContent = size === 'roll50' ? '@media print { @page { size: 50mm 30mm; margin: 0; } }'
-        : size === 'roll38' ? '@media print { @page { size: 38mm 25mm; margin: 0; } }'
-        : '@media print { @page { size: A4; margin: 8mm; } }';
-    return items.length;
-}
-function previewLabels() {
-    const n = buildLabels();
-    if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); }
-}
-function printLabels() { if (buildLabels()) setTimeout(() => window.print(), 300); }
 
 // ---------- Insights ----------
 let insDays = 7;
@@ -1619,15 +1486,7 @@ async function downloadExcel() {
         allData.forEach(s => {
             if(s.sale_items) {
                 s.sale_items.forEach(item => {
-                    excelData.push({ 
-                        Date: new Date(s.sale_date).toLocaleDateString(), 
-                        "Article No": item.articles?.article_no || 'DELETED', 
-                        "Name": item.articles?.name || '-', 
-                        "Size": item.size, 
-                        "Qty": item.quantity, 
-                        "Total Amount": s.total_amount, 
-                        "Profit": s.total_profit 
-                    });
+                    excelData.push({ Date: new Date(s.sale_date).toLocaleDateString(), "Article No": item.articles?.article_no || 'DELETED', "Name": item.articles?.name || '-', "Size": item.size, "Qty": item.quantity, "Total Amount": s.total_amount, "Profit": s.total_profit });
                 });
             }
         });
@@ -1642,8 +1501,7 @@ async function downloadExcel() {
 
 async function downloadFullBackup() {
     if (!currentShopId) return;
-    showToast("Preparing backup... please wait ⏳", false);
-
+    showToast("Preparing backup... ⏳", false);
     try {
         const [articlesRes, salesRes, returnsRes, expensesRes, creditsRes, purchasesRes] = await Promise.all([
             supabaseClient.from('articles').select('article_no, name, category, cost_price, mrp, stock_batches(color, size, initial_qty, remaining_qty)').eq('shop_id', currentShopId),
@@ -1655,89 +1513,42 @@ async function downloadFullBackup() {
         ]);
 
         const wb = XLSX.utils.book_new();
-
-        // 1. Stock Sheet
         let stockData = [];
         (articlesRes.data || []).forEach(art => {
             (art.stock_batches || []).forEach(batch => {
-                stockData.push({
-                    "Article No": art.article_no, "Name": art.name, "Category": art.category,
-                    "Color": batch.color || '-', "Size": batch.size, 
-                    "Initial Stock": batch.initial_qty, "Remaining Stock": batch.remaining_qty,
-                    "Cost Price": art.cost_price, "MRP": art.mrp
-                });
+                stockData.push({ "Article No": art.article_no, "Name": art.name, "Category": art.category, "Color": batch.color || '-', "Size": batch.size, "Initial Stock": batch.initial_qty, "Remaining Stock": batch.remaining_qty, "Cost Price": art.cost_price, "MRP": art.mrp });
             });
         });
         if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Stock Details");
 
-        // 2. Sales Sheet
         let salesData = [];
         (salesRes.data || []).forEach(sale => {
             (sale.sale_items || []).forEach(item => {
-                salesData.push({
-                    "Date": new Date(sale.sale_date).toLocaleString(),
-                    "Article No": item.articles?.article_no || 'DELETED',
-                    "Name": item.articles?.name || '-',
-                    "Size": item.size, "Qty": item.quantity,
-                    "Selling Price": item.selling_price, "Total Amount": sale.total_amount,
-                    "Profit": sale.total_profit, "Bill Discount": sale.discount_amount
-                });
+                salesData.push({ "Date": new Date(sale.sale_date).toLocaleString(), "Article No": item.articles?.article_no || 'DELETED', "Name": item.articles?.name || '-', "Size": item.size, "Qty": item.quantity, "Selling Price": item.selling_price, "Total Amount": sale.total_amount, "Profit": sale.total_profit, "Bill Discount": sale.discount_amount });
             });
         });
         if(salesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesData), "Sales History");
 
-        // 3. Returns Sheet
-        let returnsData = (returnsRes.data || []).map(ret => ({
-            "Date": new Date(ret.return_date).toLocaleString(),
-            "Article No": ret.articles?.article_no || 'DELETED',
-            "Name": ret.articles?.name || '-',
-            "Size": ret.size, "Qty": ret.quantity, "Refund Amount": ret.refund_amount
-        }));
+        let returnsData = (returnsRes.data || []).map(ret => ({ "Date": new Date(ret.return_date).toLocaleString(), "Article No": ret.articles?.article_no || 'DELETED', "Name": ret.articles?.name || '-', "Size": ret.size, "Qty": ret.quantity, "Refund Amount": ret.refund_amount }));
         if(returnsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(returnsData), "Returns");
 
-        // 4. Expenses Sheet
-        let expensesData = (expensesRes.data || []).map(exp => ({
-            "Date": new Date(exp.expense_date).toLocaleString(),
-            "Reason": exp.reason, "Amount": exp.amount
-        }));
+        let expensesData = (expensesRes.data || []).map(exp => ({ "Date": new Date(exp.expense_date).toLocaleString(), "Reason": exp.reason, "Amount": exp.amount }));
         if(expensesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expensesData), "Expenses");
 
-        // 5. Udhaar Khata Sheet
-        let creditsData = (creditsRes.data || []).map(cred => ({
-            "Date": new Date(cred.created_at).toLocaleString(),
-            "Customer": cred.customer_name, "Phone": cred.phone, 
-            "Amount": cred.amount, "Status": cred.status
-        }));
+        let creditsData = (creditsRes.data || []).map(cred => ({ "Date": new Date(cred.created_at).toLocaleString(), "Customer": cred.customer_name, "Phone": cred.phone, "Amount": cred.amount, "Status": cred.status }));
         if(creditsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(creditsData), "Udhaar Khata");
 
-        // 6. Purchases Sheet
-        let purchasesData = (purchasesRes.data || []).map(pur => ({
-            "Date": new Date(pur.purchase_date).toLocaleString(),
-            "Article No": pur.articles?.article_no || 'DELETED',
-            "Name": pur.articles?.name || '-',
-            "Size": pur.size, "Qty": pur.quantity, "Cost": pur.cost_price, "Supplier": pur.supplier_name
-        }));
+        let purchasesData = (purchasesRes.data || []).map(pur => ({ "Date": new Date(pur.purchase_date).toLocaleString(), "Article No": pur.articles?.article_no || 'DELETED', "Name": pur.articles?.name || '-', "Size": pur.size, "Qty": pur.quantity, "Cost": pur.cost_price, "Supplier": pur.supplier_name }));
         if(purchasesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(purchasesData), "Purchases");
 
-        // Save Excel
-        if (wb.SheetNames.length === 0) {
-            showToast("No data available for backup!", true);
-            return;
-        }
-
+        if (wb.SheetNames.length === 0) { showToast("No data available for backup!", true); return; }
         const dateStr = new Date().toISOString().split('T')[0];
         XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${dateStr}.xlsx`);
         showToast("✅ Full Backup downloaded successfully!", false);
-
-    } catch (err) {
-        console.error(err);
-        showToast("Backup error: " + err.message, true);
-    }
+    } catch (err) { showToast("Backup error: " + err.message, true); }
 }
 
-// ==========================================
-// 🌟 FEATURE 1: BULK IMPORT FUNCTIONS
-// ==========================================
+// ---------- Bulk Import ----------
 function downloadImportTemplate() {
     const headers = [["Gender", "Type", "Article No", "Name", "Cost Price", "MRP", "Color", "Size", "Qty"]];
     const ws = XLSX.utils.aoa_to_sheet(headers);
@@ -1749,10 +1560,8 @@ function downloadImportTemplate() {
 async function processExcelUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const statusDiv = document.getElementById('importStatus');
     statusDiv.innerHTML = '<span style="color:var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Reading Excel... please wait.</span>';
-    
     const reader = new FileReader();
     reader.onload = async function(e) {
         try {
@@ -1760,67 +1569,37 @@ async function processExcelUpload(event) {
             const workbook = XLSX.read(data, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(sheet);
-
             if (json.length === 0) throw new Error("Excel file is empty!");
-
-            let successCount = 0;
-            let errorCount = 0;
-
+            let successCount = 0, errorCount = 0;
             for (let i = 0; i < json.length; i++) {
                 const row = json[i];
                 const artNo = String(row['Article No'] || '').trim();
                 const size = String(row['Size'] || '').trim();
                 const qty = parseInt(row['Qty']) || 0;
-                
                 if (!artNo || !size || qty <= 0) { errorCount++; continue; }
-
-                const gender = row['Gender'] || 'Men';
-                const type = row['Type'] || 'Formal';
-                const name = row['Name'] || 'Unnamed';
-                const cost = parseInt(row['Cost Price']) || 0;
-                const mrp = parseInt(row['MRP']) || 0;
-                const color = String(row['Color'] || '').trim();
-                const category = `${gender} - ${type}`;
-
-                // १. आर्टिकल शोधा किंवा तयार करा
+                const gender = row['Gender'] || 'Men'; const type = row['Type'] || 'Formal'; const name = row['Name'] || 'Unnamed'; const cost = parseInt(row['Cost Price']) || 0; const mrp = parseInt(row['MRP']) || 0; const color = String(row['Color'] || '').trim(); const category = `${gender} - ${type}`;
                 let { data: artData } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).maybeSingle();
                 let articleId;
-
                 if (!artData) {
-                    const { data: newArt, error: artErr } = await supabaseClient.from('articles').insert([{
-                        shop_id: currentShopId, article_no: artNo, name: name, category: category, cost_price: cost, mrp: mrp
-                    }]).select();
-                    if (artErr) { console.error(artErr); errorCount++; continue; }
+                    const { data: newArt, error: artErr } = await supabaseClient.from('articles').insert([{ shop_id: currentShopId, article_no: artNo, name: name, category: category, cost_price: cost, mrp: mrp }]).select();
+                    if (artErr) { errorCount++; continue; }
                     articleId = newArt[0].id;
-                } else {
-                    articleId = artData.id;
-                }
+                } else { articleId = artData.id; }
 
-                // २. स्टॉक बॅच अपडेट किंवा इन्सर्ट करा
                 let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', articleId).eq('size', size);
                 if(color) query = query.eq('color', color); else query = query.or('color.is.null,color.eq.Default,color.eq.');
-                
                 const { data: batch } = await query.limit(1).maybeSingle();
-
                 if (batch) {
-                    await supabaseClient.from('stock_batches').update({
-                        remaining_qty: batch.remaining_qty + qty,
-                        initial_qty: batch.initial_qty + qty
-                    }).eq('id', batch.id);
+                    await supabaseClient.from('stock_batches').update({ remaining_qty: batch.remaining_qty + qty, initial_qty: batch.initial_qty + qty }).eq('id', batch.id);
                 } else {
-                    await supabaseClient.from('stock_batches').insert([{
-                        shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost
-                    }]);
+                    await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]);
                 }
                 successCount++;
             }
-
             statusDiv.innerHTML = `<span style="color:var(--success);">✅ Success: ${successCount} rows added. ${errorCount > 0 ? '<br><span style="color:var(--danger);">Errors: ' + errorCount + ' (please check your data)</span>' : ''}</span>`;
-            event.target.value = ''; // Reset input
+            event.target.value = ''; 
             showToast(`Bulk Import Complete! ${successCount} rows added.`, false);
-            
             if (typeof loadDashboardData === 'function') loadDashboardData();
-
         } catch (err) {
             statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error: ${err.message}</span>`;
             showToast("Error parsing file: " + err.message, true);
@@ -1831,14 +1610,14 @@ async function processExcelUpload(event) {
 
 async function handleLogout() {
     await supabaseClient.auth.signOut();
-    isStaffMode = false;
-    currentShopId = null;
-    cart = [];
-    currentShopName = ''; document.getElementById('headerShopName').innerText = 'SJ Digital Labs';
+    isStaffMode = false; currentShopId = null; currentUser = null; cart = []; currentShopName = ''; currentBillData = null;
+    foundSaleArticle = null; foundReturnArticle = null; foundPurchaseArticle = null;
+    document.getElementById('headerShopName').innerText = 'SJ Digital Labs';
     localStorage.removeItem('isStaff'); 
     document.getElementById('topHeader').style.display = 'none';
     document.getElementById('bottomNav').style.display = 'none';
     document.getElementById('superAdminScreen').style.display = 'none';
+    document.getElementById('loginShopName').value = ''; document.getElementById('loginPin').value = '';
     switchTab(''); 
     document.getElementById('loginScreen').style.display = 'block'; 
     document.getElementById('nav-dash').style.display = 'flex';
@@ -1863,27 +1642,19 @@ async function checkSession() {
             const { data: shop } = await supabaseClient.from('shops').select('*').eq('auth_email', currentUser.email).single();
             if(shop) {
                 if (shop.status !== 'active' || !shop.expiry_date || new Date() > new Date(shop.expiry_date)) {
-                    await supabaseClient.auth.signOut();
-                    showToast("Subscription expired / inactive! Contact Admin.", true);
-                    return;
+                    await supabaseClient.auth.signOut(); showToast("Subscription expired / inactive! Contact Admin.", true); return;
                 }
-                
-                // Force Logout for Staff if PIN is removed by Owner
                 const currentStaffMode = localStorage.getItem('isStaff') === 'true';
                 if (currentStaffMode && !shop.staff_pin) {
-                    await supabaseClient.auth.signOut();
-                    localStorage.removeItem('isStaff');
+                    await supabaseClient.auth.signOut(); localStorage.removeItem('isStaff');
                     document.getElementById('loginScreen').style.display = 'block';
-                    document.getElementById('topHeader').style.display = 'none';
-                    document.getElementById('bottomNav').style.display = 'none';
-                    showToast("Staff access revoked! Owner removed the PIN.", true);
-                    return;
+                    document.getElementById('topHeader').style.display = 'none'; document.getElementById('bottomNav').style.display = 'none';
+                    showToast("Staff access revoked! Owner removed the PIN.", true); return;
                 }
-
-                currentShopId = shop.id;
-                currentShopName = shop.shop_name; document.getElementById('headerShopName').innerText = 'SJ Digital Labs';
-                isStaffMode = currentStaffMode; 
-                showOwnerDashboard(); 
+                currentShopId = shop.id; currentShopName = shop.shop_name; document.getElementById('headerShopName').innerText = 'SJ Digital Labs';
+                isStaffMode = currentStaffMode; showOwnerDashboard(); 
+            } else {
+                await handleLogout(); showToast("Shop data not found. Please login again.", true);
             }
         }
     }
@@ -1891,9 +1662,7 @@ async function checkSession() {
 
 // ---------- PWA ----------
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
-    });
+    window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err)); });
 }
 
 // ---------- Low stock WhatsApp share ----------
@@ -1914,8 +1683,7 @@ function shiftHistDay(delta) {
     const d = new Date((el.value || localDateStr(new Date())) + 'T00:00:00');
     d.setDate(d.getDate() + delta);
     if (d > new Date()) { showToast('Future dates have no records', true); return; }
-    el.value = localDateStr(d);
-    loadHistory();
+    el.value = localDateStr(d); loadHistory();
 }
 
 // ---------- Auto logout after 10 min idle ----------
@@ -1953,7 +1721,7 @@ function openHeld() {
     document.getElementById('heldList').innerHTML = held.length ? held.map((b, i) => {
         const items = b.cart.reduce((s, c) => s + c.qty, 0), total = b.cart.reduce((s, c) => s + c.qty * c.price, 0);
         return `<div class="held-row"><span>${items} pair(s) • ₹${total}<small>${esc(b.name || 'No customer')} • ${new Date(b.t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</small></span>
-            <span style="display:flex; gap:6px;"><button class="btn-success" onclick="resumeHeld(${i})">Resume</button><button class="btn-danger" onclick="deleteHeld(${i})"><i class="fa-solid fa-trash"></i></button></span></div>`;
+            <span style="display:flex; gap:6px;"><button class="btn-success" onclick="resumeHeld(${i})">Resume</button><button class="btn-danger" onclick="deleteHeld(${i})"><i class="fa-solid fa-trash"></i> Delete</button></span></div>`;
     }).join('') : emptyState('fa-pause', 'No held bills');
     document.getElementById('heldModal').style.display = 'flex';
 }
