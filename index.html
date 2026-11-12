@@ -11,7 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
-    <!-- नवीन बिलाचा फोटो काढण्यासाठी -->
+    
+    <!-- बिलाचा फोटो काढण्यासाठी -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,6 +20,9 @@
     <meta name="theme-color" content="#1D4ED8">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SJ Labs">
 </head>
 <body>
 
@@ -50,11 +54,14 @@
             <div id="invoiceCaptureArea" style="padding: 20px; font-family: Arial, sans-serif; background: #fff;">
                 <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px;">
                     <div>
-                        <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #1D4ED8;">SJ DIGITAL LABS</h2>
-                        <p style="margin: 2px 0; font-size: 11px; color: #333;">Your Shop Address Here,<br>City, State - Pincode<br>Ph: <span id="invShopPhone">Your Phone</span></p>
+                        <h2 id="invShopName" style="margin: 0; font-size: 20px; font-weight: bold; color: #1D4ED8;">SJ DIGITAL LABS</h2>
+                        <p style="margin: 2px 0; font-size: 11px; color: #333;">
+                            <span id="invShopAddress">Your Shop Address Here</span><br>
+                            Ph: <span id="invShopPhone">Your Phone</span>
+                        </p>
                     </div>
                     <div style="text-align: right;">
-                        <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" style="width: 50px; height: 50px; border-radius: 50%;" alt="Logo">
+                        <img id="invShopLogo" src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" style="width: 50px; height: 50px; border-radius: 50%;" alt="Logo">
                     </div>
                 </div>
 
@@ -106,7 +113,6 @@
             </div>
         </div>
     </div>
-    <!-- 🌟 बिल मोडल संपला -->
 
     <div id="customConfirmModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center;">
@@ -131,17 +137,23 @@
             <div class="menu-item " onclick="switchTab('insights'); toggleSidebar();"><i class="fa-solid fa-chart-pie"></i><span>Business Insights</span></div>
             <div class="menu-item " onclick="switchTab('closing'); toggleSidebar();"><i class="fa-solid fa-lock"></i><span>Day Closing</span></div>
             <div class="menu-item " onclick="switchTab('reports'); toggleSidebar();"><i class="fa-solid fa-chart-line"></i><span>Sales Report</span></div>
+            
             <div class="menu-section">Stock</div>
             <div class="menu-item " onclick="switchTab('article'); toggleSidebar();"><i class="fa-solid fa-plus"></i><span>Add New Article</span></div>
             <div class="menu-item " onclick="switchTab('bulkImport'); toggleSidebar();"><i class="fa-solid fa-file-import"></i><span>Bulk Import Stock</span></div>
             <div class="menu-item " onclick="switchTab('purchase'); toggleSidebar();"><i class="fa-solid fa-boxes-stacked"></i><span>Add Stock (Existing)</span></div>
             <div class="menu-item " onclick="switchTab('labels'); toggleSidebar();"><i class="fa-solid fa-qrcode"></i><span>Print Labels</span></div>
             <div class="menu-item text-danger" onclick="switchTab('lowStockAlert'); toggleSidebar();"><i class="fa-solid fa-triangle-exclamation"></i><span>Low Stock Alert</span><span id="menuAlertBadge" class="menu-badge" style="display:none;">0</span></div>
+            
             <div class="menu-section">Money & Staff</div>
             <div class="menu-item " onclick="switchTab('credits'); toggleSidebar();"><i class="fa-solid fa-book"></i><span>Udhaar Khata</span></div>
             <div class="menu-item " onclick="switchTab('staff'); toggleSidebar();"><i class="fa-solid fa-user-tie"></i><span>Staff Salary & Advance</span></div>
             <div class="menu-item " onclick="switchTab('staffPin'); toggleSidebar();"><i class="fa-solid fa-users-gear"></i><span>Manage Staff PIN</span></div>
             <div class="menu-item " onclick="switchTab('target'); toggleSidebar();"><i class="fa-solid fa-bullseye"></i><span>Set Daily Target</span></div>
+            
+            <div class="menu-section">Settings</div>
+            <div class="menu-item " onclick="switchTab('shopSettings'); toggleSidebar();"><i class="fa-solid fa-store"></i><span>Shop Settings</span></div>
+            
             <div class="menu-section">Data</div>
             <div class="menu-item " onclick="downloadExcel(); toggleSidebar();"><i class="fa-solid fa-file-excel"></i><span>Export Excel Report</span></div>
             <div class="menu-item good" onclick="downloadFullBackup(); toggleSidebar();"><i class="fa-solid fa-cloud-arrow-down"></i><span>Full Backup (Excel)</span></div>
@@ -164,30 +176,33 @@
     </div>
 
     <div class="content-area">
-        <!-- (लॉगिन, सुपर ॲडमिन, डॅशबोर्ड, स्टॉक, सेल, ॲड आर्टिकल, परचेस, हिस्ट्री, रिटर्न, एक्सपेन्स, उधारी, स्टाफ, लेबल्स, बल्क, इनसाईट्स, क्लोजिंग, रिपोर्ट्स स्क्रीन्स तशाच ठेवल्या आहेत) -->
+        
         <div id="loginScreen" class="fade-in" style="display: block; padding-top: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="login-logo">
                 <h1 style="color: var(--text-light); font-size: 28px; margin-bottom: 5px; font-weight: 800;">SJ Digital Labs</h1>
                 <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Login to manage your shop</p>
             </div>
+            
             <div class="app-card" style="padding: 30px 20px;">
                 <label style="font-size: 14px; margin-bottom: 10px;">Shop Name</label>
                 <div class="input-group" style="margin-bottom: 20px;">
                     <span class="input-icon" style="top: 18px; font-size: 20px;"><i class="fa-solid fa-store"></i></span>
                     <input type="text" id="loginShopName" autocomplete="off" placeholder="Enter your shop name" style="padding-left: 50px; font-size: 16px;">
                 </div>
+                
                 <label style="font-size: 14px; margin-bottom: 10px;">6-Digit PIN / Password</label>
                 <div class="input-group" style="margin-bottom: 30px;">
                     <span class="input-icon" style="top: 18px; font-size: 20px;"><i class="fa-solid fa-lock"></i></span>
                     <input type="password" id="loginPin" autocomplete="new-password" placeholder="Enter PIN or Password" style="padding-left: 50px; font-size: 16px;">
                 </div>
+                
                 <button class="btn-primary" onclick="handleLogin()" style="padding: 18px; font-size: 18px; border-radius: 16px;">Login <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
             </div>
         </div>
 
         <div id="superAdminScreen" class="fade-in" style="display: none;">
-             <div class="sa-header">
+            <div class="sa-header">
                 <div>
                     <h2 style="font-size: 22px; margin-bottom: 5px; font-weight: 800;">Super Admin</h2>
                     <p id="saStats">Total Owners: 0 | Active: 0</p>
@@ -236,6 +251,7 @@
                     <div id="targetProgressBar" class="progress-bar"></div>
                 </div>
             </div>
+
             <div class="stats-grid">
                 <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
                     <div class="stat-title" style="color: white;">Today's Sales</div>
@@ -247,10 +263,12 @@
                     <div class="stat-value" id="todayProfitDisplay" style="color: white;">₹0</div>
                 </div>
             </div>
+            
             <div style="display: flex; gap: 12px; margin-bottom: 20px;">
                 <button class="btn-success" onclick="switchTab('sale')" style="flex: 1.5; padding: 16px; font-size: 15px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
                 <button class="btn-warning" onclick="switchTab('return')" style="flex: 1; padding: 16px; font-size: 14px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);"><i class="fa-solid fa-rotate-left"></i> Return</button>
             </div>
+
             <div class="app-card" style="padding: 15px; margin-bottom: 20px;">
                 <label>Quick Search Article</label>
                 <div style="display: flex; gap: 8px;">
@@ -260,6 +278,7 @@
                 </div>
                 <div id="dashSearchResult" style="margin-top: 15px;"></div>
             </div>
+
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); font-weight: 600;">Quick Expenses</h4>
             <div class="quick-expense-chart">
                 <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')">
@@ -283,6 +302,7 @@
                     </div> Staff Pay
                 </div>
             </div>
+
             <h3 style="margin-bottom: 12px; font-size: 16px; margin-top: 20px; font-weight: 700;"><i class="fa-solid fa-list-check"></i> Today's Transactions</h3>
             <div id="todayTransactions" class="app-card" style="padding: 15px;">
                 <p style="font-size: 14px; color: var(--text-muted); text-align: center;">No transactions today.</p>
@@ -297,12 +317,14 @@
                     <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
             </div>
+
             <div class="stats-grid" style="margin-bottom: 20px;">
                 <div class="stat-card gents"><div class="stat-title">Gents</div><div class="stat-value" id="gentsStockDisplay">0</div></div>
                 <div class="stat-card ladies"><div class="stat-title">Ladies</div><div class="stat-value" id="ladiesStockDisplay">0</div></div>
                 <div class="stat-card kids"><div class="stat-title">Kids</div><div class="stat-value" id="kidsStockDisplay">0</div></div>
                 <div class="stat-card total"><div class="stat-title">Total All Stock</div><div class="stat-value" id="totalAllStockDisplay">0</div></div>
             </div>
+
             <div class="filter-tabs" id="genderFilterContainer">
                 <div class="filter-btn active" onclick="setStockFilter('Men', this)">Men</div>
                 <div class="filter-btn" onclick="setStockFilter('Ladies', this)">Ladies</div>
@@ -310,6 +332,7 @@
                 <div class="filter-btn" onclick="setStockFilter('Girls', this)">Girls</div>
             </div>
             <div class="sub-filter-tabs" id="typeFilterContainer"></div>
+            
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); margin-top: 15px; font-weight: 600;"><i class="fa-solid fa-shoe-prints"></i> Available Articles</h4>
             <div id="stockList"></div>
         </div>
@@ -380,16 +403,26 @@
                     <input type="number" id="salePrice">
                     <button class="btn-success" onclick="addToCart()" style="margin-top: 5px;"><i class="fa-solid fa-plus"></i> Add to Bill</button>
                 </div>
+
                 <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--warning); font-weight: 700;"><i class="fa-solid fa-receipt"></i> Current Bill</h4>
                 <div id="cartList" style="margin-bottom: 15px;"><p style="font-size: 14px; color: var(--text-muted); text-align: center;">No items added.</p></div>
+                
                 <label>Customer (optional)</label>
                 <div style="display:flex; gap:8px;"><input type="text" id="saleCustName" placeholder="Name"><input type="tel" id="saleCustPhone" placeholder="Mobile" maxlength="10"></div>
+                
                 <label>Discount (₹)</label>
-                <input type="number" id="saleDiscount" value="0" min="0" oninput="renderCart()">
+                <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                    <input type="number" id="saleDiscount" value="0" min="0" oninput="renderCart()" style="margin-bottom: 0; flex: 1;">
+                    <button class="btn-small btn-outline" style="margin: 0; padding: 0 10px;" onclick="applyDiscount(5)">5%</button>
+                    <button class="btn-small btn-outline" style="margin: 0; padding: 0 10px;" onclick="applyDiscount(10)">10%</button>
+                    <button class="btn-small btn-outline" style="margin: 0; padding: 0 10px;" onclick="applyDiscount(20)">20%</button>
+                </div>
+
                 <div class="total-amount-box">
                     <span>Net Total:</span>
                     <span id="cartTotalAmt" style="color: var(--success);">₹0</span>
                 </div>
+                
                 <button class="btn-primary" id="confirmSaleBtn" onclick="confirmSale()" style="padding: 18px; font-size: 16px;"><i class="fa-solid fa-check-double"></i> Confirm Sale</button>
                 <div class="two-btn">
                     <button class="btn-outline" onclick="holdBill()"><i class="fa-solid fa-pause"></i> Hold Bill</button>
@@ -417,6 +450,7 @@
                     <button class="btn-small btn-outline" onclick="addColorSection()"><i class="fa-solid fa-plus"></i> Color</button>
                 </div>
                 <div id="colorContainer"></div>
+                
                 <div class="sticky-buttons">
                     <button class="btn-primary" onclick="saveArticle()" style="margin-bottom: 8px; padding: 16px;"><i class="fa-solid fa-floppy-disk"></i> Save Article</button>
                     <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-bottom: 0;"><i class="fa-solid fa-arrow-left"></i> Back</button>
@@ -596,6 +630,26 @@
             </div>
         </div>
 
+        <div id="shopSettingsScreen" class="fade-in" style="display: none;">
+            <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-store"></i> Shop Settings</h2>
+            <div class="app-card">
+                <label>Shop Name</label>
+                <input type="text" id="setShopName" placeholder="Shop Name">
+                
+                <label>Phone Number</label>
+                <input type="text" id="setShopPhone" placeholder="e.g. 9876543210">
+                
+                <label>Shop Address</label>
+                <textarea id="setShopAddress" rows="3" placeholder="Shop Address..."></textarea>
+                
+                <label>Logo Image URL (इमेजची लिंक टाका)</label>
+                <input type="text" id="setShopLogo" placeholder="https://example.com/logo.png">
+
+                <button class="btn-primary" onclick="saveShopSettings()" style="margin-top: 15px;"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
+                <button class="btn-outline" onclick="switchTab('dashboard')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            </div>
+        </div>
+
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -648,4 +702,4 @@
 
     <script src="script.js"></script>
 </body>
-</html>
+        </html>
