@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SJ Digital Labs</title>
     
+    <!-- मुख्य लायब्ररीज -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -12,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
     
-    <!-- बिलाचा फोटो काढण्यासाठी -->
+    <!-- बिलाचा फोटो काढण्यासाठी (WhatsApp शेअरिंगसाठी) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -29,6 +30,7 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
+    <!-- स्कॅनर मोडल -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
@@ -39,6 +41,7 @@
         </div>
     </div>
 
+    <!-- Hold बिलं -->
     <div id="heldModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-pause" style="color: var(--warning);"></i> Held Bills</h3>
@@ -47,7 +50,7 @@
         </div>
     </div>
 
-    <!-- 🌟 नवीन प्रोफेशनल बिल मोडल (Tax Invoice) -->
+    <!-- 🌟 प्रोफेशनल बिल मोडल (Tax Invoice) -->
     <div id="billModal" class="sa-modal">
         <div class="sa-modal-content" style="max-width: 450px; padding: 0; background: #fff; color: #000; border-radius: 12px; overflow-y: auto;">
             
@@ -107,7 +110,11 @@
                 </div>
             </div>
 
+            <!-- बिलाच्या खालील बटणं -->
             <div style="padding: 15px; background: var(--card-dark); border-top: 1px solid var(--border-color);">
+                <!-- 🌟 नवीन Print बटण -->
+                <button class="btn-primary" onclick="window.print()" style="width: 100%; margin-bottom: 8px; background: #4B5563;"><i class="fa-solid fa-print"></i> Print Receipt</button>
+                
                 <button class="btn-success" onclick="downloadAndShareBill(this)" style="background:#25D366; width: 100%; margin-bottom: 8px;"><i class="fa-brands fa-whatsapp"></i> Share Image on WhatsApp</button>
                 <button class="btn-primary" onclick="closeBill()" style="width: 100%; margin: 0;">Done</button>
             </div>
@@ -126,6 +133,7 @@
         </div>
     </div>
 
+    <!-- साईड मेनू -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -163,6 +171,7 @@
         </div>
     </div>
 
+    <!-- टॉप हेडर -->
     <div class="top-header" id="topHeader">
         <div style="display: flex; align-items: center; gap: 12px;">
             <span class="menu-toggle" id="menuBtn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></span>
@@ -175,8 +184,10 @@
         </div>
     </div>
 
+    <!-- मुख्य कंटेंट एरिया -->
     <div class="content-area">
         
+        <!-- १. लॉगिन स्क्रीन -->
         <div id="loginScreen" class="fade-in" style="display: block; padding-top: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="login-logo">
@@ -201,6 +212,7 @@
             </div>
         </div>
 
+        <!-- २. सुपर ॲडमिन स्क्रीन -->
         <div id="superAdminScreen" class="fade-in" style="display: none;">
             <div class="sa-header">
                 <div>
@@ -241,6 +253,7 @@
             <div id="saOwnerList"></div>
         </div>
 
+        <!-- ३. डॅशबोर्ड स्क्रीन -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
             <div class="app-card target-card">
                 <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; font-weight: 700;">
@@ -309,8 +322,10 @@
             </div>
         </div>
 
+        <!-- ४. स्टॉक स्क्रीन -->
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
+            
             <div class="app-card" style="padding: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 99; background: var(--card-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" oninput="debounceStockSearch()" onkeyup="if(event.key === 'Enter') { clearTimeout(stockSearchT); searchStockArticle(); }">
@@ -337,6 +352,7 @@
             <div id="stockList"></div>
         </div>
 
+        <!-- ५. बल्क इम्पोर्ट स्क्रीन -->
         <div id="bulkImportScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</h2>
             <div class="app-card">
@@ -346,15 +362,20 @@
                     </p>
                 </div>
                 <button class="btn-outline" onclick="downloadImportTemplate()" style="margin-bottom: 15px;"><i class="fa-solid fa-download"></i> Download Excel Template</button>
+                
                 <input type="file" id="excelUpload" accept=".xlsx, .xls, .csv" style="display: none;" onchange="processExcelUpload(event)">
+                
                 <button class="btn-primary" onclick="document.getElementById('excelUpload').click()" style="padding: 18px; font-size: 16px;">
                     <i class="fa-solid fa-upload"></i> Upload Excel File
                 </button>
+                
                 <div id="importStatus" style="margin-top: 15px; font-size: 14px; text-align: center; font-weight: 600;"></div>
+                
                 <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-top: 20px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             </div>
         </div>
 
+        <!-- ६. लो स्टॉक अलर्ट स्क्रीन -->
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
             <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Stock for these shoes is running low. Check which sizes are out and restock soon!</p>
@@ -362,6 +383,7 @@
             <div id="lowStockListContainer"></div>
         </div>
 
+        <!-- ७. स्टाफ पेमेंट स्क्रीन -->
         <div id="staffScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
             <div class="app-card">
@@ -383,6 +405,7 @@
             </div>
         </div>
 
+        <!-- ८. न्यू सेल स्क्रीन -->
         <div id="saleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <button id="staffReturnBtn" class="btn-warning" onclick="switchTab('return')" style="display:none; margin-bottom:15px;"><i class="fa-solid fa-rotate-left"></i> Return Item</button>
@@ -410,6 +433,7 @@
                 <label>Customer (optional)</label>
                 <div style="display:flex; gap:8px;"><input type="text" id="saleCustName" placeholder="Name"><input type="tel" id="saleCustPhone" placeholder="Mobile" maxlength="10"></div>
                 
+                <!-- 🌟 ५%, १०%, २०% डिस्काउंट बटणं -->
                 <label>Discount (₹)</label>
                 <div style="display: flex; gap: 6px; margin-bottom: 12px;">
                     <input type="number" id="saleDiscount" value="0" min="0" oninput="renderCart()" style="margin-bottom: 0; flex: 1;">
@@ -435,6 +459,7 @@
             </div>
         </div>
 
+        <!-- ९. ॲड आर्टिकल स्क्रीन -->
         <div id="articleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-plus"></i> Add Article</h2>
             <div class="app-card">
@@ -458,6 +483,7 @@
             </div>
         </div>
 
+        <!-- १०. परचेस (स्टॉक ॲड) स्क्रीन -->
         <div id="purchaseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
             <div class="app-card">
@@ -480,6 +506,7 @@
             </div>
         </div>
 
+        <!-- ११. इनसाईट्स स्क्रीन -->
         <div id="insightsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-chart-pie"></i> Business Insights</h2>
             <div class="hist-tabs">
@@ -497,6 +524,7 @@
             <div class="app-card"><h4 class="card-h"><i class="fa-solid fa-snowflake" style="color:var(--primary);"></i> <span id="insDeadTitle">Unsold stock</span></h4><div id="insDead"></div></div>
         </div>
 
+        <!-- १२. डे क्लोजिंग स्क्रीन -->
         <div id="closingScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-lock"></i> Day Closing</h2>
             <div class="app-card">
@@ -513,6 +541,7 @@
             </div>
         </div>
 
+        <!-- १३. लेबल्स स्क्रीन -->
         <div id="labelsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-qrcode"></i> Print Labels</h2>
             <div class="app-card">
@@ -542,6 +571,7 @@
             <div id="labelSheet" class="label-sheet"></div>
         </div>
 
+        <!-- १४. हिस्ट्री स्क्रीन -->
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
             <div class="hist-nav" style="display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:8px; margin-bottom:12px; align-items:stretch;">
@@ -563,6 +593,7 @@
             <div id="historyList"></div>
         </div>
 
+        <!-- १५. रिटर्न स्क्रीन -->
         <div id="returnScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
@@ -585,6 +616,7 @@
             </div>
         </div>
 
+        <!-- १६. एक्सपेन्स स्क्रीन -->
         <div id="expenseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
             <div class="app-card">
@@ -595,6 +627,7 @@
             </div>
         </div>
 
+        <!-- १७. उधारी खातं स्क्रीन -->
         <div id="creditsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
             <div class="app-card" style="padding: 20px;">
@@ -609,6 +642,7 @@
             <div id="creditsList"></div>
         </div>
 
+        <!-- १८. स्टाफ पिन स्क्रीन -->
         <div id="staffPinScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
             <div class="app-card" style="text-align: center;">
@@ -620,6 +654,7 @@
             </div>
         </div>
 
+        <!-- १९. सेट टार्गेट स्क्रीन -->
         <div id="targetScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-bullseye"></i> Set Target</h2>
             <div class="app-card" style="text-align: center;">
@@ -630,6 +665,7 @@
             </div>
         </div>
 
+        <!-- २०. शॉप सेटिंग्ज स्क्रीन -->
         <div id="shopSettingsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-store"></i> Shop Settings</h2>
             <div class="app-card">
@@ -650,6 +686,7 @@
             </div>
         </div>
 
+        <!-- २१. रिपोर्ट्स स्क्रीन -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -679,6 +716,7 @@
 
     </div>
 
+    <!-- ओनर मोडल (सुपर ॲडमिनसाठी) -->
     <div id="ownerModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 id="modalTitle" style="margin-top:0; margin-bottom: 20px;">Owner Details</h3>
@@ -692,14 +730,24 @@
         </div>
     </div>
 
+    <!-- बॉटम नेव्हिगेशन -->
     <div class="bottom-nav" id="bottomNav">
-        <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash"><i class="fa-solid fa-house nav-icon"></i> Home</div>
-        <div class="nav-item" onclick="switchTab('stock')" id="nav-stock"><i class="fa-solid fa-cubes nav-icon"></i> Stock</div>
-        <div class="nav-item" onclick="switchTab('sale')" id="nav-sale"><i class="fa-solid fa-cash-register nav-icon"></i> Sale</div>
-        <div class="nav-item" onclick="switchTab('history')" id="nav-hist"><i class="fa-solid fa-clock-rotate-left nav-icon"></i> History</div>
+        <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash">
+            <i class="fa-solid fa-house nav-icon"></i> Home
+        </div>
+        <div class="nav-item" onclick="switchTab('stock')" id="nav-stock">
+            <i class="fa-solid fa-cubes nav-icon"></i> Stock
+        </div>
+        <div class="nav-item" onclick="switchTab('sale')" id="nav-sale">
+            <i class="fa-solid fa-cash-register nav-icon"></i> Sale
+        </div>
+        <div class="nav-item" onclick="switchTab('history')" id="nav-hist">
+            <i class="fa-solid fa-clock-rotate-left nav-icon"></i> History
+        </div>
         <div class="nav-item" id="nav-more" style="display:none;"></div>
     </div>
 
+    <!-- मुख्य स्क्रिप्ट -->
     <script src="script.js"></script>
 </body>
 </html>
