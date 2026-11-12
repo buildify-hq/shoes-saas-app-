@@ -118,24 +118,71 @@ document.getElementById('confirmYesBtn').onclick = () => {
     closeConfirm();
 };
 
-function startScanner(targetInputId) {
-    document.getElementById('scannerModal').style.display = 'flex';
-    if (html5QrcodeScanner) { html5QrcodeScanner.clear(); }
-    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
-    html5QrcodeScanner.render((decodedText, decodedResult) => {
-        document.getElementById(targetInputId).value = decodedText;
-        closeScanner();
-        if(targetInputId === 'saleArtNo') searchSaleArticle();
-        else if(targetInputId === 'dashSearchArt') searchDashboardArticle();
-        else if(targetInputId === 'purArtNo') searchPurchaseArticle();
-        else if(targetInputId === 'retArtNo') searchReturnArticle();
-        showToast("Barcode Scanned!");
-    }, (errorMessage) => {});
-}
+let scannerCams = [], scannerCamIdx = 0, scannerTarget = null, scannerBusy = false;
 
+function onScanSuccess(text) {
+    const target = scannerTarget;
+    closeScanner();
+    if (!target) return;
+    document.getElementById(target).value = text;
+    if (target === 'saleArtNo') searchSaleArticle();
+    else if (target === 'dashSearchArt') searchDashboardArticle();
+    else if (target === 'purArtNo') searchPurchaseArticle();
+    else if (target === 'retArtNo') searchReturnArticle();
+    showToast("Barcode Scanned!");
+}
+async function beginScan(cameraConfig) {
+    html5QrcodeScanner = new Html5Qrcode('reader');
+    await html5QrcodeScanner.start(cameraConfig, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
+}
+async function stopScannerInstance() {
+    if (!html5QrcodeScanner) return;
+    const sc = html5QrcodeScanner; html5QrcodeScanner = null;
+    try { if (sc.isScanning) await sc.stop(); sc.clear(); } catch (e) {}
+}
+async function startScanner(targetInputId) {
+    if (scannerBusy) return;
+    scannerBusy = true; scannerTarget = targetInputId;
+    document.getElementById('scannerModal').style.display = 'flex';
+    try {
+        await stopScannerInstance();
+        try {
+            await beginScan({ facingMode: 'environment' });          // back camera first
+        } catch (e) {
+            const cams = await Html5Qrcode.getCameras();
+            if (!cams.length) throw e;
+            scannerCams = cams;
+            const idx = cams.findIndex(c => /back|rear|environment/i.test(c.label));
+            scannerCamIdx = idx >= 0 ? idx : cams.length - 1;       // else last camera (usually back)
+            await beginScan(cams[scannerCamIdx].id);
+            return;
+        }
+        try {                                                       // remember which camera is running
+            scannerCams = await Html5Qrcode.getCameras();
+            const did = html5QrcodeScanner.getRunningTrackSettings().deviceId;
+            const k = scannerCams.findIndex(c => c.id === did);
+            scannerCamIdx = k >= 0 ? k : 0;
+        } catch (e) {}
+    } catch (err) {
+        showToast('Camera error: allow camera permission and try again', true);
+        closeScanner();
+    } finally { scannerBusy = false; }
+}
+async function switchScannerCamera() {
+    if (scannerBusy) return;
+    scannerBusy = true;
+    try {
+        if (scannerCams.length < 2) scannerCams = await Html5Qrcode.getCameras();
+        if (scannerCams.length < 2) { showToast('Only one camera found', true); return; }
+        scannerCamIdx = (scannerCamIdx + 1) % scannerCams.length;
+        await stopScannerInstance();
+        await beginScan(scannerCams[scannerCamIdx].id);
+    } catch (e) { showToast('Could not switch camera', true); }
+    finally { scannerBusy = false; }
+}
 function closeScanner() {
     document.getElementById('scannerModal').style.display = 'none';
-    if (html5QrcodeScanner) { html5QrcodeScanner.clear(); }
+    stopScannerInstance();
 }
 
 function calculateStaffPayment() {
