@@ -614,3 +614,54 @@ button { padding: 11px 14px; margin-bottom: 8px; border-radius: 10px; font-size:
 .held-row button { width: auto; margin: 0; padding: 8px 12px; font-size: 12px; }
 .sub-muted { display: block; color: var(--text-muted); font-size: 11px; font-weight: 400; margin-top: 2px; }
 .hist-nav { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; margin-bottom: 12px; }
+/* =====================================================
+   🖨️ थर्मल प्रिंटरसाठी (Thermal Print Settings)
+   ===================================================== */
+@media print {
+    /* ॲपमधला बाकी सगळा भाग लपवण्यासाठी */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* फक्त बिलाचा भाग दाखवण्यासाठी */
+    #invoiceCaptureArea, #invoiceCaptureArea * {
+        visibility: visible;
+    }
+    
+    /* बिलाला पेजच्या वरच्या डाव्या कोपऱ्यात सेट करण्यासाठी */
+    #invoiceCaptureArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 2mm !important; /* थर्मल पेपरवर कडेला जागा */
+        margin: 0;
+        font-size: 11px !important; /* फॉन्ट साईज थोडा लहान */
+        line-height: 1.2;
+    }
+
+    /* बिलाच्या खालील बटणं लपवण्यासाठी (WhatsApp, Done) */
+    #billModal .sa-modal-content > div:last-child {
+        display: none !important;
+    }
+    
+    /* टेबलचा साईज फिट करण्यासाठी */
+    #invoiceCaptureArea table {
+        width: 100% !important;
+        font-size: 10px !important;
+    }
+    
+    #invoiceCaptureArea th, #invoiceCaptureArea td {
+        padding: 2px !important;
+    }
+
+    #invoiceCaptureArea h2 {
+        font-size: 16px !important;
+    }
+    
+    /* प्रिंट डायलॉगमध्ये मार्जिन ० करण्यासाठी */
+    @page {
+        margin: 0;
+        size: auto; 
+    }
+}
