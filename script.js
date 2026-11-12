@@ -120,11 +120,27 @@ document.getElementById('confirmYesBtn').onclick = () => {
 
 let scannerCams = [], scannerCamIdx = 0, scannerTarget = null, scannerBusy = false;
 
-function onScanSuccess(text) {
+async function onScanSuccess(text) {
     const target = scannerTarget;
     closeScanner();
     if (!target) return;
-    document.getElementById(target).value = text;
+    const code = String(text).trim();
+    document.getElementById(target).value = code;
+    if (target === 'artNo') { showToast('Barcode saved as Article No.'); return; }
+
+    // Is this code already an article in this shop?
+    const { data, error } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', code).maybeSingle();
+    if (error) { showToast('Error: ' + error.message, true); return; }
+    if (!data) {
+        if (target === 'retArtNo' || isStaffMode) { showToast(`Article "${code}" not found`, true); return; }
+        askConfirm(`Barcode "${code}" is not in your stock. Add it as a new article?`, () => {
+            switchTab('article');
+            document.getElementById('artNo').value = code;
+            const nameEl = document.getElementById('artName'); if (nameEl) nameEl.focus();
+            showToast('Article No. filled. Enter name, price and stock.');
+        });
+        return;
+    }
     if (target === 'saleArtNo') searchSaleArticle();
     else if (target === 'dashSearchArt') searchDashboardArticle();
     else if (target === 'purArtNo') searchPurchaseArticle();
@@ -132,8 +148,11 @@ function onScanSuccess(text) {
     showToast("Barcode Scanned!");
 }
 async function beginScan(cameraConfig) {
-    html5QrcodeScanner = new Html5Qrcode('reader');
-    await html5QrcodeScanner.start(cameraConfig, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
+    // native BarcodeDetector (Chrome/Android) reads 1D barcodes (EAN/UPC/Code128...) much better
+    html5QrcodeScanner = new Html5Qrcode('reader', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    // wide scan box: 1D barcodes are wide, not square
+    const qrbox = (w, hgt) => ({ width: Math.max(120, Math.floor(Math.min(w * 0.9, 320))), height: Math.max(80, Math.floor(Math.min(hgt * 0.6, 200))) });
+    await html5QrcodeScanner.start(cameraConfig, { fps: 12, qrbox: qrbox }, onScanSuccess, () => {});
 }
 async function stopScannerInstance() {
     if (!html5QrcodeScanner) return;
