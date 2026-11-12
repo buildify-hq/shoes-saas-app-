@@ -11,14 +11,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+    <!-- नवीन बिलाचा फोटो काढण्यासाठी -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <meta name="theme-color" content="#1D4ED8">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="SJ Labs">
 </head>
 <body>
 
@@ -43,15 +43,70 @@
         </div>
     </div>
 
+    <!-- 🌟 नवीन प्रोफेशनल बिल मोडल (Tax Invoice) -->
     <div id="billModal" class="sa-modal">
-        <div class="sa-modal-content">
-            <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-circle-check" style="color: var(--success);"></i> Sale Done</h3>
-            <pre id="billPreview" class="bill-preview"></pre>
-            <button class="btn-success" onclick="shareBillWA()" style="background:#25D366;"><i class="fa-brands fa-whatsapp"></i> Send Bill on WhatsApp</button>
-            <button class="btn-outline" onclick="copyBill()" style="margin-top:8px;"><i class="fa-regular fa-copy"></i> Copy</button>
-            <button class="btn-primary" onclick="closeBill()" style="margin-top:8px;">Done</button>
+        <div class="sa-modal-content" style="max-width: 450px; padding: 0; background: #fff; color: #000; border-radius: 12px; overflow-y: auto;">
+            
+            <div id="invoiceCaptureArea" style="padding: 20px; font-family: Arial, sans-serif; background: #fff;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #1D4ED8;">SJ DIGITAL LABS</h2>
+                        <p style="margin: 2px 0; font-size: 11px; color: #333;">Your Shop Address Here,<br>City, State - Pincode<br>Ph: <span id="invShopPhone">Your Phone</span></p>
+                    </div>
+                    <div style="text-align: right;">
+                        <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" style="width: 50px; height: 50px; border-radius: 50%;" alt="Logo">
+                    </div>
+                </div>
+
+                <div style="text-align: center; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; font-size: 14px; color: #000;">
+                    TAX INVOICE
+                </div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 11px; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 10px; color: #000;">
+                    <div>
+                        <strong>Customer:</strong> <span id="invCustName">Walk-in Customer</span><br>
+                        <strong>Phone:</strong> <span id="invCustPhone">-</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>Invoice No:</strong> <span id="invNo">#INV-001</span><br>
+                        <strong>Date:</strong> <span id="invDate">Date</span>
+                    </div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; color: #000;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #000; border-top: 1px solid #000; background: #f0f0f0;">
+                            <th style="text-align: left; padding: 5px;">Item Details</th>
+                            <th style="text-align: center; padding: 5px;">Qty</th>
+                            <th style="text-align: right; padding: 5px;">Rate</th>
+                            <th style="text-align: right; padding: 5px;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invItemsList"></tbody>
+                </table>
+
+                <div style="display: flex; justify-content: flex-end; font-size: 12px; border-top: 1px solid #000; padding-top: 10px; color: #000;">
+                    <table style="width: 60%;">
+                        <tr><td>Sub Total:</td><td style="text-align: right;" id="invSubTotal">₹0.00</td></tr>
+                        <tr><td>Discount:</td><td style="text-align: right; color: red;" id="invDiscount">-₹0.00</td></tr>
+                        <tr style="font-weight: bold; font-size: 14px; border-top: 1px solid #000;">
+                            <td>Net Total:</td><td style="text-align: right;" id="invNetTotal">₹0.00</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style="text-align: center; font-size: 10px; margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; color: #000;">
+                    Thank you for shopping with us! Visit again.
+                </div>
+            </div>
+
+            <div style="padding: 15px; background: var(--card-dark); border-top: 1px solid var(--border-color);">
+                <button class="btn-success" onclick="downloadAndShareBill(this)" style="background:#25D366; width: 100%; margin-bottom: 8px;"><i class="fa-brands fa-whatsapp"></i> Share Image on WhatsApp</button>
+                <button class="btn-primary" onclick="closeBill()" style="width: 100%; margin: 0;">Done</button>
+            </div>
         </div>
     </div>
+    <!-- 🌟 बिल मोडल संपला -->
 
     <div id="customConfirmModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center;">
@@ -109,40 +164,36 @@
     </div>
 
     <div class="content-area">
-        
+        <!-- (लॉगिन, सुपर ॲडमिन, डॅशबोर्ड, स्टॉक, सेल, ॲड आर्टिकल, परचेस, हिस्ट्री, रिटर्न, एक्सपेन्स, उधारी, स्टाफ, लेबल्स, बल्क, इनसाईट्स, क्लोजिंग, रिपोर्ट्स स्क्रीन्स तशाच ठेवल्या आहेत) -->
         <div id="loginScreen" class="fade-in" style="display: block; padding-top: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="login-logo">
                 <h1 style="color: var(--text-light); font-size: 28px; margin-bottom: 5px; font-weight: 800;">SJ Digital Labs</h1>
                 <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Login to manage your shop</p>
             </div>
-            
             <div class="app-card" style="padding: 30px 20px;">
                 <label style="font-size: 14px; margin-bottom: 10px;">Shop Name</label>
                 <div class="input-group" style="margin-bottom: 20px;">
                     <span class="input-icon" style="top: 18px; font-size: 20px;"><i class="fa-solid fa-store"></i></span>
-                    <input type="text" id="loginShopName" name="shop-login-x" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter your shop name" style="padding-left: 50px; font-size: 16px;">
+                    <input type="text" id="loginShopName" autocomplete="off" placeholder="Enter your shop name" style="padding-left: 50px; font-size: 16px;">
                 </div>
-                
                 <label style="font-size: 14px; margin-bottom: 10px;">6-Digit PIN / Password</label>
                 <div class="input-group" style="margin-bottom: 30px;">
                     <span class="input-icon" style="top: 18px; font-size: 20px;"><i class="fa-solid fa-lock"></i></span>
-                    <input type="password" id="loginPin" name="pin-login-x" autocomplete="new-password" placeholder="Enter PIN or Password" style="padding-left: 50px; font-size: 16px;">
+                    <input type="password" id="loginPin" autocomplete="new-password" placeholder="Enter PIN or Password" style="padding-left: 50px; font-size: 16px;">
                 </div>
-                
                 <button class="btn-primary" onclick="handleLogin()" style="padding: 18px; font-size: 18px; border-radius: 16px;">Login <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
             </div>
         </div>
 
         <div id="superAdminScreen" class="fade-in" style="display: none;">
-            <div class="sa-header">
+             <div class="sa-header">
                 <div>
                     <h2 style="font-size: 22px; margin-bottom: 5px; font-weight: 800;">Super Admin</h2>
                     <p id="saStats">Total Owners: 0 | Active: 0</p>
                 </div>
                 <div class="sa-logout" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
-            
             <div class="sa-search">
                 <span><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="saSearch" placeholder="Search Owner or Shop..." oninput="loadSuperAdminData()">
@@ -150,11 +201,9 @@
             <div class="sa-add-btn" onclick="openOwnerModal('add')">
                 <i class="fa-solid fa-plus-circle"></i> Add New Owner
             </div>
-            
             <div class="sa-add-btn" onclick="loadAdminReport()" style="background: var(--warning); color: white; margin-top: -10px; margin-bottom: 20px;">
                 <i class="fa-solid fa-chart-pie"></i> View Admin Report
             </div>
-
             <div id="adminReportContainer" style="display: none; margin-bottom: 20px;">
                 <div class="app-card" style="background: var(--card-dark); padding: 15px;">
                     <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--primary);">Admin Dashboard</h4>
@@ -174,12 +223,10 @@
                     </div>
                 </div>
             </div>
-
             <div id="saOwnerList"></div>
         </div>
 
         <div id="dashboardScreen" class="fade-in" style="display: none;">
-            
             <div class="app-card target-card">
                 <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; font-weight: 700;">
                     <span>Target: ₹<span id="targetDisplay">0</span></span>
@@ -189,7 +236,6 @@
                     <div id="targetProgressBar" class="progress-bar"></div>
                 </div>
             </div>
-
             <div class="stats-grid">
                 <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
                     <div class="stat-title" style="color: white;">Today's Sales</div>
@@ -201,12 +247,10 @@
                     <div class="stat-value" id="todayProfitDisplay" style="color: white;">₹0</div>
                 </div>
             </div>
-            
             <div style="display: flex; gap: 12px; margin-bottom: 20px;">
                 <button class="btn-success" onclick="switchTab('sale')" style="flex: 1.5; padding: 16px; font-size: 15px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
                 <button class="btn-warning" onclick="switchTab('return')" style="flex: 1; padding: 16px; font-size: 14px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);"><i class="fa-solid fa-rotate-left"></i> Return</button>
             </div>
-
             <div class="app-card" style="padding: 15px; margin-bottom: 20px;">
                 <label>Quick Search Article</label>
                 <div style="display: flex; gap: 8px;">
@@ -216,35 +260,29 @@
                 </div>
                 <div id="dashSearchResult" style="margin-top: 15px;"></div>
             </div>
-
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); font-weight: 600;">Quick Expenses</h4>
             <div class="quick-expense-chart">
                 <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')">
                     <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
                         <i class="fa-solid fa-mug-hot" style="color: var(--warning); font-size: 20px;"></i>
-                    </div>
-                    Tea/Snacks
+                    </div> Tea/Snacks
                 </div>
                 <div class="quick-expense-btn" onclick="quickExpense('Light Bill')">
                     <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
                         <i class="fa-solid fa-lightbulb" style="color: var(--warning); font-size: 20px;"></i>
-                    </div>
-                    Light Bill
+                    </div> Light Bill
                 </div>
                 <div class="quick-expense-btn" onclick="quickExpense('Shop Rent')">
                     <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
                         <i class="fa-solid fa-shop" style="color: var(--warning); font-size: 20px;"></i>
-                    </div>
-                    Shop Rent
+                    </div> Shop Rent
                 </div>
                 <div class="quick-expense-btn" onclick="switchTab('staff')">
                     <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
                         <i class="fa-solid fa-user-tie" style="color: var(--warning); font-size: 20px;"></i>
-                    </div>
-                    Staff Pay
+                    </div> Staff Pay
                 </div>
             </div>
-
             <h3 style="margin-bottom: 12px; font-size: 16px; margin-top: 20px; font-weight: 700;"><i class="fa-solid fa-list-check"></i> Today's Transactions</h3>
             <div id="todayTransactions" class="app-card" style="padding: 15px;">
                 <p style="font-size: 14px; color: var(--text-muted); text-align: center;">No transactions today.</p>
@@ -253,21 +291,18 @@
 
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
-            
             <div class="app-card" style="padding: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 99; background: var(--card-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" oninput="debounceStockSearch()" onkeyup="if(event.key === 'Enter') { clearTimeout(stockSearchT); searchStockArticle(); }">
                     <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
             </div>
-
             <div class="stats-grid" style="margin-bottom: 20px;">
                 <div class="stat-card gents"><div class="stat-title">Gents</div><div class="stat-value" id="gentsStockDisplay">0</div></div>
                 <div class="stat-card ladies"><div class="stat-title">Ladies</div><div class="stat-value" id="ladiesStockDisplay">0</div></div>
                 <div class="stat-card kids"><div class="stat-title">Kids</div><div class="stat-value" id="kidsStockDisplay">0</div></div>
                 <div class="stat-card total"><div class="stat-title">Total All Stock</div><div class="stat-value" id="totalAllStockDisplay">0</div></div>
             </div>
-
             <div class="filter-tabs" id="genderFilterContainer">
                 <div class="filter-btn active" onclick="setStockFilter('Men', this)">Men</div>
                 <div class="filter-btn" onclick="setStockFilter('Ladies', this)">Ladies</div>
@@ -275,12 +310,10 @@
                 <div class="filter-btn" onclick="setStockFilter('Girls', this)">Girls</div>
             </div>
             <div class="sub-filter-tabs" id="typeFilterContainer"></div>
-            
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); margin-top: 15px; font-weight: 600;"><i class="fa-solid fa-shoe-prints"></i> Available Articles</h4>
             <div id="stockList"></div>
         </div>
 
-        <!-- 🌟 नवीन स्क्रीन: Bulk Import -->
         <div id="bulkImportScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</h2>
             <div class="app-card">
@@ -290,15 +323,11 @@
                     </p>
                 </div>
                 <button class="btn-outline" onclick="downloadImportTemplate()" style="margin-bottom: 15px;"><i class="fa-solid fa-download"></i> Download Excel Template</button>
-                
                 <input type="file" id="excelUpload" accept=".xlsx, .xls, .csv" style="display: none;" onchange="processExcelUpload(event)">
-                
                 <button class="btn-primary" onclick="document.getElementById('excelUpload').click()" style="padding: 18px; font-size: 16px;">
                     <i class="fa-solid fa-upload"></i> Upload Excel File
                 </button>
-                
                 <div id="importStatus" style="margin-top: 15px; font-size: 14px; text-align: center; font-weight: 600;"></div>
-                
                 <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-top: 20px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             </div>
         </div>
@@ -351,20 +380,16 @@
                     <input type="number" id="salePrice">
                     <button class="btn-success" onclick="addToCart()" style="margin-top: 5px;"><i class="fa-solid fa-plus"></i> Add to Bill</button>
                 </div>
-
                 <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--warning); font-weight: 700;"><i class="fa-solid fa-receipt"></i> Current Bill</h4>
                 <div id="cartList" style="margin-bottom: 15px;"><p style="font-size: 14px; color: var(--text-muted); text-align: center;">No items added.</p></div>
-                
                 <label>Customer (optional)</label>
                 <div style="display:flex; gap:8px;"><input type="text" id="saleCustName" placeholder="Name"><input type="tel" id="saleCustPhone" placeholder="Mobile" maxlength="10"></div>
                 <label>Discount (₹)</label>
                 <input type="number" id="saleDiscount" value="0" min="0" oninput="renderCart()">
-
                 <div class="total-amount-box">
                     <span>Net Total:</span>
                     <span id="cartTotalAmt" style="color: var(--success);">₹0</span>
                 </div>
-                
                 <button class="btn-primary" id="confirmSaleBtn" onclick="confirmSale()" style="padding: 18px; font-size: 16px;"><i class="fa-solid fa-check-double"></i> Confirm Sale</button>
                 <div class="two-btn">
                     <button class="btn-outline" onclick="holdBill()"><i class="fa-solid fa-pause"></i> Hold Bill</button>
@@ -392,7 +417,6 @@
                     <button class="btn-small btn-outline" onclick="addColorSection()"><i class="fa-solid fa-plus"></i> Color</button>
                 </div>
                 <div id="colorContainer"></div>
-                
                 <div class="sticky-buttons">
                     <button class="btn-primary" onclick="saveArticle()" style="margin-bottom: 8px; padding: 16px;"><i class="fa-solid fa-floppy-disk"></i> Save Article</button>
                     <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-bottom: 0;"><i class="fa-solid fa-arrow-left"></i> Back</button>
@@ -487,9 +511,9 @@
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
             <div class="hist-nav" style="display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:8px; margin-bottom:12px; align-items:stretch;">
-                <button onclick="shiftHistDay(-1)" aria-label="Previous day" style="width:44px; min-height:44px; padding:0; margin:0; border-radius:12px; background:var(--card-dark); color:var(--text-light); border:1px solid var(--border-color); box-shadow:none;"><i class="fa-solid fa-chevron-left"></i></button>
+                <button onclick="shiftHistDay(-1)" style="width:44px; min-height:44px; padding:0; margin:0; border-radius:12px; background:var(--card-dark); color:var(--text-light); border:1px solid var(--border-color); box-shadow:none;"><i class="fa-solid fa-chevron-left"></i></button>
                 <input type="date" id="histDate" onchange="loadHistory()" style="margin-bottom:0; text-align:center;">
-                <button onclick="shiftHistDay(1)" aria-label="Next day" style="width:44px; min-height:44px; padding:0; margin:0; border-radius:12px; background:var(--card-dark); color:var(--text-light); border:1px solid var(--border-color); box-shadow:none;"><i class="fa-solid fa-chevron-right"></i></button>
+                <button onclick="shiftHistDay(1)" style="width:44px; min-height:44px; padding:0; margin:0; border-radius:12px; background:var(--card-dark); color:var(--text-light); border:1px solid var(--border-color); box-shadow:none;"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
             <div class="hist-summary">
                 <div class="hist-sum sale"><small>Sales</small><b id="histSales">₹0</b></div>
@@ -574,22 +598,18 @@
 
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
-            
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <button class="btn-primary" id="btnWeekly" onclick="loadChartData('weekly')" style="flex: 1; margin: 0; padding: 10px; font-size: 13px;">Weekly</button>
                 <button class="btn-outline" id="btnMonthly" onclick="loadChartData('monthly')" style="flex: 1; margin: 0; padding: 10px; font-size: 13px;">Monthly</button>
             </div>
-
             <div class="app-card" style="padding: 15px;">
                 <div style="position: relative; height: 250px; width: 100%;">
                     <canvas id="salesChart"></canvas>
                 </div>
             </div>
-
             <div class="app-card">
                 <label>Select Date (For Single Day Report)</label>
                 <input type="date" id="reportDate" onchange="loadReportData()">
-                
                 <div class="stats-grid" style="margin-top: 20px;">
                     <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(16, 185, 129, 0.3);">
                         <div class="stat-title" style="color: var(--success);">Total Sales</div>
@@ -619,22 +639,13 @@
     </div>
 
     <div class="bottom-nav" id="bottomNav">
-        <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash">
-            <i class="fa-solid fa-house nav-icon"></i> Home
-        </div>
-        <div class="nav-item" onclick="switchTab('stock')" id="nav-stock">
-            <i class="fa-solid fa-cubes nav-icon"></i> Stock
-        </div>
-        <div class="nav-item" onclick="switchTab('sale')" id="nav-sale">
-            <i class="fa-solid fa-cash-register nav-icon"></i> Sale
-        </div>
-        <div class="nav-item" onclick="switchTab('history')" id="nav-hist">
-            <i class="fa-solid fa-clock-rotate-left nav-icon"></i> History
-        </div>
+        <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash"><i class="fa-solid fa-house nav-icon"></i> Home</div>
+        <div class="nav-item" onclick="switchTab('stock')" id="nav-stock"><i class="fa-solid fa-cubes nav-icon"></i> Stock</div>
+        <div class="nav-item" onclick="switchTab('sale')" id="nav-sale"><i class="fa-solid fa-cash-register nav-icon"></i> Sale</div>
+        <div class="nav-item" onclick="switchTab('history')" id="nav-hist"><i class="fa-solid fa-clock-rotate-left nav-icon"></i> History</div>
         <div class="nav-item" id="nav-more" style="display:none;"></div>
     </div>
 
-    <!-- Plain script, no modules -->
     <script src="script.js"></script>
 </body>
-    </html>
+</html>
