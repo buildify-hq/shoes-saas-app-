@@ -25,6 +25,18 @@ const SECRET_ADMIN_ID = 'sagar_admin';
 
 let html5QrcodeScanner = null;
 
+// ---------- Dynamic Script Loader ----------
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+    });
+}
+
 // ---------- Helpers ----------
 function esc(v) {
     return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -649,6 +661,10 @@ async function downloadAndShareBill(btn) {
     try {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
         btn.disabled = true;
+
+        // 🌟 html2canvas फक्त इथेच लोड होईल (ॲप सुरू होताना नाही)
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+
         const canvas = await html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' });
         canvas.toBlob(async function(blob) {
             const file = new File([blob], 'invoice.png', { type: 'image/png' });
@@ -764,7 +780,6 @@ async function loadCredits() {
             <div style="display:flex; flex-direction:column; gap:8px;">
                 ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : `<div style="display:flex; gap:6px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
                 
-                <!-- 🌟 नवीन Delete Button -->
                 <button class="btn-small btn-danger" onclick="deleteCredit('${c.id}')" style="border-radius: 8px; margin-top: 4px;"><i class="fa-solid fa-trash"></i> Delete</button>
             </div>
         </div>`;
@@ -780,7 +795,6 @@ async function saveCredit() {
 
 async function markCreditPaid(id) { await supabaseClient.from('credits').update({ status: 'paid' }).eq('id', id); showToast("Marked as Paid!", false); loadCredits(); }
 
-// 🌟 नवीन Delete Credit फंक्शन
 async function deleteCredit(id) {
     askConfirm("ही उधारीची नोंद कायमची डिलीट करायची आहे का?", async () => {
         await supabaseClient.from('credits').delete().eq('id', id);
@@ -1250,8 +1264,6 @@ async function resetStaffPin() {
 }
 
 // ---------- Super Admin / Labels / Closing Functions ----------
-// (सुपर ॲडमिन आणि इतर फंक्शन्स आधीप्रमाणेच ठेवली आहेत, कारण त्यात काही बदल केलेले नाहीत. जर जुना कोड हवा असेल तर मागच्या उत्तरातून घ्यावा, किंवा तुम्ही वापरत असलेला जुना कोड तसाच ठेवा.)
-
 async function loadSuperAdminData() {
     const list = document.getElementById('saOwnerList');
     const searchTerm = document.getElementById('saSearch').value.toLowerCase();
@@ -1346,6 +1358,7 @@ async function deleteOwner(id) {
     showToast("Shop Deleted!", false); loadSuperAdminData();
 }
 
+let closingNet = 0, closingData = {};
 async function loadClosing() {
     const r = dayRange(localDateStr(new Date()));
     const { data } = await supabaseClient.rpc('get_history', { p_from: r[0], p_to: r[1] });
@@ -1360,7 +1373,6 @@ async function loadClosing() {
     calcClosing();
 }
 
-let closingNet = 0, closingData = {};
 function calcClosing() {
     const open = parseInt(document.getElementById('clOpening').value) || 0;
     const cv = document.getElementById('clCounted').value;
@@ -1469,19 +1481,247 @@ function buildLabels() {
     const sheet = document.getElementById('labelSheet');
     sheet.className = 'label-sheet ' + size;
     sheet.innerHTML = html;
+    
     let ps = document.getElementById('labPageStyle');
     if (!ps) { ps = document.createElement('style'); ps.id = 'labPageStyle'; document.head.appendChild(ps); }
-    ps.textContent = size === 'roll50' ? '@media print { @page { size: 50mm 30mm; margin: 0; } }'
-        : size === 'roll38' ? '@media print { @page { size: 38mm 25mm; margin: 0; } }'
-        : '@media print { @page { size: A4; margin: 8mm; } }';
+    
+    if (size === 'roll50') {
+        ps.textContent = '@media print { @page { size: 50mm 30mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
+    } else if (size === 'roll38') {
+        ps.textContent = '@media print { @page { size: 38mm 25mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
+    } else {
+        ps.textContent = '@media print { @page { size: A4; margin: 5mm; } body { margin: 0; } #labelSheet { position: static !important; } }';
+    }
     return items.length;
 }
+
+function clearLabelPreview() {
+    document.getElementById('labelSheet').innerHTML = '';
+    showToast("Label Preview Cleared!", false);
+}
+
 function previewLabels() {
     const n = buildLabels();
     if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); }
 }
+
 function printLabels() { 
     if (buildLabels()) {
-        setTimeout(() => { window.print(); }, 300);
+        setTimeout(() => { window.print(); }, 500);
     }
 }
+
+// ---------- Download Excel & Backup (Lazy Loading) ----------
+async function downloadExcel() {
+    if(!currentShopId) return;
+    showToast("Generating Excel... ⏳", false);
+    
+    try {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
+        const { data: allData } = await supabaseClient.from('sales').select(`sale_date, total_amount, total_profit, sale_items (quantity, size, selling_price, articles(article_no, name))`).eq('shop_id', currentShopId).order('sale_date', { ascending: false });
+        let excelData = [];
+        if(allData) {
+            allData.forEach(s => {
+                if(s.sale_items) {
+                    s.sale_items.forEach(item => {
+                        excelData.push({ Date: new Date(s.sale_date).toLocaleDateString(), "Article No": item.articles?.article_no || 'DELETED', "Name": item.articles?.name || '-', "Size": item.size, "Qty": item.quantity, "Total Amount": s.total_amount, "Profit": s.total_profit });
+                    });
+                }
+            });
+        }
+        if(excelData.length === 0) { showToast("No data to export!", true); return; }
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
+        XLSX.writeFile(wb, "Sales_Report.xlsx");
+        showToast("Excel Downloaded! 📥", false);
+    } catch (err) {
+        showToast("Error: " + err.message, true);
+    }
+}
+
+async function downloadFullBackup() {
+    if (!currentShopId) return;
+    showToast("Preparing backup... ⏳", false);
+    
+    try {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
+        const [articlesRes, salesRes, returnsRes, expensesRes, creditsRes, purchasesRes] = await Promise.all([
+            supabaseClient.from('articles').select('article_no, name, category, cost_price, mrp, stock_batches(color, size, initial_qty, remaining_qty)').eq('shop_id', currentShopId),
+            supabaseClient.from('sales').select('sale_date, total_amount, total_profit, discount_amount, sale_items(quantity, size, selling_price, articles(article_no, name))').eq('shop_id', currentShopId),
+            supabaseClient.from('returns').select('return_date, quantity, refund_amount, size, articles(article_no, name)').eq('shop_id', currentShopId),
+            supabaseClient.from('expenses').select('expense_date, reason, amount').eq('shop_id', currentShopId),
+            supabaseClient.from('credits').select('created_at, customer_name, phone, amount, status').eq('shop_id', currentShopId),
+            supabaseClient.from('purchases').select('purchase_date, quantity, cost_price, size, supplier_name, articles(article_no, name)').eq('shop_id', currentShopId)
+        ]);
+
+        const wb = XLSX.utils.book_new();
+        let stockData = [];
+        (articlesRes.data || []).forEach(art => {
+            (art.stock_batches || []).forEach(batch => {
+                stockData.push({ "Article No": art.article_no, "Name": art.name, "Category": art.category, "Color": batch.color || '-', "Size": batch.size, "Initial Stock": batch.initial_qty, "Remaining Stock": batch.remaining_qty, "Cost Price": art.cost_price, "MRP": art.mrp });
+            });
+        });
+        if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Stock Details");
+
+        let salesData = [];
+        (salesRes.data || []).forEach(sale => {
+            (sale.sale_items || []).forEach(item => {
+                salesData.push({ "Date": new Date(sale.sale_date).toLocaleString(), "Article No": item.articles?.article_no || 'DELETED', "Name": item.articles?.name || '-', "Size": item.size, "Qty": item.quantity, "Selling Price": item.selling_price, "Total Amount": sale.total_amount, "Profit": sale.total_profit, "Bill Discount": sale.discount_amount });
+            });
+        });
+        if(salesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesData), "Sales History");
+
+        let returnsData = (returnsRes.data || []).map(ret => ({ "Date": new Date(ret.return_date).toLocaleString(), "Article No": ret.articles?.article_no || 'DELETED', "Name": ret.articles?.name || '-', "Size": ret.size, "Qty": ret.quantity, "Refund Amount": ret.refund_amount }));
+        if(returnsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(returnsData), "Returns");
+
+        let expensesData = (expensesRes.data || []).map(exp => ({ "Date": new Date(exp.expense_date).toLocaleString(), "Reason": exp.reason, "Amount": exp.amount }));
+        if(expensesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expensesData), "Expenses");
+
+        let creditsData = (creditsRes.data || []).map(cred => ({ "Date": new Date(cred.created_at).toLocaleString(), "Customer": cred.customer_name, "Phone": cred.phone, "Amount": cred.amount, "Status": cred.status }));
+        if(creditsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(creditsData), "Udhaar Khata");
+
+        let purchasesData = (purchasesRes.data || []).map(pur => ({ "Date": new Date(pur.purchase_date).toLocaleString(), "Article No": pur.articles?.article_no || 'DELETED', "Name": pur.articles?.name || '-', "Size": pur.size, "Qty": pur.quantity, "Cost": pur.cost_price, "Supplier": pur.supplier_name }));
+        if(purchasesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(purchasesData), "Purchases");
+
+        if (wb.SheetNames.length === 0) { showToast("No data available for backup!", true); return; }
+        const dateStr = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${dateStr}.xlsx`);
+        showToast("✅ Full Backup downloaded successfully!", false);
+    } catch (err) { showToast("Backup error: " + err.message, true); }
+}
+
+// ---------- Bulk Import ----------
+function downloadImportTemplate() {
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(() => {
+        const headers = [["Gender", "Type", "Article No", "Name", "Cost Price", "MRP", "Color", "Size", "Qty"]];
+        const ws = XLSX.utils.aoa_to_sheet(headers);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template");
+        XLSX.writeFile(wb, "Bulk_Import_Template.xlsx");
+    }).catch(err => showToast("Error loading excel library", true));
+}
+
+async function processExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const statusDiv = document.getElementById('importStatus');
+    statusDiv.innerHTML = '<span style="color:var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Reading Excel...</span>';
+    
+    try {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet);
+                if (json.length === 0) throw new Error("Excel file is empty!");
+                let successCount = 0, errorCount = 0;
+                for (let i = 0; i < json.length; i++) {
+                    const row = json[i];
+                    const artNo = String(row['Article No'] || '').trim();
+                    const size = String(row['Size'] || '').trim();
+                    const qty = parseInt(row['Qty']) || 0;
+                    if (!artNo || !size || qty <= 0) { errorCount++; continue; }
+                    const gender = row['Gender'] || 'Men'; const type = row['Type'] || 'Formal'; const name = row['Name'] || 'Unnamed'; const cost = parseInt(row['Cost Price']) || 0; const mrp = parseInt(row['MRP']) || 0; const color = String(row['Color'] || '').trim(); const category = `${gender} - ${type}`;
+                    
+                    let { data: artData } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).maybeSingle();
+                    let articleId;
+                    if (!artData) {
+                        const { data: newArt, error: artErr } = await supabaseClient.from('articles').insert([{ shop_id: currentShopId, article_no: artNo, name: name, category: category, cost_price: cost, mrp: mrp }]).select();
+                        if (artErr) { errorCount++; continue; }
+                        articleId = newArt[0].id;
+                    } else { articleId = artData.id; }
+
+                    let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', articleId).eq('size', size);
+                    if(color) query = query.eq('color', color); else query = query.or('color.is.null,color.eq.Default,color.eq.');
+                    const { data: batch } = await query.limit(1).maybeSingle();
+                    
+                    if (batch) {
+                        await supabaseClient.from('stock_batches').update({ remaining_qty: batch.remaining_qty + qty, initial_qty: batch.initial_qty + qty }).eq('id', batch.id);
+                    } else {
+                        await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]);
+                    }
+                    successCount++;
+                }
+                statusDiv.innerHTML = `<span style="color:var(--success);">✅ Success: ${successCount} rows added. ${errorCount > 0 ? '<br><span style="color:var(--danger);">Errors: ' + errorCount + ' (check data)</span>' : ''}</span>`;
+                event.target.value = ''; 
+                showToast(`Bulk Import Complete! ${successCount} rows added.`, false);
+                if (typeof loadDashboardData === 'function') loadDashboardData();
+            } catch (err) {
+                statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error: ${err.message}</span>`;
+                showToast("Error parsing file: " + err.message, true);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } catch (error) {
+        statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error loading library</span>`;
+    }
+}
+
+// ---------- Low stock WA ----------
+async function shareLowStockWA() {
+    const { data, error } = await supabaseClient.from('articles').select('article_no, name, stock_batches (remaining_qty)').eq('shop_id', currentShopId);
+    if (error) { showToast('Error: ' + error.message, true); return; }
+    const low = (data || []).map(a => ({ a, total: (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0) })).filter(x => x.total <= 2).sort((x, y) => x.total - y.total);
+    if (!low.length) { showToast('No low stock articles 👍', false); return; }
+    let t = `⚠️ *Low Stock - ${currentShopName || 'Shop'}*\n${new Date().toLocaleDateString('en-IN')}\n------------------------\n`;
+    low.forEach(x => { t += `${x.a.article_no} ${x.a.name || ''} - ${x.total === 0 ? 'OUT OF STOCK' : x.total + ' left'}\n`; });
+    t += `------------------------\nTotal: ${low.length} article(s)`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+}
+
+// ---------- Hold Bill ----------
+function heldKey() { return 'heldBills_' + currentShopId; }
+function getHeld() { try { return JSON.parse(localStorage.getItem(heldKey()) || '[]'); } catch (e) { return []; } }
+function setHeld(a) { try { localStorage.setItem(heldKey(), JSON.stringify(a)); } catch (e) { showToast('Could not save held bill', true); } updateHeldCount(); }
+function updateHeldCount() { const el = document.getElementById('heldCount'); if (el) { const n = getHeld().length; el.innerText = n ? `(${n})` : ''; } }
+function holdBill() {
+    if (!cart.length) { showToast('Add items to the bill first', true); return; }
+    const held = getHeld();
+    if (held.length >= 5) { showToast('Maximum 5 held bills', true); return; }
+    held.push({ t: Date.now(), cart: cart, name: document.getElementById('saleCustName').value, phone: document.getElementById('saleCustPhone').value, discount: document.getElementById('saleDiscount').value });
+    setHeld(held);
+    cart = []; renderCart();
+    document.getElementById('saleCustName').value = ''; document.getElementById('saleCustPhone').value = ''; document.getElementById('saleDiscount').value = 0;
+    showToast('Bill held ⏸', false);
+}
+function openHeld() {
+    const held = getHeld();
+    document.getElementById('heldList').innerHTML = held.length ? held.map((b, i) => {
+        const items = b.cart.reduce((s, c) => s + c.qty, 0), total = b.cart.reduce((s, c) => s + c.qty * c.price, 0);
+        return `<div class="held-row"><span>${items} pair(s) • ₹${total}<small>${esc(b.name || 'No customer')} • ${new Date(b.t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</small></span>
+            <span style="display:flex; gap:6px;"><button class="btn-success" onclick="resumeHeld(${i})">Resume</button><button class="btn-danger" onclick="deleteHeld(${i})"><i class="fa-solid fa-trash"></i> Delete</button></span></div>`;
+    }).join('') : emptyState('fa-pause', 'No held bills');
+    document.getElementById('heldModal').style.display = 'flex';
+}
+function closeHeld() { document.getElementById('heldModal').style.display = 'none'; }
+function resumeHeld(i) {
+    if (cart.length) { showToast('Finish or hold the current bill first', true); return; }
+    const held = getHeld(); const b = held.splice(i, 1)[0]; if (!b) return;
+    setHeld(held);
+    cart = b.cart;
+    document.getElementById('saleCustName').value = b.name || ''; document.getElementById('saleCustPhone').value = b.phone || ''; document.getElementById('saleDiscount').value = b.discount || 0;
+    renderCart(); closeHeld(); showToast('Bill resumed', false);
+}
+function deleteHeld(i) { const held = getHeld(); held.splice(i, 1); setHeld(held); openHeld(); }
+
+// ---------- Auto logout after 10 min idle ----------
+let idleTimer;
+const IDLE_MS = 10 * 60 * 1000;
+function resetIdle() {
+    clearTimeout(idleTimer);
+    if (!currentShopId) return;
+    idleTimer = setTimeout(() => {
+        if (!currentShopId) return;
+        if (cart.length > 0) { resetIdle(); return; }
+        showToast('Logged out due to inactivity', true);
+        handleLogout();
+    }, IDLE_MS);
+}
+['click', 'touchstart', 'keydown', 'scroll'].forEach(ev => document.addEventListener(ev, resetIdle, { passive: true }));
