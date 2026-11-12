@@ -7,7 +7,7 @@ let currentUser = null;
 let currentShopId = null;
 let isStaffMode = false;
 let currentShopName = '';
-let currentShopDetails = { name: '', address: '', phone: '', logo: '' }; // नवीन शॉप डिटेल्स
+let currentShopDetails = { name: '', address: '', phone: '', logo: '' }; 
 
 let foundSaleArticle = null;
 let foundReturnArticle = null;
@@ -308,11 +308,11 @@ function showOwnerDashboard() {
 }
 
 function switchTab(tabName) {
-    if(isStaffMode && ['closing', 'dashboard', 'staff', 'target', 'reports', 'article', 'purchase', 'lowStockAlert', 'insights', 'labels', 'staffPin', 'bulkImport', 'shopSettings'].includes(tabName)) {
+    if(isStaffMode && ['closing', 'dashboard', 'staff', 'reports', 'article', 'purchase', 'lowStockAlert', 'labels', 'staffPin', 'bulkImport', 'shopSettings'].includes(tabName)) {
         showToast("Access Denied! Only Owner can access this.", true); return;
     }
     
-    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'targetScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'insightsScreen', 'closingScreen', 'labelsScreen', 'bulkImportScreen', 'shopSettingsScreen'];
+    const screens = ['dashboardScreen', 'stockScreen', 'saleScreen', 'articleScreen', 'purchaseScreen', 'returnScreen', 'expenseScreen', 'creditsScreen', 'staffPinScreen', 'staffScreen', 'reportsScreen', 'lowStockAlertScreen', 'historyScreen', 'closingScreen', 'labelsScreen', 'bulkImportScreen', 'shopSettingsScreen'];
     screens.forEach(s => { let el = document.getElementById(s); if(el) el.style.display = 'none'; });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -326,31 +326,16 @@ function switchTab(tabName) {
     else if(tabName === 'expense') { document.getElementById('expenseScreen').style.display = 'block'; }
     else if(tabName === 'credits') { document.getElementById('creditsScreen').style.display = 'block'; loadCredits(); }
     else if(tabName === 'staffPin') { document.getElementById('staffPinScreen').style.display = 'block'; loadStaffPin(); }
-    else if(tabName === 'target') { document.getElementById('targetScreen').style.display = 'block'; loadTargetData(); }
     else if(tabName === 'shopSettings') { document.getElementById('shopSettingsScreen').style.display = 'block'; loadShopSettings(); }
     else if(tabName === 'reports') { document.getElementById('reportsScreen').style.display = 'block'; document.getElementById('reportDate').value = localDateStr(new Date()); loadReportData(); }
     else if(tabName === 'history') { document.getElementById('historyScreen').style.display = 'block'; document.getElementById('nav-hist').classList.add('active'); loadHistory(); }
     else if(tabName === 'labels') { document.getElementById('labelsScreen').style.display = 'block'; loadLabels(); }
-    else if(tabName === 'insights') { document.getElementById('insightsScreen').style.display = 'block'; loadInsights(); }
     else if(tabName === 'closing') { document.getElementById('closingScreen').style.display = 'block'; loadClosing(); }
     else if(tabName === 'lowStockAlert') { document.getElementById('lowStockAlertScreen').style.display = 'block'; loadLowStockAlerts(); }
     else if(tabName === 'bulkImport') { document.getElementById('bulkImportScreen').style.display = 'block'; }
 }
 
-// ---------- Dashboard & Target ----------
-async function loadTargetData() {
-    const { data } = await supabaseClient.from('shops').select('daily_target').eq('id', currentShopId).single();
-    document.getElementById('targetInput').value = (data && data.daily_target) ? data.daily_target : 0;
-}
-
-async function saveTarget() {
-    const target = parseInt(document.getElementById('targetInput').value) || 0;
-    if(target < 0) { showToast("Target cannot be negative!", true); return; } 
-    const { error } = await supabaseClient.from('shops').update({ daily_target: target }).eq('id', currentShopId);
-    if(error) { showToast("Error updating target!", true); return; }
-    showToast("Target Updated!"); switchTab('dashboard');
-}
-
+// ---------- Dashboard ----------
 function quickExpense(reason) {
     document.getElementById('expReason').value = reason;
     switchTab('expense');
@@ -358,9 +343,6 @@ function quickExpense(reason) {
 
 async function loadDashboardData() {
     if(!currentShopId) return;
-    const { data: shopData } = await supabaseClient.from('shops').select('daily_target').eq('id', currentShopId).single();
-    let dailyTarget = shopData && shopData.daily_target ? shopData.daily_target : 0;
-    document.getElementById('targetDisplay').innerText = dailyTarget;
     
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
     let gentsTotal = 0, ladiesTotal = 0, kidsTotal = 0, lowStockItemsCount = 0;
@@ -437,18 +419,6 @@ async function loadDashboardData() {
 
     document.getElementById('todaySalesDisplay').innerText = "₹" + tSalesAmt;
     document.getElementById('todayProfitDisplay').innerText = "₹" + tProfitAmt;
-
-    if(dailyTarget > 0) {
-        let percent = Math.min(100, Math.round((tSalesAmt / dailyTarget) * 100));
-        document.getElementById('targetProgressBar').style.width = percent + '%';
-        document.getElementById('targetPercent').innerText = percent + '%';
-        if(percent >= 100) { document.getElementById('targetProgressBar').style.background = 'var(--success)'; }
-        else if(percent > 50) { document.getElementById('targetProgressBar').style.background = 'var(--warning)'; }
-        else { document.getElementById('targetProgressBar').style.background = 'var(--primary)'; }
-    } else {
-        document.getElementById('targetProgressBar').style.width = '0%';
-        document.getElementById('targetPercent').innerText = '0%';
-    }
 }
 
 async function searchDashboardArticle() {
@@ -490,7 +460,9 @@ async function searchDashboardArticle() {
         <p style="margin:0 0 12px 0; font-size:13px; color:var(--text-muted); font-weight: 600;">${esc(articles.category)}</p>
         ${colorHtml || '<p style="font-size:13px; color:var(--danger);">Out of Stock</p>'}
     </div>`;
-}// ---------- Sale & Bill ----------
+}
+
+// ---------- Sale & Bill ----------
 async function searchSaleArticle() {
     const artNo = document.getElementById('saleArtNo').value;
     if(!artNo) return;
@@ -600,7 +572,6 @@ function clearCart() {
     showToast("Bill Cleared!", false);
 }
 
-// 🌟 नवीन: टक्केवारी डिस्काउंट लागू करणे
 function applyDiscount(percent) {
     if (cart.length === 0) { showToast("आधी बिलात माल टाका!", true); return; }
     let subTotal = 0;
@@ -622,7 +593,6 @@ async function confirmSale() {
     btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
     try {
         const items = cart.map(i => ({ article_id: i.id, size: String(i.size), qty: i.qty, price: i.price, cost: i.cost || 0, color: i.color || '' }));
-        // 🔴 Supabase मध्ये डेटा सेव्ह होत आहे
         const { data: res, error } = await supabaseClient.rpc('confirm_sale', { p_discount: discount, p_items: items });
         if (error) throw error;
         
@@ -642,7 +612,6 @@ async function confirmSale() {
 function showBill(b) {
     currentBillData = b;
     
-    // 🌟 शॉप डिटेल्स बिलात टाकणे (ॲपमधून सेट केलेले)
     document.getElementById('invShopName').innerText = currentShopDetails.name || 'SJ DIGITAL LABS';
     document.getElementById('invShopPhone').innerText = currentShopDetails.phone || 'Your Phone';
     document.getElementById('invShopAddress').innerText = currentShopDetails.address || 'Your Shop Address Here';
@@ -668,6 +637,10 @@ function showBill(b) {
     document.getElementById('invDiscount').innerText = `-₹${b.discount.toFixed(2)}`;
     document.getElementById('invNetTotal').innerText = `₹${b.total.toFixed(2)}`;
     document.getElementById('billModal').style.display = 'flex';
+}
+
+function printBill() {
+    setTimeout(() => { window.print(); }, 300);
 }
 
 async function downloadAndShareBill(btn) {
@@ -782,11 +755,18 @@ async function loadCredits() {
     credits.forEach(c => {
         let isPaid = c.status === 'paid';
         let waLink = `https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hello ${c.customer_name}, you have a pending credit of ₹${c.amount} at our shop. Please visit us.`)}`;
-        let actionBtn = `<a href="${waLink}" target="_blank" class="btn-small" style="background:#25D366; color:white; text-decoration:none; display:inline-flex; align-items:center; gap:5px; border-radius: 8px;"><i class="fa-brands fa-whatsapp"></i> Reminder</a>`;
+        let actionBtn = `<a href="${waLink}" target="_blank" class="btn-small" style="background:#25D366; color:white; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; border-radius: 8px;"><i class="fa-brands fa-whatsapp"></i> Reminder</a>`;
+        
         list.innerHTML += `
         <div class="credit-card ${isPaid ? 'paid' : ''}">
             <div><strong style="font-size: 16px;">${esc(c.customer_name)}</strong><br><span style="color:var(--text-muted); font-size: 13px;"><i class="fa-solid fa-phone"></i> ${esc(c.phone)}</span><br><span style="color:var(--warning); font-weight:800; font-size: 18px;">₹${c.amount}</span></div>
-            ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : `<div style="display:flex; flex-direction:column; gap:8px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
+            
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                ${isPaid ? '<span style="color:var(--success); font-weight: bold;"><i class="fa-solid fa-circle-check"></i> Paid</span>' : `<div style="display:flex; gap:6px;">${actionBtn}<button class="btn-small btn-success" onclick="markCreditPaid('${c.id}')" style="border-radius: 8px;"><i class="fa-solid fa-check"></i> Paid</button></div>`}
+                
+                <!-- 🌟 नवीन Delete Button -->
+                <button class="btn-small btn-danger" onclick="deleteCredit('${c.id}')" style="border-radius: 8px; margin-top: 4px;"><i class="fa-solid fa-trash"></i> Delete</button>
+            </div>
         </div>`;
     });
 }
@@ -799,6 +779,15 @@ async function saveCredit() {
 }
 
 async function markCreditPaid(id) { await supabaseClient.from('credits').update({ status: 'paid' }).eq('id', id); showToast("Marked as Paid!", false); loadCredits(); }
+
+// 🌟 नवीन Delete Credit फंक्शन
+async function deleteCredit(id) {
+    askConfirm("ही उधारीची नोंद कायमची डिलीट करायची आहे का?", async () => {
+        await supabaseClient.from('credits').delete().eq('id', id);
+        showToast("Credit Deleted!", false);
+        loadCredits();
+    });
+}
 
 function calculateStaffPayment() {
     const total = parseFloat(document.getElementById('staffTotalSalary').value) || 0;
@@ -825,7 +814,9 @@ async function executeStaffRelease(name, amount) {
         showToast(`✅ Released ₹${amount} to ${name}`, false);
         document.getElementById('staffNameInput').value = ''; document.getElementById('staffTotalSalary').value = ''; document.getElementById('staffAdvance').value = ''; document.getElementById('staffLeaveDeduction').value = ''; document.getElementById('staffNetPayable').innerText = '₹0'; switchTab('dashboard');
     } catch (err) { showToast("Error: " + err.message, true); }
-        }// ---------- Stock Management ----------
+}
+
+// ---------- Stock Management ----------
 function setStockFilter(gender, btnElement) {
     currentGenderFilter = gender;
     document.querySelectorAll('#genderFilterContainer .filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -1258,5 +1249,239 @@ async function resetStaffPin() {
     document.getElementById('displayStaffPin').innerText = '----'; showToast("Staff PIN Removed!", false);
 }
 
-// ---------- Other functions (Admin, Labels, Insights, Closing, Bulk Import) ----------
-// (सुपर ॲडमिन आणि इतर फंक्शन्स आधीप्रमाणेच आहेत. तुम्ही ते जुन्या कोडमधून तसेच ठेवू शकता, कारण त्यात बदल केलेला नाही. जर ते हवे असतील तर मागच्या कोडमधून कॉपी करा.)
+// ---------- Super Admin / Labels / Closing Functions ----------
+// (सुपर ॲडमिन आणि इतर फंक्शन्स आधीप्रमाणेच ठेवली आहेत, कारण त्यात काही बदल केलेले नाहीत. जर जुना कोड हवा असेल तर मागच्या उत्तरातून घ्यावा, किंवा तुम्ही वापरत असलेला जुना कोड तसाच ठेवा.)
+
+async function loadSuperAdminData() {
+    const list = document.getElementById('saOwnerList');
+    const searchTerm = document.getElementById('saSearch').value.toLowerCase();
+    const { data: shops, error } = await supabaseClient.from('shops').select('*');
+    if (error) { list.innerHTML = "Error loading shops."; return; }
+    const filtered = shops.filter(s => (s.owner_name && s.owner_name.toLowerCase().includes(searchTerm)) || (s.shop_name && s.shop_name.toLowerCase().includes(searchTerm)));
+    const today = new Date();
+    let activeCount = shops.filter(s => s.status === 'active' && new Date(s.expiry_date) > today).length;
+    document.getElementById('saStats').innerText = `Total Owners: ${shops.length} | Active: ${activeCount}`;
+    list.innerHTML = '';
+    if(filtered.length === 0) { list.innerHTML = '<p style="text-align:center; color:var(--text-muted);">No shops found.</p>'; return; }
+    filtered.forEach(s => {
+        let isActive = s.status === 'active';
+        let expiryStr = s.expiry_date ? new Date(s.expiry_date).toLocaleDateString('en-GB') : 'Not Set';
+        list.innerHTML += `
+        <div class="sa-card">
+            <div class="sa-card-top">
+                <div class="sa-avatar">${esc((s.owner_name || 'S').charAt(0).toUpperCase())}</div>
+                <div class="sa-info">
+                    <h4>${esc(s.owner_name) || 'Unknown'}</h4>
+                    <p><i class="fa-solid fa-store"></i> ${esc(s.shop_name)} • <i class="fa-solid fa-phone"></i> ${esc(s.phone) || 'N/A'}</p>
+                    <div class="sa-valid"><i class="fa-regular fa-calendar-check"></i> Valid till: ${expiryStr}</div>
+                </div>
+                <div class="sa-toggle ${isActive ? 'active' : ''}" onclick="toggleShopStatus('${s.id}', '${s.status}')"></div>
+            </div>
+            <div class="sa-actions">
+                <a href="tel:${esc(s.phone)}" class="sa-act-btn call"><i class="fa-solid fa-phone"></i> Call</a>
+                <a href="https://wa.me/91${esc(s.phone)}" target="_blank" class="sa-act-btn wa"><i class="fa-brands fa-whatsapp"></i> WA</a>
+                <button class="sa-act-btn add" onclick="add30Days('${s.id}', '${s.expiry_date}')"><i class="fa-solid fa-clock"></i> +30 Days</button>
+                <button class="sa-act-btn edit" onclick="editOwner('${s.id}')"><i class="fa-solid fa-pen"></i> Edit</button>
+                <button class="sa-act-btn del" onclick="askConfirm('Delete this shop completely?', () => deleteOwner('${s.id}'))"><i class="fa-solid fa-trash"></i> Delete</button>
+            </div>
+        </div>`;
+    });
+}
+
+function openOwnerModal(mode) {
+    document.getElementById('ownerModal').style.display = 'flex';
+    if(mode === 'add') {
+        document.getElementById('modalTitle').innerText = "Add New Owner";
+        document.getElementById('editOwnerId').value = ""; document.getElementById('saOwnerName').value = ""; document.getElementById('saShopName').value = ""; document.getElementById('saPhone').value = ""; document.getElementById('saOwnerPin').value = "";
+    }
+}
+
+async function editOwner(id) {
+    const { data: shop } = await supabaseClient.from('shops').select('*').eq('id', id).single();
+    if(shop) {
+        document.getElementById('ownerModal').style.display = 'flex';
+        document.getElementById('modalTitle').innerText = "Edit Owner";
+        document.getElementById('editOwnerId').value = shop.id; document.getElementById('saOwnerName').value = shop.owner_name || ''; document.getElementById('saShopName').value = shop.shop_name || ''; document.getElementById('saPhone').value = shop.phone || ''; document.getElementById('saOwnerPin').value = shop.pin || '';
+    }
+}
+
+async function saveOwner() {
+    const id = document.getElementById('editOwnerId').value;
+    const name = document.getElementById('saOwnerName').value; const shopName = document.getElementById('saShopName').value; const phone = document.getElementById('saPhone').value; const pin = document.getElementById('saOwnerPin').value;
+    if(!name || !shopName || !pin) { showToast("Name, Shop Name and PIN required!", true); return; }
+    if(pin.length < 6) { showToast("PIN must be at least 6 digits!", true); return; }
+    if(id) {
+        await supabaseClient.from('shops').update({ owner_name: name, shop_name: shopName, phone: phone, pin: pin }).eq('id', id);
+        showToast("Owner Updated!", false);
+    } else {
+        const auth_email = `${shopName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@shoeshop.com`;
+        const { data: { session: adminSession } } = await supabaseClient.auth.getSession();
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: auth_email, password: pin, options: { data: { shop_name: shopName } } });
+        if (adminSession) { await supabaseClient.auth.setSession({ access_token: adminSession.access_token, refresh_token: adminSession.refresh_token }); }
+        if(authError) { showToast("Error: " + authError.message, true); return; }
+        const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { error: shopError } = await supabaseClient.from('shops').insert([{ owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry }]);
+        if(shopError) { showToast("Error: " + shopError.message, true); return; }
+        showToast("Owner Added!", false);
+    }
+    document.getElementById('ownerModal').style.display = 'none'; loadSuperAdminData();
+}
+
+async function toggleShopStatus(id, currentStatus) {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    await supabaseClient.from('shops').update({ status: newStatus }).eq('id', id);
+    showToast(`Shop marked as ${newStatus}`, false); loadSuperAdminData();
+}
+
+async function add30Days(id, currentExpiry) {
+    let newDate = currentExpiry ? new Date(currentExpiry) : new Date();
+    if(newDate < new Date()) newDate = new Date();
+    newDate.setDate(newDate.getDate() + 30);
+    await supabaseClient.from('shops').update({ expiry_date: newDate.toISOString() }).eq('id', id);
+    showToast("+30 Days Added!", false); loadSuperAdminData();
+}
+
+async function deleteOwner(id) {
+    await supabaseClient.from('shops').delete().eq('id', id);
+    showToast("Shop Deleted!", false); loadSuperAdminData();
+}
+
+async function loadClosing() {
+    const r = dayRange(localDateStr(new Date()));
+    const { data } = await supabaseClient.rpc('get_history', { p_from: r[0], p_to: r[1] });
+    const H = data || {}; let s = 0, rt = 0, e = 0;
+    (H.sales || []).forEach(x => s += x.total_amount); (H.returns || []).forEach(x => rt += x.refund_amount); (H.expenses || []).forEach(x => e += x.amount);
+    closingNet = s - rt - e; closingData = { s, rt, e, bills: (H.sales || []).length };
+    document.getElementById('clBills').innerText = closingData.bills;
+    document.getElementById('clSales').innerText = '₹' + s;
+    document.getElementById('clReturns').innerText = '-₹' + rt;
+    document.getElementById('clExpenses').innerText = '-₹' + e;
+    document.getElementById('clNet').innerText = '₹' + closingNet;
+    calcClosing();
+}
+
+let closingNet = 0, closingData = {};
+function calcClosing() {
+    const open = parseInt(document.getElementById('clOpening').value) || 0;
+    const cv = document.getElementById('clCounted').value;
+    const box = document.getElementById('clDiff');
+    
+    const expected = open + closingNet;
+    
+    if (cv === '') {
+        box.style.display = 'block';
+        box.className = 'close-diff';
+        box.innerHTML = `Expected in drawer: <b>₹${expected}</b>`;
+        return;
+    }
+    
+    const diff = (parseInt(cv) || 0) - expected;
+    box.style.display = 'block';
+    box.className = 'close-diff ' + (diff === 0 ? 'ok' : (diff > 0 ? 'more' : 'less'));
+    box.innerHTML = `Expected in drawer: <b>₹${expected}</b><br><br>` + (diff === 0 ? '✅ Cash matches' : (diff > 0 ? `⬆ ₹${diff} extra` : `⬇ ₹${Math.abs(diff)} short`));
+}
+
+function shareClosingWA() {
+    const shop = currentShopName || 'Shop';
+    const open = parseInt(document.getElementById('clOpening').value) || 0;
+    const cv = document.getElementById('clCounted').value;
+    let t = `🔒 *${shop} - Today's Summary*\n${new Date().toLocaleDateString('en-IN')}\n------------------------\nBills: ${closingData.bills}\nSales: ₹${closingData.s}\nReturns: -₹${closingData.rt}\nExpenses: -₹${closingData.e}\n*Net: ₹${closingNet}*\n------------------------\nOpening: ₹${open}\nExpected: ₹${open + closingNet}`;
+    if (cv !== '') t += `\nCounted: ₹${cv}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, '_blank');
+}
+
+async function loadLabels() {
+    document.getElementById('labList').innerHTML = skeleton(2);
+    const { data, error } = await supabaseClient.from('articles').select('id, article_no, name, mrp, stock_batches (color, size, remaining_qty)').eq('shop_id', currentShopId).order('article_no');
+    if (error) { document.getElementById('labList').innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
+    labelArticles = data || [];
+    document.getElementById('labelSheet').innerHTML = '';
+    renderLabelList();
+}
+
+let labelArticles = [], labSel = new Set();
+function labStock(a) { return (a.stock_batches || []).reduce((s, b) => s + b.remaining_qty, 0); }
+function renderLabelList() {
+    const q = (document.getElementById('labSearch').value || '').toLowerCase();
+    const rows = labelArticles.filter(a => !q || String(a.article_no).toLowerCase().includes(q) || String(a.name || '').toLowerCase().includes(q));
+    document.getElementById('labList').innerHTML = rows.length ? rows.map(a => `
+        <label class="lab-row"><input type="checkbox" ${labSel.has(a.id) ? 'checked' : ''} onchange="toggleLab('${esc(a.id)}', this.checked)">
+        <span class="lab-name">[${esc(a.article_no)}] ${esc(a.name || '')}</span><small>${labStock(a)} pairs${a.mrp ? ' • ₹' + a.mrp : ''}</small></label>`).join('')
+        : emptyState('fa-box-open', 'No articles found');
+    updateLabCount();
+}
+function toggleLab(id, on) { if (on) labSel.add(id); else labSel.delete(id); updateLabCount(); }
+function labSelectAll(on) {
+    const q = (document.getElementById('labSearch').value || '').toLowerCase();
+    labelArticles.filter(a => !q || String(a.article_no).toLowerCase().includes(q) || String(a.name || '').toLowerCase().includes(q))
+        .forEach(a => on ? labSel.add(a.id) : labSel.delete(a.id));
+    renderLabelList();
+}
+function updateLabCount() { document.getElementById('labCount').innerText = `${labSel.size} article(s) selected`; }
+
+function labQrSvg(text) {
+    if (typeof qrcode === 'undefined') return null;
+    const qr = qrcode(0, 'M'); qr.addData(String(text)); qr.make();
+    const n = qr.getModuleCount(); let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c},${r}h1v1h-1z`;
+    return `<svg viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+function labBarSvg(text) {
+    if (typeof JsBarcode === 'undefined') return null;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    JsBarcode(svg, String(text), { format: 'CODE128', displayValue: false, height: 50, margin: 4, width: 2 });
+    const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
+    if (!svg.getAttribute('viewBox') && w && h) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.removeAttribute('width'); svg.removeAttribute('height');
+    return svg.outerHTML;
+}
+function buildLabels() {
+    const type = document.getElementById('labType').value, size = document.getElementById('labSize').value;
+    const mode = document.getElementById('labMode').value;
+    const copies = Math.max(1, Math.min(100, parseInt(document.getElementById('labCopies').value) || 1));
+    const showMrp = document.getElementById('labShowMrp').checked, showName = document.getElementById('labShowName').checked;
+    const items = [];
+    labelArticles.filter(a => labSel.has(a.id)).forEach(a => {
+        if (mode === 'copies') { for (let k = 0; k < copies; k++) items.push({ a, color: '', size: '' }); }
+        else {
+            const agg = {};
+            (a.stock_batches || []).forEach(b => { if (b.remaining_qty > 0) { let col = b.color || ''; if (col === 'Default') col = ''; const k = col + '|||' + String(b.size).trim(); agg[k] = (agg[k] || 0) + b.remaining_qty; } });
+            Object.keys(agg).forEach(k => { const [col, sz] = k.split('|||'); for (let n = 0; n < agg[k]; n++) items.push({ a, color: col, size: sz }); });
+        }
+    });
+    if (!items.length) { showToast('Select at least one article (with stock for "per pair" mode)', true); return false; }
+    if (items.length > 500) { showToast('Too many labels (' + items.length + '). Select fewer articles.', true); return false; }
+    const make = type === 'qr' ? labQrSvg : labBarSvg;
+    const svgCache = {};
+    let html = '';
+    for (const it of items) {
+        const key = it.a.article_no;
+        if (!(key in svgCache)) svgCache[key] = make(key);
+        if (!svgCache[key]) { showToast('Label library failed to load. Check internet and reload.', true); return false; }
+        const meta = [it.color, it.size ? 'S' + it.size : ''].filter(Boolean).join(' • ');
+        html += `<div class="lbl ${type}"><div class="lbl-code">${svgCache[key]}</div><div class="lbl-info">
+            <b class="lbl-shop">${esc(currentShopName)}</b>
+            ${showName && it.a.name ? `<span class="lbl-name">${esc(it.a.name)}</span>` : ''}
+            <span class="lbl-no">#${esc(it.a.article_no)}</span>
+            ${meta ? `<span class="lbl-meta">${esc(meta)}</span>` : ''}
+            ${showMrp && it.a.mrp ? `<b class="lbl-mrp">MRP ₹${it.a.mrp}</b>` : ''}</div></div>`;
+    }
+    const sheet = document.getElementById('labelSheet');
+    sheet.className = 'label-sheet ' + size;
+    sheet.innerHTML = html;
+    let ps = document.getElementById('labPageStyle');
+    if (!ps) { ps = document.createElement('style'); ps.id = 'labPageStyle'; document.head.appendChild(ps); }
+    ps.textContent = size === 'roll50' ? '@media print { @page { size: 50mm 30mm; margin: 0; } }'
+        : size === 'roll38' ? '@media print { @page { size: 38mm 25mm; margin: 0; } }'
+        : '@media print { @page { size: A4; margin: 8mm; } }';
+    return items.length;
+}
+function previewLabels() {
+    const n = buildLabels();
+    if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); }
+}
+function printLabels() { 
+    if (buildLabels()) {
+        setTimeout(() => { window.print(); }, 300);
+    }
+}
