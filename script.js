@@ -16,6 +16,7 @@ let cart = [];
 
 let currentGenderFilter = 'Men';
 let currentTypeFilter = 'Formal';
+let currentAdminTab = 'shops';
 
 let confirmCallback = null; 
 let currentBillData = null;
@@ -1320,28 +1321,50 @@ async function resetStaffPin() {
 }
 
 // ---------- Super Admin Functions ----------
+function switchAdminTab(tabName, btnElement) {
+    currentAdminTab = tabName;
+    document.querySelectorAll('#superAdminScreen .hist-tab').forEach(t => t.classList.remove('active'));
+    btnElement.classList.add('active');
+    
+    document.getElementById('adminTab-shops').style.display = 'none';
+    document.getElementById('adminTab-payments').style.display = 'none';
+    document.getElementById('adminTab-comms').style.display = 'none';
+    document.getElementById('adminTab-logs').style.display = 'none';
+    
+    document.getElementById('adminTab-' + tabName).style.display = 'block';
+    
+    if (tabName === 'shops') loadSuperAdminData();
+    else if (tabName === 'payments') loadAdminPayments();
+    else if (tabName === 'comms') loadAdminAnnouncements();
+    else if (tabName === 'logs') loadAdminLogs();
+}
+
 async function loadSuperAdminData() {
     const list = document.getElementById('saOwnerList');
     const searchTerm = document.getElementById('saSearch').value.toLowerCase();
-    const { data: shops, error } = await supabaseClient.from('shops').select('*');
+    const { data: shops, error } = await supabaseClient.from('shops').select('*').order('created_at', { ascending: false });
     if (error) { list.innerHTML = "Error loading shops."; return; }
     
     const today = new Date();
-    let activeCount = 0;
-    let expiringCount = 0;
+    let activeCount = 0, blockedCount = 0, expiringCount = 0, monthlyRev = 0;
     
     shops.forEach(s => {
         if (s.status === 'active' && s.expiry_date && new Date(s.expiry_date) > today) {
             activeCount++;
             const daysLeft = (new Date(s.expiry_date) - today) / (1000 * 60 * 60 * 24);
             if (daysLeft <= 7) expiringCount++;
+        } else if (s.status !== 'active') {
+            blockedCount++;
+        }
+        if (s.last_payment_date && new Date(s.last_payment_date).getMonth() === today.getMonth() && new Date(s.last_payment_date).getFullYear() === today.getFullYear()) {
+            monthlyRev += (s.last_payment_amount || 0);
         }
     });
 
-    document.getElementById('saStats').innerText = `Total Owners: ${shops.length} | Active: ${activeCount}`;
-    document.getElementById('adminTotalShops').innerText = shops.length;
+    document.getElementById('saStats').innerText = `Total: ${shops.length} | Active: ${activeCount} | Blocked: ${blockedCount}`;
     document.getElementById('adminActiveShops').innerText = activeCount;
     document.getElementById('adminExpiringShops').innerText = expiringCount;
+    document.getElementById('adminMonthlyRevenue').innerText = '₹' + monthlyRev;
 
     const filtered = shops.filter(s => (s.owner_name && s.owner_name.toLowerCase().includes(searchTerm)) || (s.shop_name && s.shop_name.toLowerCase().includes(searchTerm)));
     
@@ -1362,7 +1385,7 @@ async function loadSuperAdminData() {
             <div class="sa-card-top">
                 <div class="sa-avatar">${esc((s.owner_name || 'S').charAt(0).toUpperCase())}</div>
                 <div class="sa-info">
-                    <h4>${esc(s.owner_name) || 'Unknown'}</h4>
+                    <h4>${esc(s.owner_name) || 'Unknown'} <span style="font-size: 10px; background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${s.subscription_plan || 'Basic'}</span></h4>
                     <p><i class="fa-solid fa-store"></i> ${esc(s.shop_name)} • <i class="fa-solid fa-phone"></i> ${esc(s.phone) || 'N/A'}</p>
                     <div class="sa-valid" style="${isExpiring ? 'color: var(--warning);' : ''}">
                         <i class="fa-regular fa-calendar-check"></i> Valid till: ${expiryStr} ${isExpiring ? '(Expiring Soon)' : ''}
@@ -1393,6 +1416,7 @@ async function exportOwnersExcel() {
             "Shop Name": s.shop_name || '-',
             "Phone": s.phone || '-',
             "Status": s.status,
+            "Plan": s.subscription_plan || 'Basic',
             "Expiry Date": s.expiry_date ? new Date(s.expiry_date).toLocaleDateString('en-GB') : '-'
         }));
         
@@ -1430,6 +1454,7 @@ async function saveOwner() {
     if(pin.length < 6) { showToast("PIN must be at least 6 digits!", true); return; }
     if(id) {
         await supabaseClient.from('shops').update({ owner_name: name, shop_name: shopName, phone: phone, pin: pin }).eq('id', id);
+        await supabaseClient.from('admin_logs').insert([{ action: `Edited owner details for: ${shopName}` }]);
         showToast("Owner Updated!", false);
     } else {
         const auth_email = `${shopName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@shoeshop.com`;
@@ -1438,8 +1463,9 @@ async function saveOwner() {
         if (adminSession) { await supabaseClient.auth.setSession({ access_token: adminSession.access_token, refresh_token: adminSession.refresh_token }); }
         if(authError) { showToast("Error: " + authError.message, true); return; }
         const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        const { error: shopError } = await supabaseClient.from('shops').insert([{ owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry }]);
+        const { error: shopError } = await supabaseClient.from('shops').insert([{ owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry, subscription_plan: 'Basic' }]);
         if(shopError) { showToast("Error: " + shopError.message, true); return; }
+        await supabaseClient.from('admin_logs').insert([{ action: `Added new owner: ${shopName}` }]);
         showToast("Owner Added!", false);
     }
     document.getElementById('ownerModal').style.display = 'none'; loadSuperAdminData();
@@ -1448,20 +1474,96 @@ async function saveOwner() {
 async function toggleShopStatus(id, currentStatus) {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     await supabaseClient.from('shops').update({ status: newStatus }).eq('id', id);
+    await supabaseClient.from('admin_logs').insert([{ action: `Marked shop ID ${id} as ${newStatus}` }]);
     showToast(`Shop marked as ${newStatus}`, false); loadSuperAdminData();
 }
 
 async function add30Days(id, currentExpiry) {
-    let newDate = currentExpiry ? new Date(currentExpiry) : new Date();
-    if(newDate < new Date()) newDate = new Date();
-    newDate.setDate(newDate.getDate() + 30);
-    await supabaseClient.from('shops').update({ expiry_date: newDate.toISOString() }).eq('id', id);
-    showToast("+30 Days Added!", false); loadSuperAdminData();
+    askConfirm("Have you received the payment for +30 Days? (This will be recorded in revenue)", async () => {
+        let newDate = currentExpiry ? new Date(currentExpiry) : new Date();
+        if(newDate < new Date()) newDate = new Date();
+        newDate.setDate(newDate.getDate() + 30);
+        
+        await supabaseClient.from('admin_logs').insert([{ action: `Added +30 Days to shop ID: ${id}` }]);
+        await supabaseClient.from('shops').update({ 
+            expiry_date: newDate.toISOString(),
+            last_payment_amount: 500, 
+            last_payment_date: new Date().toISOString()
+        }).eq('id', id);
+        
+        showToast("+30 Days Added & Payment Recorded!", false); 
+        loadSuperAdminData();
+    });
 }
 
 async function deleteOwner(id) {
     await supabaseClient.from('shops').delete().eq('id', id);
+    await supabaseClient.from('admin_logs').insert([{ action: `Deleted shop ID: ${id}` }]);
     showToast("Shop Deleted!", false); loadSuperAdminData();
+}
+
+async function loadAdminPayments() {
+    const list = document.getElementById('adminPaymentList');
+    list.innerHTML = skeleton(3);
+    const { data: shops } = await supabaseClient.from('shops').select('*').gt('last_payment_amount', 0).order('last_payment_date', { ascending: false });
+    
+    if(!shops || shops.length === 0) { list.innerHTML = emptyState('fa-receipt', 'No payments recorded yet.'); return; }
+    
+    list.innerHTML = '';
+    shops.forEach(s => {
+        list.innerHTML += `
+        <div class="app-card" style="padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong style="font-size: 14px;">${esc(s.shop_name)}</strong><br>
+                <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-regular fa-calendar"></i> ${new Date(s.last_payment_date).toLocaleDateString('en-GB')} • ${s.subscription_plan || 'Basic'}</span>
+            </div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--success);">₹${s.last_payment_amount}</div>
+        </div>`;
+    });
+}
+
+async function sendAnnouncement() {
+    const msg = document.getElementById('adminAnnouncementText').value.trim();
+    if(!msg) { showToast("Please enter a message!", true); return; }
+    
+    await supabaseClient.from('announcements').insert([{ message: msg }]);
+    await supabaseClient.from('admin_logs').insert([{ action: `Sent announcement: "${msg.substring(0, 20)}..."` }]);
+    
+    document.getElementById('adminAnnouncementText').value = '';
+    showToast("Announcement Sent to All!", false);
+    loadAdminAnnouncements();
+}
+
+async function loadAdminAnnouncements() {
+    const list = document.getElementById('adminAnnouncementList');
+    const { data } = await supabaseClient.from('announcements').select('*').order('created_at', { ascending: false });
+    
+    if(!data || data.length === 0) { list.innerHTML = emptyState('fa-bullhorn', 'No announcements sent.'); return; }
+    
+    list.innerHTML = '';
+    data.forEach(a => {
+        list.innerHTML += `
+        <div class="app-card" style="padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary);">
+            <p style="margin: 0 0 8px 0; font-size: 14px;">${esc(a.message)}</p>
+            <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-solid fa-clock"></i> ${new Date(a.created_at).toLocaleString('en-IN')}</span>
+        </div>`;
+    });
+}
+
+async function loadAdminLogs() {
+    const list = document.getElementById('adminLogList');
+    const { data } = await supabaseClient.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50);
+    
+    if(!data || data.length === 0) { list.innerHTML = emptyState('fa-list-check', 'No activity logs found.'); return; }
+    
+    list.innerHTML = '';
+    data.forEach(l => {
+        list.innerHTML += `
+        <div style="font-size: 13px; padding: 10px; border-bottom: 1px dashed var(--border-color);">
+            <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-circle-info"></i></span> ${esc(l.action)}<br>
+            <span style="font-size: 11px; color: var(--text-muted);">${new Date(l.created_at).toLocaleString('en-IN')}</span>
+        </div>`;
+    });
 }
 
 // ---------- Closing, Labels, Excel, Bulk Import, WA, Hold ----------
