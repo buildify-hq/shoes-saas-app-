@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sj-labs-v37'; // 🌟 इथे नंबर वाढवा (v30, v31 असं)
+const CACHE_NAME = 'sj-labs-v38'; // 🌟 इथे नंबर वाढवा (v30, v31 असं)
 const urlsToCache = ['./', './index.html', './style.css', './script.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {
