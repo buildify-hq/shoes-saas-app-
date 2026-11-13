@@ -76,11 +76,23 @@ function initStockTab() {
     } else { loadMyStockList(); }
 }
 
+// 🌟 जुनी होल्ड बिल्स आपोआप डिलीट करण्यासाठी फंक्शन
+function cleanOldData() {
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    let held = getHeld();
+    let cleanHeld = held.filter(bill => bill.t > thirtyDaysAgo);
+    if (held.length !== cleanHeld.length) {
+        setHeld(cleanHeld);
+        console.log("जुनं होल्ड बिल्स ऑटोमॅटिक डिलीट झालं.");
+    }
+}
+
 window.onload = () => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.getElementById('themeIcon').innerHTML = savedTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
     updateArticleTypes();
+    cleanOldData(); // 🌟 ॲप सुरू होताना जुना डेटा साफ करा
     checkSession();
 };
 
