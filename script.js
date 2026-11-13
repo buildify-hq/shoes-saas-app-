@@ -92,7 +92,7 @@ window.onload = () => {
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.getElementById('themeIcon').innerHTML = savedTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
     updateArticleTypes();
-    cleanOldData(); // 🌟 ॲप सुरू होताना जुना डेटा साफ करा
+    cleanOldData(); 
     checkSession();
 };
 
@@ -143,6 +143,7 @@ document.getElementById('confirmYesBtn').onclick = () => {
 
 // ---------- Barcode Scanner ----------
 let scannerCams = [], scannerCamIdx = 0, scannerTarget = null, scannerBusy = false;
+let isTorchOn = false; // 🌟 फ्लॅशलाईट स्टेट
 
 async function onScanSuccess(text) {
     const target = scannerTarget;
@@ -170,16 +171,59 @@ async function onScanSuccess(text) {
     else if (target === 'retArtNo') searchReturnArticle();
     showToast("Barcode Scanned!");
 }
+
+// 🌟 स्कॅनर वेगवान करण्यासाठी आणि फ्लॅशलाईटसाठी नवीन कोड
 async function beginScan(cameraConfig) {
     html5QrcodeScanner = new Html5Qrcode('reader', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
-    const qrbox = (w, hgt) => ({ width: Math.max(120, Math.floor(Math.min(w * 0.9, 320))), height: Math.max(80, Math.floor(Math.min(hgt * 0.6, 200))) });
-    await html5QrcodeScanner.start(cameraConfig, { fps: 12, qrbox: qrbox }, onScanSuccess, () => {});
+    
+    // बारकोडसाठी लांब आणि रुंद बॉक्स
+    const qrbox = (w, hgt) => {
+        return { width: Math.floor(w * 0.8), height: Math.floor(hgt * 0.3) }; 
+    };
+    
+    // FPS 30 (वेग वाढवण्यासाठी)
+    await html5QrcodeScanner.start(cameraConfig, { fps: 30, qrbox: qrbox }, onScanSuccess, () => {});
+    
+    // कॅमेरा सुरू झाल्यावर १ सेकंदाने फ्लॅशलाईट तपासा
+    setTimeout(checkTorchSupport, 1000);
 }
+
+// 🌟 फ्लॅशलाईट चालू/बंद करण्यासाठी
+async function toggleTorch() {
+    const video = document.querySelector('#reader video');
+    if (video && video.srcObject) {
+        const track = video.srcObject.getVideoTracks()[0];
+        try {
+            isTorchOn = !isTorchOn;
+            await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+        } catch (e) {
+            showToast('Flashlight चालू होत नाहीये', true);
+        }
+    }
+}
+
+// 🌟 फोनमध्ये फ्लॅशलाईटची सोय आहे का हे तपासण्यासाठी
+function checkTorchSupport() {
+    const video = document.querySelector('#reader video');
+    if (video && video.srcObject) {
+        const track = video.srcObject.getVideoTracks()[0];
+        if (track) {
+            const capabilities = track.getCapabilities();
+            if (capabilities.torch) {
+                document.getElementById('torchBtn').style.display = 'flex'; 
+            } else {
+                document.getElementById('torchBtn').style.display = 'none'; 
+            }
+        }
+    }
+}
+
 async function stopScannerInstance() {
     if (!html5QrcodeScanner) return;
     const sc = html5QrcodeScanner; html5QrcodeScanner = null;
     try { if (sc.isScanning) await sc.stop(); sc.clear(); } catch (e) {}
 }
+
 async function startScanner(targetInputId) {
     if (scannerBusy) return;
     scannerBusy = true; scannerTarget = targetInputId;
@@ -200,6 +244,7 @@ async function startScanner(targetInputId) {
     } catch (err) { showToast('Camera error: allow camera permission and try again', true); closeScanner(); } 
     finally { scannerBusy = false; }
 }
+
 async function switchScannerCamera() {
     if (scannerBusy) return;
     scannerBusy = true;
@@ -211,9 +256,12 @@ async function switchScannerCamera() {
     } catch (e) { showToast('Could not switch camera', true); } 
     finally { scannerBusy = false; }
 }
+
 function closeScanner() {
     document.getElementById('scannerModal').style.display = 'none';
     stopScannerInstance();
+    isTorchOn = false; // फ्लॅशलाईट बंद करा
+    document.getElementById('torchBtn').style.display = 'none';
 }
 
 // ---------- Settings & Login ----------
@@ -674,7 +722,6 @@ async function downloadAndShareBill(btn) {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
         btn.disabled = true;
 
-        // 🌟 html2canvas फक्त इथेच लोड होईल (ॲप सुरू होताना नाही)
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
 
         const canvas = await html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' });
