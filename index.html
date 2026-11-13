@@ -25,6 +25,7 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
+    <!-- स्कॅनर मोडल -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
@@ -36,6 +37,7 @@
         </div>
     </div>
 
+    <!-- Held Bills मोडल -->
     <div id="heldModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-pause" style="color: var(--warning);"></i> Held Bills</h3>
@@ -44,6 +46,7 @@
         </div>
     </div>
 
+    <!-- प्रोफेशनल बिल मोडल -->
     <div id="billModal" class="sa-modal">
         <div class="sa-modal-content" style="max-width: 450px; padding: 0; background: #fff; color: #000; border-radius: 12px; overflow-y: auto;">
             <div id="invoiceCaptureArea" style="padding: 20px; font-family: Arial, sans-serif; background: #fff;">
@@ -116,6 +119,7 @@
         </div>
     </div>
 
+    <!-- साईड मेनू -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -194,18 +198,18 @@
             <div class="sa-header">
                 <div>
                     <h2 style="font-size: 22px; margin-bottom: 5px; font-weight: 800;">Super Admin</h2>
-                    <p id="saStats">Total Owners: 0 | Active: 0</p>
+                    <p id="saStats">Total: 0 | Active: 0 | Blocked: 0</p>
                 </div>
                 <div class="sa-logout" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
             
             <div class="stats-grid" style="margin-bottom: 15px;">
                 <div class="stat-card" style="background: linear-gradient(135deg, #6366F1, #4F46E5); border: none;">
-                    <div class="stat-title" style="color: white;">Total Shops</div>
-                    <div class="stat-value" id="adminTotalShops" style="color: white;">0</div>
+                    <div class="stat-title" style="color: white;">Monthly Revenue</div>
+                    <div class="stat-value" id="adminMonthlyRevenue" style="color: white;">₹0</div>
                 </div>
                 <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none;">
-                    <div class="stat-title" style="color: white;">Active</div>
+                    <div class="stat-title" style="color: white;">Active Shops</div>
                     <div class="stat-value" id="adminActiveShops" style="color: white;">0</div>
                 </div>
             </div>
@@ -214,24 +218,56 @@
                 <div class="stat-value" id="adminExpiringShops" style="color: white;">0</div>
             </div>
 
-            <div class="sa-search">
-                <span><i class="fa-solid fa-magnifying-glass"></i></span>
-                <input type="text" id="saSearch" placeholder="Search Owner or Shop..." oninput="loadSuperAdminData()">
-            </div>
-            
-            <!-- 🌟 नवीन फिक्स केलेली बटणं -->
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="sa-add-btn" onclick="openOwnerModal('add')" style="flex: 1; margin: 0;">
-                    <i class="fa-solid fa-plus-circle"></i> Add Owner
-                </button>
-                <button class="sa-add-btn" onclick="exportOwnersExcel()" style="flex: 1; margin: 0; background: var(--success);">
-                    <i class="fa-solid fa-file-excel"></i> Export Excel
-                </button>
+            <div class="hist-tabs" style="margin-bottom: 15px;">
+                <button class="hist-tab active" onclick="switchAdminTab('shops', this)">Shops</button>
+                <button class="hist-tab" onclick="switchAdminTab('payments', this)">Payments</button>
+                <button class="hist-tab" onclick="switchAdminTab('comms', this)">Comms</button>
+                <button class="hist-tab" onclick="switchAdminTab('logs', this)">Logs</button>
             </div>
 
-            <div id="saOwnerList"></div>
+            <!-- १. शॉप्स टॅब -->
+            <div id="adminTab-shops">
+                <div class="sa-search">
+                    <span><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="saSearch" placeholder="Search Owner or Shop..." oninput="loadSuperAdminData()">
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="sa-add-btn" onclick="openOwnerModal('add')" style="flex: 1; margin: 0;">
+                        <i class="fa-solid fa-plus-circle"></i> Add Owner
+                    </button>
+                    <button class="sa-add-btn" onclick="exportOwnersExcel()" style="flex: 1; margin: 0; background: var(--success);">
+                        <i class="fa-solid fa-file-excel"></i> Export Excel
+                    </button>
+                </div>
+                <div id="saOwnerList"></div>
+            </div>
+
+            <!-- २. पेमेंट्स टॅब -->
+            <div id="adminTab-payments" style="display: none;">
+                <h3 style="margin-bottom: 15px;">Recent Payments</h3>
+                <div id="adminPaymentList"></div>
+            </div>
+
+            <!-- ३. कम्युनिकेशन्स टॅब -->
+            <div id="adminTab-comms" style="display: none;">
+                <div class="app-card">
+                    <h4 style="margin-top: 0;">Send Announcement</h4>
+                    <textarea id="adminAnnouncementText" rows="3" placeholder="Write message for all owners..."></textarea>
+                    <button class="btn-primary" onclick="sendAnnouncement()"><i class="fa-solid fa-paper-plane"></i> Send to All</button>
+                </div>
+                <h3 style="margin-bottom: 15px;">Sent Announcements</h3>
+                <div id="adminAnnouncementList"></div>
+            </div>
+
+            <!-- ४. लॉग्स टॅब -->
+            <div id="adminTab-logs" style="display: none;">
+                <h3 style="margin-bottom: 15px;">Admin Activity Log</h3>
+                <div id="adminLogList"></div>
+            </div>
+
         </div>
 
+        <!-- डॅशबोर्ड -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
             <section class="dashboard-welcome">
                 <div class="welcome-copy">
@@ -336,23 +372,21 @@
             </div>
         </div>
 
+        <!-- Stock Screen -->
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
-            
             <div class="app-card" style="padding: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 99; background: var(--card-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" oninput="debounceStockSearch()" onkeyup="if(event.key === 'Enter') { clearTimeout(stockSearchT); searchStockArticle(); }">
                     <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
             </div>
-
             <div class="stats-grid" style="margin-bottom: 20px;">
                 <div class="stat-card gents"><div class="stat-title">Gents</div><div class="stat-value" id="gentsStockDisplay">0</div></div>
                 <div class="stat-card ladies"><div class="stat-title">Ladies</div><div class="stat-value" id="ladiesStockDisplay">0</div></div>
                 <div class="stat-card kids"><div class="stat-title">Kids</div><div class="stat-value" id="kidsStockDisplay">0</div></div>
                 <div class="stat-card total"><div class="stat-title">Total All Stock</div><div class="stat-value" id="totalAllStockDisplay">0</div></div>
             </div>
-
             <div class="filter-tabs" id="genderFilterContainer">
                 <div class="filter-btn active" onclick="setStockFilter('Men', this)">Men</div>
                 <div class="filter-btn" onclick="setStockFilter('Ladies', this)">Ladies</div>
@@ -360,11 +394,11 @@
                 <div class="filter-btn" onclick="setStockFilter('Girls', this)">Girls</div>
             </div>
             <div class="sub-filter-tabs" id="typeFilterContainer"></div>
-            
             <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); margin-top: 15px; font-weight: 600;"><i class="fa-solid fa-shoe-prints"></i> Available Articles</h4>
             <div id="stockList"></div>
         </div>
 
+        <!-- Bulk Import Screen -->
         <div id="bulkImportScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</h2>
             <div class="app-card">
@@ -374,19 +408,16 @@
                     </p>
                 </div>
                 <button class="btn-outline" onclick="downloadImportTemplate()" style="margin-bottom: 15px;"><i class="fa-solid fa-download"></i> Download Excel Template</button>
-                
                 <input type="file" id="excelUpload" accept=".xlsx, .xls, .csv" style="display: none;" onchange="processExcelUpload(event)">
-                
                 <button class="btn-primary" onclick="document.getElementById('excelUpload').click()" style="padding: 18px; font-size: 16px;">
                     <i class="fa-solid fa-upload"></i> Upload Excel File
                 </button>
-                
                 <div id="importStatus" style="margin-top: 15px; font-size: 14px; text-align: center; font-weight: 600;"></div>
-                
                 <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-top: 20px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             </div>
         </div>
 
+        <!-- Low Stock Alert Screen -->
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
             <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Stock for these shoes is running low. Check which sizes are out and restock soon!</p>
@@ -394,6 +425,7 @@
             <div id="lowStockListContainer"></div>
         </div>
 
+        <!-- Staff Payment Screen -->
         <div id="staffScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
             <div class="app-card">
@@ -415,6 +447,7 @@
             </div>
         </div>
 
+        <!-- Sale Screen -->
         <div id="saleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <button id="staffReturnBtn" class="btn-warning" onclick="switchTab('return')" style="display:none; margin-bottom:15px;"><i class="fa-solid fa-rotate-left"></i> Return Item</button>
@@ -435,13 +468,10 @@
                     <input type="number" id="salePrice">
                     <button class="btn-success" onclick="addToCart()" style="margin-top: 5px;"><i class="fa-solid fa-plus"></i> Add to Bill</button>
                 </div>
-
                 <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--warning); font-weight: 700;"><i class="fa-solid fa-receipt"></i> Current Bill</h4>
                 <div id="cartList" style="margin-bottom: 15px;"><p style="font-size: 14px; color: var(--text-muted); text-align: center;">No items added.</p></div>
-                
                 <label>Customer (optional)</label>
                 <div style="display:flex; gap:8px;"><input type="text" id="saleCustName" placeholder="Name"><input type="tel" id="saleCustPhone" placeholder="Mobile" maxlength="10"></div>
-                
                 <label>Discount (₹)</label>
                 <div style="display: flex; gap: 6px; margin-bottom: 12px;">
                     <input type="number" id="saleDiscount" value="0" min="0" oninput="renderCart()" style="margin-bottom: 0; flex: 1;">
@@ -449,12 +479,10 @@
                     <button class="btn-small btn-outline" style="margin: 0; padding: 0 10px;" onclick="applyDiscount(10)">10%</button>
                     <button class="btn-small btn-outline" style="margin: 0; padding: 0 10px;" onclick="applyDiscount(20)">20%</button>
                 </div>
-
                 <div class="total-amount-box">
                     <span>Net Total:</span>
                     <span id="cartTotalAmt" style="color: var(--success);">₹0</span>
                 </div>
-                
                 <button class="btn-primary" id="confirmSaleBtn" onclick="confirmSale()" style="padding: 18px; font-size: 16px;"><i class="fa-solid fa-check-double"></i> Confirm Sale</button>
                 <div class="two-btn">
                     <button class="btn-outline" onclick="holdBill()"><i class="fa-solid fa-pause"></i> Hold Bill</button>
@@ -467,6 +495,7 @@
             </div>
         </div>
 
+        <!-- Article Screen -->
         <div id="articleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-plus"></i> Add Article</h2>
             <div class="app-card">
@@ -482,7 +511,6 @@
                     <button class="btn-small btn-outline" onclick="addColorSection()"><i class="fa-solid fa-plus"></i> Color</button>
                 </div>
                 <div id="colorContainer"></div>
-                
                 <div class="sticky-buttons">
                     <button class="btn-primary" onclick="saveArticle()" style="margin-bottom: 8px; padding: 16px;"><i class="fa-solid fa-floppy-disk"></i> Save Article</button>
                     <button class="btn-outline" onclick="switchTab('dashboard')" style="margin-bottom: 0;"><i class="fa-solid fa-arrow-left"></i> Back</button>
@@ -490,6 +518,7 @@
             </div>
         </div>
 
+        <!-- Purchase Screen -->
         <div id="purchaseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
             <div class="app-card">
@@ -512,6 +541,7 @@
             </div>
         </div>
 
+        <!-- Closing Screen -->
         <div id="closingScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-lock"></i> Day Closing</h2>
             <div class="app-card">
@@ -519,20 +549,17 @@
                 <div class="close-row"><span>Returns</span><b id="clReturns" class="warn">-₹0</b></div>
                 <div class="close-row"><span>Expenses</span><b id="clExpenses" class="neg">-₹0</b></div>
                 <div class="close-row total"><span>Today's Net</span><b id="clNet">₹0</b></div>
-                
                 <label>Opening cash in drawer (₹)</label>
                 <input type="number" id="clOpening" value="0" oninput="calcClosing()">
                 <label>Counted cash in drawer now (₹)</label>
                 <input type="number" id="clCounted" placeholder="0" oninput="calcClosing()">
-                
                 <button class="btn-outline" onclick="calcClosing()" style="margin-bottom: 15px;">Calculate Cash Difference</button>
-                
                 <div id="clDiff" class="close-diff" style="display:none;"></div>
-                
                 <button class="btn-success" onclick="shareClosingWA()" style="background:#25D366;"><i class="fa-brands fa-whatsapp"></i> Share Summary on WhatsApp</button>
             </div>
         </div>
 
+        <!-- Labels Screen -->
         <div id="labelsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-qrcode"></i> Print Labels</h2>
             <div class="app-card">
@@ -565,6 +592,7 @@
             <div id="labelSheet" class="label-sheet"></div>
         </div>
 
+        <!-- History Screen -->
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
             <div class="hist-nav" style="display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:8px; margin-bottom:12px; align-items:stretch;">
@@ -586,6 +614,7 @@
             <div id="historyList"></div>
         </div>
 
+        <!-- Return Screen -->
         <div id="returnScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
@@ -608,6 +637,7 @@
             </div>
         </div>
 
+        <!-- Expense Screen -->
         <div id="expenseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
             <div class="app-card">
@@ -618,6 +648,7 @@
             </div>
         </div>
 
+        <!-- Udhaar Khata Screen -->
         <div id="creditsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
             <div class="app-card" style="padding: 20px;">
@@ -632,6 +663,7 @@
             <div id="creditsList"></div>
         </div>
 
+        <!-- Staff Pin Screen -->
         <div id="staffPinScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
             <div class="app-card" style="text-align: center;">
@@ -643,6 +675,7 @@
             </div>
         </div>
 
+        <!-- Shop Settings Screen -->
         <div id="shopSettingsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-store"></i> Shop Settings</h2>
             <div class="app-card">
@@ -659,6 +692,7 @@
             </div>
         </div>
 
+        <!-- Reports Screen -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -688,6 +722,7 @@
 
     </div>
 
+    <!-- Owner Modal -->
     <div id="ownerModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 id="modalTitle" style="margin-top:0; margin-bottom: 20px;">Owner Details</h3>
@@ -701,6 +736,7 @@
         </div>
     </div>
 
+    <!-- Bottom Nav -->
     <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash">
             <i class="fa-solid fa-house nav-icon"></i> Home
@@ -719,4 +755,4 @@
 
     <script src="script.js"></script>
 </body>
-    </html>
+</html>
