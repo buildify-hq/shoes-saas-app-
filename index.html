@@ -25,7 +25,6 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
-    <!-- 🌟 स्कॅनर मोडल -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
@@ -37,7 +36,6 @@
         </div>
     </div>
 
-    <!-- 🌟 Held Bills -->
     <div id="heldModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-pause" style="color: var(--warning);"></i> Held Bills</h3>
@@ -46,7 +44,6 @@
         </div>
     </div>
 
-    <!-- 🌟 प्रोफेशनल बिल मोडल -->
     <div id="billModal" class="sa-modal">
         <div class="sa-modal-content" style="max-width: 450px; padding: 0; background: #fff; color: #000; border-radius: 12px; overflow-y: auto;">
             <div id="invoiceCaptureArea" style="padding: 20px; font-family: Arial, sans-serif; background: #fff;">
@@ -119,7 +116,6 @@
         </div>
     </div>
 
-    <!-- साईड मेनू -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -169,7 +165,6 @@
 
     <div class="content-area">
         
-        <!-- Login Screen -->
         <div id="loginScreen" class="fade-in" style="display: block; padding-top: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <img src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" alt="Logo" class="login-logo">
@@ -194,7 +189,6 @@
             </div>
         </div>
 
-        <!-- Super Admin Screen -->
         <div id="superAdminScreen" class="fade-in" style="display: none;">
             <div class="sa-header">
                 <div>
@@ -263,7 +257,6 @@
             </div>
         </div>
 
-        <!-- Dashboard Screen -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
             <section class="dashboard-welcome" style="min-height: auto; padding: 15px 18px; margin-bottom: 12px;">
                 <div class="welcome-copy">
@@ -339,7 +332,6 @@
                     <input type="text" id="dashSearchArt" placeholder="Article No." style="margin-bottom: 0; padding: 10px; font-size: 13px;">
                     <button class="btn-primary dashboard-icon-btn" onclick="startScanner('dashSearchArt')" style="width: 42px; min-height: 42px; flex: 0 0 42px;"><i class="fa-solid fa-camera"></i></button>
                     <button class="btn-primary dashboard-icon-btn" onclick="searchDashboardArticle()" style="width: 42px; min-height: 42px; flex: 0 0 42px;"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    <button class="btn-warning dashboard-icon-btn" onclick="startVoiceSearch('dashSearchArt')" style="width: 42px; min-height: 42px; flex: 0 0 42px;"><i class="fa-solid fa-microphone"></i></button>
                 </div>
                 <div id="dashSearchResult" style="margin-top: 10px;"></div>
             </div>
@@ -378,14 +370,12 @@
             </div>
         </div>
 
-        <!-- Stock Screen -->
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
             <div class="app-card" style="padding: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 99; background: var(--card-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" oninput="debounceStockSearch()">
                     <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    <button class="btn-warning" onclick="startVoiceSearch('stockSearch')" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-microphone"></i></button>
                 </div>
             </div>
             <div class="stats-grid" style="margin-bottom: 20px;">
@@ -405,7 +395,6 @@
             <div id="stockList"></div>
         </div>
 
-        <!-- Bulk Import Screen -->
         <div id="bulkImportScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</h2>
             <div class="app-card">
@@ -424,7 +413,6 @@
             </div>
         </div>
 
-        <!-- Low Stock Alert Screen -->
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
             <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Stock for these shoes is running low. Check which sizes are out and restock soon!</p>
@@ -432,7 +420,6 @@
             <div id="lowStockListContainer"></div>
         </div>
 
-        <!-- Staff Payment Screen -->
         <div id="staffScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
             <div class="app-card">
@@ -454,7 +441,6 @@
             </div>
         </div>
 
-        <!-- Sale Screen -->
         <div id="saleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <button id="staffReturnBtn" class="btn-warning" onclick="switchTab('return')" style="display:none; margin-bottom:15px;"><i class="fa-solid fa-rotate-left"></i> Return Item</button>
@@ -464,7 +450,6 @@
                     <input type="text" id="saleArtNo" placeholder="e.g., M-101">
                     <button class="btn-primary" onclick="startScanner('saleArtNo')" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-camera"></i></button>
                     <button class="btn-primary" onclick="searchSaleArticle()" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    <button class="btn-warning" onclick="startVoiceSearch('saleArtNo')" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-microphone"></i></button>
                 </div>
                 <div id="saleArticleDetails" class="sub-card" style="display: none;">
                     <h4 id="saleArtName" style="color: var(--primary); margin: 0 0 15px 0; font-size: 16px;"></h4>
@@ -503,7 +488,6 @@
             </div>
         </div>
 
-        <!-- Article Screen -->
         <div id="articleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-plus"></i> Add Article</h2>
             <div class="app-card">
@@ -526,7 +510,6 @@
             </div>
         </div>
 
-        <!-- Purchase Screen -->
         <div id="purchaseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
             <div class="app-card">
@@ -549,7 +532,6 @@
             </div>
         </div>
 
-        <!-- Closing Screen -->
         <div id="closingScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-lock"></i> Day Closing</h2>
             <div class="app-card">
@@ -567,7 +549,6 @@
             </div>
         </div>
 
-        <!-- Labels Screen -->
         <div id="labelsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-qrcode"></i> Print Labels</h2>
             <div class="app-card">
@@ -600,7 +581,6 @@
             <div id="labelSheet" class="label-sheet"></div>
         </div>
 
-        <!-- History Screen -->
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
             <div class="hist-nav" style="display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:8px; margin-bottom:12px; align-items:stretch;">
@@ -622,7 +602,6 @@
             <div id="historyList"></div>
         </div>
 
-        <!-- Return Screen -->
         <div id="returnScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
@@ -645,7 +624,6 @@
             </div>
         </div>
 
-        <!-- Expense Screen -->
         <div id="expenseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
             <div class="app-card">
@@ -656,7 +634,6 @@
             </div>
         </div>
 
-        <!-- Udhaar Khata Screen -->
         <div id="creditsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
             <div class="app-card" style="padding: 20px;">
@@ -671,7 +648,6 @@
             <div id="creditsList"></div>
         </div>
 
-        <!-- Staff Pin Screen -->
         <div id="staffPinScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
             <div class="app-card" style="text-align: center;">
@@ -683,7 +659,6 @@
             </div>
         </div>
 
-        <!-- Shop Settings Screen -->
         <div id="shopSettingsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-store"></i> Shop Settings</h2>
             <div class="app-card">
@@ -700,7 +675,6 @@
             </div>
         </div>
 
-        <!-- Reports Screen -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -761,4 +735,4 @@
 
     <script src="script.js"></script>
 </body>
-    </html>
+                        </html>
