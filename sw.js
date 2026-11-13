@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sj-labs-v24';   // अपडेट केल्यावर v3, v4... असं वाढव
+const CACHE_NAME = 'sj-labs-v30'; // 🌟 इथे नंबर वाढवा (v30, v31 असं)
 const urlsToCache = ['./', './index.html', './style.css', './script.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -14,17 +14,26 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// आधी नेटवर्क (नवीन फाईल्स), नेट नसेल तर कॅशे. फक्त आपल्याच साईटच्या फाईल्स.
+// 🌟 नवीन पद्धत: आधी कॅशे (फोनची मेमरी) बघा, नंतर इंटरनेट बघा
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  
   event.respondWith(
-    fetch(req)
-      .then((res) => {
+    caches.match(req).then((cachedResponse) => {
+      if (cachedResponse) {
+        // बॅकग्राउंडला नवीन फाईल आली आहे का ते चेक करा आणि सेव्ह करा
+        fetch(req).then((networkResponse) => {
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, networkResponse));
+        }).catch(() => {});
+        return cachedResponse; // जुनं असलं तरी लगेच दाखवा
+      }
+      // जर कॅशे मध्ये नसेल तर इंटरनेट वरून आणा
+      return fetch(req).then((res) => {
         const copy = res.clone();
         caches.open(CACHE_NAME).then((c) => c.put(req, copy));
         return res;
-      })
-      .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+      });
+    })
   );
 });
