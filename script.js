@@ -141,40 +141,9 @@ document.getElementById('confirmYesBtn').onclick = () => {
     closeConfirm();
 };
 
-// ---------- Barcode Scanner & Voice Search ----------
+// ---------- Barcode Scanner ----------
 let scannerCams = [], scannerCamIdx = 0, scannerTarget = null, scannerBusy = false;
 let isTorchOn = false; 
-
-function startVoiceSearch(targetInputId) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        showToast('तुमच्या फोनवर Voice Search सपोर्ट करत नाही.', true); 
-        return;
-    }
-    
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN'; 
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    
-    showToast('🎤 बोला... (Listening)', false);
-    recognition.start();
-    
-    recognition.onresult = function(event) {
-        const speechResult = event.results[0][0].transcript;
-        document.getElementById(targetInputId).value = speechResult;
-        
-        if(targetInputId === 'saleArtNo') searchSaleArticle();
-        else if(targetInputId === 'dashSearchArt') searchDashboardArticle();
-        else if(targetInputId === 'stockSearch') searchStockArticle();
-        
-        showToast('Searching: ' + speechResult, false);
-    };
-    
-    recognition.onerror = function(event) { 
-        showToast('आवाज ऐकू आला नाही, पुन्हा प्रयत्न करा.', true); 
-    };
-}
 
 async function onScanSuccess(text) {
     const target = scannerTarget;
@@ -307,7 +276,6 @@ async function handleLogin() {
             return;
         }
 
-        // Escape special characters for ilike
         const safeName = nameInput.replace(/[\\%_]/g, '\\$&');
         const { data: shop, error } = await supabaseClient.from('shops').select('*').ilike('shop_name', safeName).maybeSingle();
         
