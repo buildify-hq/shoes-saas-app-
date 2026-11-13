@@ -435,6 +435,9 @@ async function loadDashboardData() {
     document.getElementById('dashGreeting').innerText = greet.toUpperCase();
     document.getElementById('dashUserName').innerText = currentShopName || 'Owner';
 
+    // Admin Announcement Load
+    loadOwnerAnnouncements();
+
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
     let gentsTotal = 0, ladiesTotal = 0, kidsTotal = 0, lowStockItemsCount = 0;
 
@@ -1554,10 +1557,40 @@ async function deleteOwner(id) {
     showToast("Shop Deleted!", false); loadSuperAdminData();
 }
 
+// ---------- Admin: Manual Payment ----------
+async function saveManualPayment() {
+    const shopName = document.getElementById('payShopName').value.trim();
+    const amount = parseInt(document.getElementById('payAmount').value);
+    
+    if(!shopName || !amount || amount <= 0) { 
+        showToast("Enter valid shop name and amount!", true); return; 
+    }
+
+    const { data: shop, error } = await supabaseClient.from('shops').select('id, shop_name').ilike('shop_name', `%${shopName}%`).maybeSingle();
+    if(!shop) { showToast("Shop not found! Check spelling.", true); return; }
+
+    const { error: updateErr } = await supabaseClient.from('shops').update({
+        last_payment_amount: amount,
+        last_payment_date: new Date().toISOString()
+    }).eq('id', shop.id);
+
+    if(updateErr) { showToast("Error saving payment!", true); return; }
+
+    await supabaseClient.from('admin_logs').insert([{ action: `Recorded manual payment of ₹${amount} for shop: ${shop.shop_name}` }]);
+    showToast("✅ Payment Recorded!", false);
+    
+    document.getElementById('payShopName').value = '';
+    document.getElementById('payAmount').value = '';
+    document.getElementById('manualPayBox').style.display = 'none';
+    
+    loadAdminPayments();
+    loadSuperAdminData();
+}
+
 async function loadAdminPayments() {
     const list = document.getElementById('adminPaymentList');
     list.innerHTML = skeleton(3);
-    const { data: shops } = await supabaseClient.from('shops').select('*').gt('last_payment_amount', 0).order('last_payment_date', { ascending: false });
+    const { data: shops } = await supabaseClient.from('shops').select('id, shop_name, last_payment_amount, last_payment_date, subscription_plan').gt('last_payment_amount', 0).order('last_payment_date', { ascending: false });
     
     if(!shops || shops.length === 0) { list.innerHTML = emptyState('fa-receipt', 'No payments recorded yet.'); return; }
     
@@ -1569,11 +1602,26 @@ async function loadAdminPayments() {
                 <strong style="font-size: 14px;">${esc(s.shop_name)}</strong><br>
                 <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-regular fa-calendar"></i> ${new Date(s.last_payment_date).toLocaleDateString('en-GB')} • ${s.subscription_plan || 'Basic'}</span>
             </div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--success);">₹${s.last_payment_amount}</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="font-size: 18px; font-weight: 800; color: var(--success);">₹${s.last_payment_amount}</div>
+                <button class="btn-small btn-danger" onclick="deletePaymentRecord('${s.id}')" style="margin: 0; padding: 8px; border-radius: 8px;"><i class="fa-solid fa-trash"></i></button>
+            </div>
         </div>`;
     });
 }
 
+async function deletePaymentRecord(shopId) {
+    askConfirm("Delete this payment record? This will reset the shop's payment history.", async () => {
+        const { error } = await supabaseClient.from('shops').update({ last_payment_amount: 0, last_payment_date: null }).eq('id', shopId);
+        if(error) { showToast("Error deleting payment record!", true); return; }
+        await supabaseClient.from('admin_logs').insert([{ action: `Deleted payment record for shop ID: ${shopId}` }]);
+        showToast("Payment Record Deleted!", false);
+        loadAdminPayments();
+        loadSuperAdminData();
+    });
+}
+
+// ---------- Admin: Announcements ----------
 async function sendAnnouncement() {
     const msg = document.getElementById('adminAnnouncementText').value.trim();
     if(!msg) { showToast("Please enter a message!", true); return; }
@@ -1595,13 +1643,42 @@ async function loadAdminAnnouncements() {
     list.innerHTML = '';
     data.forEach(a => {
         list.innerHTML += `
-        <div class="app-card" style="padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary);">
-            <p style="margin: 0 0 8px 0; font-size: 14px;">${esc(a.message)}</p>
-            <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-solid fa-clock"></i> ${new Date(a.created_at).toLocaleString('en-IN')}</span>
+        <div class="app-card" style="padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <p style="margin: 0 0 8px 0; font-size: 14px;">${esc(a.message)}</p>
+                <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-solid fa-clock"></i> ${new Date(a.created_at).toLocaleString('en-IN')}</span>
+            </div>
+            <button class="btn-small btn-danger" onclick="deleteAnnouncement('${a.id}')" style="margin: 0; padding: 8px 10px; border-radius: 8px;"><i class="fa-solid fa-trash"></i></button>
         </div>`;
     });
 }
 
+async function deleteAnnouncement(id) {
+    askConfirm("हा मेसेज डिलीट करायचा आहे का?", async () => {
+        await supabaseClient.from('announcements').delete().eq('id', id);
+        showToast("Announcement Deleted!", false);
+        loadAdminAnnouncements();
+    });
+}
+
+async function loadOwnerAnnouncements() {
+    const { data } = await supabaseClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(1);
+    const banner = document.getElementById('ownerAnnouncementBanner');
+    if(banner && data && data.length > 0) {
+        banner.style.display = 'block';
+        banner.innerHTML = `<div style="padding: 12px; background: rgba(59, 130, 246, 0.15); border: 1px solid var(--primary); border-radius: 12px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center;">
+            <i class="fa-solid fa-bullhorn" style="color: var(--primary); font-size: 20px;"></i>
+            <div style="flex: 1;">
+                <div style="font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 2px;">Admin Announcement</div>
+                <div style="font-size: 13px; color: var(--text-light);">${esc(data[0].message)}</div>
+            </div>
+        </div>`;
+    } else if(banner) {
+        banner.style.display = 'none';
+    }
+}
+
+// ---------- Admin: Logs ----------
 async function loadAdminLogs() {
     const list = document.getElementById('adminLogList');
     const { data } = await supabaseClient.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50);
@@ -1611,10 +1688,21 @@ async function loadAdminLogs() {
     list.innerHTML = '';
     data.forEach(l => {
         list.innerHTML += `
-        <div style="font-size: 13px; padding: 10px; border-bottom: 1px dashed var(--border-color);">
-            <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-circle-info"></i></span> ${esc(l.action)}<br>
-            <span style="font-size: 11px; color: var(--text-muted);">${new Date(l.created_at).toLocaleString('en-IN')}</span>
+        <div style="font-size: 13px; padding: 10px; border-bottom: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-circle-info"></i></span> ${esc(l.action)}<br>
+                <span style="font-size: 11px; color: var(--text-muted);">${new Date(l.created_at).toLocaleString('en-IN')}</span>
+            </div>
+            <button class="btn-small btn-danger" onclick="deleteAdminLog('${l.id}')" style="margin: 0; padding: 6px 8px; border-radius: 6px;"><i class="fa-solid fa-trash"></i></button>
         </div>`;
+    });
+}
+
+async function deleteAdminLog(id) {
+    askConfirm("Delete this log entry?", async () => {
+        await supabaseClient.from('admin_logs').delete().eq('id', id);
+        showToast("Log Deleted!", false);
+        loadAdminLogs();
     });
 }
 
