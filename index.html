@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SJ Digital Labs</title>
     
-    <!-- मुख्य लायब्ररीज (जड लायब्ररीज काढून टाकल्या आहेत) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
@@ -26,16 +25,12 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
-    <!-- 🌟 स्कॅनर मोडल (फ्लॅशलाईट बटणासह) -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
             <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid var(--primary);"></div>
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">Point camera at barcode</p>
-            
-            <!-- 🌟 नवीन फ्लॅशलाईट बटण -->
             <button class="btn-warning" onclick="toggleTorch()" id="torchBtn" style="margin-top: 8px; padding: 11px; display: none;"><i class="fa-solid fa-lightbulb"></i> Flashlight</button>
-            
             <button class="btn-outline" onclick="switchScannerCamera()" style="margin-top: 8px; padding: 11px;"><i class="fa-solid fa-camera-rotate"></i> Switch Camera</button>
             <button class="btn-danger" onclick="closeScanner()" style="margin-top: 8px; padding: 12px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
         </div>
@@ -49,10 +44,8 @@
         </div>
     </div>
 
-    <!-- प्रोफेशनल बिल मोडल (Tax Invoice) -->
     <div id="billModal" class="sa-modal">
         <div class="sa-modal-content" style="max-width: 450px; padding: 0; background: #fff; color: #000; border-radius: 12px; overflow-y: auto;">
-            
             <div id="invoiceCaptureArea" style="padding: 20px; font-family: Arial, sans-serif; background: #fff;">
                 <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px;">
                     <div>
@@ -66,11 +59,9 @@
                         <img id="invShopLogo" src="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png" style="width: 50px; height: 50px; border-radius: 50%;" alt="Logo">
                     </div>
                 </div>
-
                 <div style="text-align: center; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; font-size: 14px; color: #000;">
                     TAX INVOICE
                 </div>
-
                 <div style="display: flex; justify-content: space-between; font-size: 11px; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 10px; color: #000;">
                     <div>
                         <strong>Customer:</strong> <span id="invCustName">Walk-in Customer</span><br>
@@ -81,7 +72,6 @@
                         <strong>Date:</strong> <span id="invDate">Date</span>
                     </div>
                 </div>
-
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; color: #000;">
                     <thead>
                         <tr style="border-bottom: 1px solid #000; border-top: 1px solid #000; background: #f0f0f0;">
@@ -93,7 +83,6 @@
                     </thead>
                     <tbody id="invItemsList"></tbody>
                 </table>
-
                 <div style="display: flex; justify-content: flex-end; font-size: 12px; border-top: 1px solid #000; padding-top: 10px; color: #000;">
                     <table style="width: 60%;">
                         <tr><td>Sub Total:</td><td style="text-align: right;" id="invSubTotal">₹0.00</td></tr>
@@ -103,12 +92,10 @@
                         </tr>
                     </table>
                 </div>
-                
                 <div style="text-align: center; font-size: 10px; margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; color: #000;">
                     Thank you for shopping with us! Visit again.
                 </div>
             </div>
-
             <div style="padding: 15px; background: var(--card-dark); border-top: 1px solid var(--border-color);">
                 <button class="btn-primary" onclick="printBill()" style="width: 100%; margin-bottom: 8px; background: #4B5563;"><i class="fa-solid fa-print"></i> Print Receipt</button>
                 <button class="btn-success" onclick="downloadAndShareBill(this)" style="background:#25D366; width: 100%; margin-bottom: 8px;"><i class="fa-brands fa-whatsapp"></i> Share Image on WhatsApp</button>
@@ -129,7 +116,6 @@
         </div>
     </div>
 
-    <!-- साईड मेनू -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -203,6 +189,7 @@
             </div>
         </div>
 
+        <!-- 🌟 नवीन सुपर ॲडमिन डॅशबोर्ड -->
         <div id="superAdminScreen" class="fade-in" style="display: none;">
             <div class="sa-header">
                 <div>
@@ -211,40 +198,41 @@
                 </div>
                 <div class="sa-logout" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
+            
+            <div class="stats-grid" style="margin-bottom: 15px;">
+                <div class="stat-card" style="background: linear-gradient(135deg, #6366F1, #4F46E5); border: none;">
+                    <div class="stat-title" style="color: white;">Total Shops</div>
+                    <div class="stat-value" id="adminTotalShops" style="color: white;">0</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none;">
+                    <div class="stat-title" style="color: white;">Active</div>
+                    <div class="stat-value" id="adminActiveShops" style="color: white;">0</div>
+                </div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #F59E0B, #D97706); border: none; margin-bottom: 20px;">
+                <div class="stat-title" style="color: white;">Expiring Soon (7 Days)</div>
+                <div class="stat-value" id="adminExpiringShops" style="color: white;">0</div>
+            </div>
+
             <div class="sa-search">
                 <span><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="saSearch" placeholder="Search Owner or Shop..." oninput="loadSuperAdminData()">
             </div>
-            <div class="sa-add-btn" onclick="openOwnerModal('add')">
-                <i class="fa-solid fa-plus-circle"></i> Add New Owner
+            
+            <!-- 🌟 नवीन फिक्स केलेली बटणं -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="sa-add-btn" onclick="openOwnerModal('add')" style="flex: 1; margin: 0;">
+                    <i class="fa-solid fa-plus-circle"></i> Add Owner
+                </button>
+                <button class="sa-add-btn" onclick="exportOwnersExcel()" style="flex: 1; margin: 0; background: var(--success);">
+                    <i class="fa-solid fa-file-excel"></i> Export Excel
+                </button>
             </div>
-            <div class="sa-add-btn" onclick="loadAdminReport()" style="background: var(--warning); color: white; margin-top: -10px; margin-bottom: 20px;">
-                <i class="fa-solid fa-chart-pie"></i> View Admin Report
-            </div>
-            <div id="adminReportContainer" style="display: none; margin-bottom: 20px;">
-                <div class="app-card" style="background: var(--card-dark); padding: 15px;">
-                    <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--primary);">Admin Dashboard</h4>
-                    <div class="stats-grid" style="margin-bottom: 15px;">
-                        <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(16, 185, 129, 0.3);">
-                            <div class="stat-title" style="color: var(--success);">Total Shops</div>
-                            <div class="stat-value" id="adminTotalShops" style="color: var(--text-light);">0</div>
-                        </div>
-                        <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(59, 130, 246, 0.3);">
-                            <div class="stat-title" style="color: var(--primary);">Active Shops</div>
-                            <div class="stat-value" id="adminActiveShops" style="color: var(--text-light);">0</div>
-                        </div>
-                        <div class="stat-card" style="background: var(--card-dark); border: 1px solid rgba(239, 68, 68, 0.3);">
-                            <div class="stat-title" style="color: var(--danger);">Expired Shops</div>
-                            <div class="stat-value" id="adminExpiredShops" style="color: var(--text-light);">0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
             <div id="saOwnerList"></div>
         </div>
 
         <div id="dashboardScreen" class="fade-in" style="display: none;">
-            <!-- Premium welcome banner: visual only; existing app data and logic are unchanged -->
             <section class="dashboard-welcome">
                 <div class="welcome-copy">
                     <span class="welcome-eyebrow"><i class="fa-solid fa-chart-line"></i> SHOP OVERVIEW</span>
