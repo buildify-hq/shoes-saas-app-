@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SJ Digital Labs</title>
     
+    <!-- मुख्य लायब्ररीज (जड लायब्ररीज काढून टाकल्या आहेत) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -27,12 +26,17 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
+    <!-- 🌟 स्कॅनर मोडल (फ्लॅशलाईट बटणासह) -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
             <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid var(--primary);"></div>
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">Point camera at barcode</p>
-            <button class="btn-outline" onclick="switchScannerCamera()" style="margin-top: 12px; padding: 11px;"><i class="fa-solid fa-camera-rotate"></i> Switch Camera</button>
+            
+            <!-- 🌟 नवीन फ्लॅशलाईट बटण -->
+            <button class="btn-warning" onclick="toggleTorch()" id="torchBtn" style="margin-top: 8px; padding: 11px; display: none;"><i class="fa-solid fa-lightbulb"></i> Flashlight</button>
+            
+            <button class="btn-outline" onclick="switchScannerCamera()" style="margin-top: 8px; padding: 11px;"><i class="fa-solid fa-camera-rotate"></i> Switch Camera</button>
             <button class="btn-danger" onclick="closeScanner()" style="margin-top: 8px; padding: 12px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
         </div>
     </div>
@@ -125,7 +129,7 @@
         </div>
     </div>
 
-    <!-- साईड मेनू (Insights आणि Target काढून टाकले आहेत) -->
+    <!-- साईड मेनू -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -239,7 +243,6 @@
             <div id="saOwnerList"></div>
         </div>
 
-        <!-- डॅशबोर्ड (Target काढून टाकला आहे) -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
             <div class="stats-grid">
                 <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
@@ -487,7 +490,6 @@
                 <label>Counted cash in drawer now (₹)</label>
                 <input type="number" id="clCounted" placeholder="0" oninput="calcClosing()">
                 
-                <!-- नवीन Calculate Button -->
                 <button class="btn-outline" onclick="calcClosing()" style="margin-bottom: 15px;">Calculate Cash Difference</button>
                 
                 <div id="clDiff" class="close-diff" style="display:none;"></div>
@@ -521,6 +523,9 @@
             <div class="lab-actions">
                 <button class="btn-primary" onclick="previewLabels()"><i class="fa-solid fa-eye"></i> Preview</button>
                 <button class="btn-success" onclick="printLabels()"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
+            </div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <button class="btn-danger" onclick="clearLabelPreview()" style="width: auto; padding: 8px 16px; font-size: 13px; border-radius: 8px; margin: 0 auto;"><i class="fa-solid fa-trash"></i> Clear Preview</button>
             </div>
             <div id="labelSheet" class="label-sheet"></div>
         </div>
