@@ -14,7 +14,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <meta name="theme-color" content="#1D4ED8">
+    <meta name="theme-color" content="#5B3CE4">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://i.ibb.co/BVdFQQLn/file-00000000838482109c83056207729dcf.png">
     <meta name="mobile-web-app-capable" content="yes">
@@ -244,58 +244,105 @@
         </div>
 
         <div id="dashboardScreen" class="fade-in" style="display: none;">
+            <!-- Premium welcome banner: visual only; existing app data and logic are unchanged -->
+            <section class="dashboard-welcome">
+                <div class="welcome-copy">
+                    <span class="welcome-eyebrow"><i class="fa-solid fa-chart-line"></i> SHOP OVERVIEW</span>
+                    <h2>Welcome back!</h2>
+                    <p>Here’s what’s happening in your shop today.</p>
+                </div>
+                <div class="welcome-mark" aria-hidden="true">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+            </section>
+
             <div class="stats-grid">
-                <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
-                    <div class="stat-title" style="color: white;">Today's Sales</div>
-                    <div class="stat-value" id="todaySalesDisplay" style="color: white;">₹0</div>
+                <div class="stat-card dashboard-sales-card">
+                    <div class="stat-title">Today's Sales</div>
+                    <div class="stat-value" id="todaySalesDisplay">₹0</div>
                     <div class="stat-sub" id="salesCompare"></div>
+                    <i class="fa-solid fa-indian-rupee-sign stat-watermark" aria-hidden="true"></i>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #3B82F6, #2563EB); border: none; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">
-                    <div class="stat-title" style="color: white;">Today's Profit</div>
-                    <div class="stat-value" id="todayProfitDisplay" style="color: white;">₹0</div>
+                <div class="stat-card dashboard-profit-card">
+                    <div class="stat-title">Today's Profit</div>
+                    <div class="stat-value" id="todayProfitDisplay">₹0</div>
+                    <div class="stat-sub">Today's earnings</div>
+                    <i class="fa-solid fa-chart-pie stat-watermark" aria-hidden="true"></i>
                 </div>
-            </div>
-            
-            <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                <button class="btn-success" onclick="switchTab('sale')" style="flex: 1.5; padding: 16px; font-size: 15px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
-                <button class="btn-warning" onclick="switchTab('return')" style="flex: 1; padding: 16px; font-size: 14px; margin:0; border-radius: 14px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);"><i class="fa-solid fa-rotate-left"></i> Return</button>
             </div>
 
-            <div class="app-card" style="padding: 15px; margin-bottom: 20px;">
+            <div class="dashboard-primary-actions">
+                <button class="btn-success" onclick="switchTab('sale')"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
+                <button class="btn-warning" onclick="switchTab('return')"><i class="fa-solid fa-rotate-left"></i> Return</button>
+            </div>
+
+            <section class="dashboard-quick-actions">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-kicker">SHORTCUTS</span>
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <span class="section-heading-icon"><i class="fa-solid fa-bolt"></i></span>
+                </div>
+                <div class="dashboard-action-grid">
+                    <button class="dashboard-action" onclick="switchTab('stock')">
+                        <span class="action-icon action-purple"><i class="fa-solid fa-boxes-stacked"></i></span>
+                        <span>My Stock</span>
+                    </button>
+                    <button class="dashboard-action" onclick="switchTab('article')">
+                        <span class="action-icon action-blue"><i class="fa-solid fa-plus"></i></span>
+                        <span>Add Article</span>
+                    </button>
+                    <button class="dashboard-action" onclick="switchTab('reports')">
+                        <span class="action-icon action-green"><i class="fa-solid fa-chart-column"></i></span>
+                        <span>Reports</span>
+                    </button>
+                    <button class="dashboard-action" onclick="switchTab('history')">
+                        <span class="action-icon action-orange"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                        <span>History</span>
+                    </button>
+                </div>
+            </section>
+
+            <div class="app-card dashboard-search-card">
                 <label>Quick Search Article</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="dashSearchArt" placeholder="Article No." style="margin-bottom: 0;">
-                    <button class="btn-primary" onclick="startScanner('dashSearchArt')" style="width: 50px; margin-bottom: 0;"><i class="fa-solid fa-camera"></i></button>
-                    <button class="btn-primary" onclick="searchDashboardArticle()" style="width: 50px; margin-bottom: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <div class="dashboard-search-row">
+                    <input type="text" id="dashSearchArt" placeholder="Enter Article No." style="margin-bottom: 0;">
+                    <button class="btn-primary dashboard-icon-btn" onclick="startScanner('dashSearchArt')" aria-label="Scan article barcode"><i class="fa-solid fa-camera"></i></button>
+                    <button class="btn-primary dashboard-icon-btn" onclick="searchDashboardArticle()" aria-label="Search article"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
                 <div id="dashSearchResult" style="margin-top: 15px;"></div>
             </div>
 
-            <h4 style="margin-bottom: 12px; font-size: 15px; color: var(--text-muted); font-weight: 600;">Quick Expenses</h4>
-            <div class="quick-expense-chart">
-                <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')">
-                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-                        <i class="fa-solid fa-mug-hot" style="color: var(--warning); font-size: 20px;"></i>
-                    </div> Tea/Snacks
+            <section class="dashboard-expenses-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-kicker">DAILY COSTS</span>
+                        <h3>Quick Expenses</h3>
+                    </div>
                 </div>
-                <div class="quick-expense-btn" onclick="quickExpense('Light Bill')">
-                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-                        <i class="fa-solid fa-lightbulb" style="color: var(--warning); font-size: 20px;"></i>
-                    </div> Light Bill
+                <div class="quick-expense-chart">
+                    <div class="quick-expense-btn" onclick="quickExpense('Tea/Snacks')">
+                        <div><i class="fa-solid fa-mug-hot"></i></div> Tea/Snacks
+                    </div>
+                    <div class="quick-expense-btn" onclick="quickExpense('Light Bill')">
+                        <div><i class="fa-solid fa-lightbulb"></i></div> Light Bill
+                    </div>
+                    <div class="quick-expense-btn" onclick="quickExpense('Shop Rent')">
+                        <div><i class="fa-solid fa-shop"></i></div> Shop Rent
+                    </div>
+                    <div class="quick-expense-btn" onclick="switchTab('staff')">
+                        <div><i class="fa-solid fa-user-tie"></i></div> Staff Pay
+                    </div>
                 </div>
-                <div class="quick-expense-btn" onclick="quickExpense('Shop Rent')">
-                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-                        <i class="fa-solid fa-shop" style="color: var(--warning); font-size: 20px;"></i>
-                    </div> Shop Rent
-                </div>
-                <div class="quick-expense-btn" onclick="switchTab('staff')">
-                    <div style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-                        <i class="fa-solid fa-user-tie" style="color: var(--warning); font-size: 20px;"></i>
-                    </div> Staff Pay
+            </section>
+
+            <div class="dashboard-transactions-heading">
+                <div>
+                    <span class="section-kicker">RECENT ACTIVITY</span>
+                    <h3><i class="fa-solid fa-list-check"></i> Today's Transactions</h3>
                 </div>
             </div>
-
-            <h3 style="margin-bottom: 12px; font-size: 16px; margin-top: 20px; font-weight: 700;"><i class="fa-solid fa-list-check"></i> Today's Transactions</h3>
             <div id="todayTransactions" class="app-card" style="padding: 15px;">
                 <p style="font-size: 14px; color: var(--text-muted); text-align: center;">No transactions today.</p>
             </div>
