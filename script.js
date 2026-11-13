@@ -16,7 +16,6 @@ let cart = [];
 
 let currentGenderFilter = 'Men';
 let currentTypeFilter = 'Formal';
-let currentAdminTab = 'shops';
 
 let confirmCallback = null; 
 let currentBillData = null;
@@ -77,6 +76,7 @@ function initStockTab() {
     } else { loadMyStockList(); }
 }
 
+// 🌟 जुनी होल्ड बिल्स आपोआप डिलीट करण्यासाठी फंक्शन
 function cleanOldData() {
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     let held = getHeld();
@@ -141,41 +141,9 @@ document.getElementById('confirmYesBtn').onclick = () => {
     closeConfirm();
 };
 
-// ---------- Barcode Scanner & Voice Search ----------
+// ---------- Barcode Scanner ----------
 let scannerCams = [], scannerCamIdx = 0, scannerTarget = null, scannerBusy = false;
-let isTorchOn = false; 
-
-// 🌟 Voice Search (बोलून शोधणे)
-function startVoiceSearch(targetInputId) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        showToast('तुमच्या फोनवर Voice Search सपोर्ट करत नाही.', true); 
-        return;
-    }
-    
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN'; 
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    
-    showToast('🎤 बोला... (Listening)', false);
-    recognition.start();
-    
-    recognition.onresult = function(event) {
-        const speechResult = event.results[0][0].transcript;
-        document.getElementById(targetInputId).value = speechResult;
-        
-        if(targetInputId === 'saleArtNo') searchSaleArticle();
-        else if(targetInputId === 'dashSearchArt') searchDashboardArticle();
-        else if(targetInputId === 'stockSearch') searchStockArticle();
-        
-        showToast('Searching: ' + speechResult, false);
-    };
-    
-    recognition.onerror = function(event) { 
-        showToast('आवाज ऐकू आला नाही, पुन्हा प्रयत्न करा.', true); 
-    };
-}
+let isTorchOn = false; // 🌟 फ्लॅशलाईट स्टेट
 
 async function onScanSuccess(text) {
     const target = scannerTarget;
@@ -204,15 +172,23 @@ async function onScanSuccess(text) {
     showToast("Barcode Scanned!");
 }
 
+// 🌟 स्कॅनर वेगवान करण्यासाठी आणि फ्लॅशलाईटसाठी नवीन कोड
 async function beginScan(cameraConfig) {
     html5QrcodeScanner = new Html5Qrcode('reader', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    
+    // बारकोडसाठी लांब आणि रुंद बॉक्स
     const qrbox = (w, hgt) => {
         return { width: Math.floor(w * 0.8), height: Math.floor(hgt * 0.3) }; 
     };
+    
+    // FPS 30 (वेग वाढवण्यासाठी)
     await html5QrcodeScanner.start(cameraConfig, { fps: 30, qrbox: qrbox }, onScanSuccess, () => {});
+    
+    // कॅमेरा सुरू झाल्यावर १ सेकंदाने फ्लॅशलाईट तपासा
     setTimeout(checkTorchSupport, 1000);
 }
 
+// 🌟 फ्लॅशलाईट चालू/बंद करण्यासाठी
 async function toggleTorch() {
     const video = document.querySelector('#reader video');
     if (video && video.srcObject) {
@@ -226,6 +202,7 @@ async function toggleTorch() {
     }
 }
 
+// 🌟 फोनमध्ये फ्लॅशलाईटची सोय आहे का हे तपासण्यासाठी
 function checkTorchSupport() {
     const video = document.querySelector('#reader video');
     if (video && video.srcObject) {
@@ -283,7 +260,7 @@ async function switchScannerCamera() {
 function closeScanner() {
     document.getElementById('scannerModal').style.display = 'none';
     stopScannerInstance();
-    isTorchOn = false;
+    isTorchOn = false; // फ्लॅशलाईट बंद करा
     document.getElementById('torchBtn').style.display = 'none';
 }
 
@@ -430,35 +407,15 @@ function switchTab(tabName) {
     else if(tabName === 'bulkImport') { document.getElementById('bulkImportScreen').style.display = 'block'; }
 }
 
-// ---------- Dashboard & Animations ----------
-function animateValue(id, start, end, duration) {
-    if (start === end) { document.getElementById(id).innerText = "₹" + end; return; }
-    let range = end - start;
-    let current = start;
-    let increment = end > start ? 1 : -1;
-    let stepTime = Math.abs(Math.floor(duration / range));
-    stepTime = Math.max(stepTime, 20); 
-    let obj = document.getElementById(id);
-    let timer = setInterval(function() {
-        current += Math.ceil(range / 30); 
-        if ((increment == 1 && current >= end) || (increment == -1 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-        }
-        obj.innerText = "₹" + current;
-    }, 30);
+// ---------- Dashboard ----------
+function quickExpense(reason) {
+    document.getElementById('expReason').value = reason;
+    switchTab('expense');
 }
 
 async function loadDashboardData() {
     if(!currentShopId) return;
     
-    const hr = new Date().getHours();
-    let greet = "Good Evening";
-    if(hr < 12) greet = "Good Morning";
-    else if(hr < 17) greet = "Good Afternoon";
-    document.getElementById('dashGreeting').innerText = greet.toUpperCase();
-    document.getElementById('dashUserName').innerText = currentShopName || 'Owner';
-
     const { data: articles } = await supabaseClient.from('articles').select(`id, article_no, name, category, stock_batches (remaining_qty)`).eq('shop_id', currentShopId);
     let gentsTotal = 0, ladiesTotal = 0, kidsTotal = 0, lowStockItemsCount = 0;
 
@@ -483,17 +440,6 @@ async function loadDashboardData() {
 
     let badge = document.getElementById('menuAlertBadge');
     if(lowStockItemsCount > 0) { badge.style.display = 'inline-block'; badge.innerText = lowStockItemsCount; } else { badge.style.display = 'none'; }
-
-    const { data: credits } = await supabaseClient.from('credits').select('amount').eq('shop_id', currentShopId).eq('status', 'pending');
-    let totalUdhaar = 0;
-    if(credits) { credits.forEach(c => totalUdhaar += c.amount); }
-    
-    if (totalUdhaar > 0) {
-        document.getElementById('dashUdhaarTotal').innerText = totalUdhaar;
-        document.getElementById('udhaarAlertCard').style.display = 'block';
-    } else {
-        document.getElementById('udhaarAlertCard').style.display = 'none';
-    }
 
     const tr = dayRange(localDateStr(new Date()));
     const yd = new Date(); yd.setDate(yd.getDate() - 1);
@@ -523,11 +469,9 @@ async function loadDashboardData() {
         tProfitAmt -= e.amount; tExpenseAmt += e.amount;
         transactionsHtml += row('var(--danger)', 'fa-money-bill-transfer', esc(e.reason), `-₹${e.amount}`);
     });
-
     if (transactionsHtml !== '') {
         transactionsHtml = `<div class="day-sum"><span><b>${todaySales.length}</b> bills</span><span><b>₹${tReturnAmt}</b> return</span><span><b>₹${tExpenseAmt}</b> expenses</span></div>` + transactionsHtml;
     }
-    
     let ySales = 0;
     (Y.sales || []).forEach(s => ySales += s.total_amount); (Y.returns || []).forEach(r => ySales -= r.refund_amount);
     const cmp = document.getElementById('salesCompare');
@@ -537,7 +481,7 @@ async function loadDashboardData() {
     }
 
     const transDiv = document.getElementById('todayTransactions');
-    if(transactionsHtml === '') { transDiv.innerHTML = '<p style="font-size: 13px; color: var(--text-muted); text-align: center;">No transactions today.</p>'; } 
+    if(transactionsHtml === '') { transDiv.innerHTML = '<p style="font-size: 14px; color: var(--text-muted); text-align: center;">No transactions today.</p>'; } 
     else {
         let netCash = tSalesAmt - tExpenseAmt; 
         let isPositive = netCash >= 0;
@@ -545,8 +489,8 @@ async function loadDashboardData() {
         transDiv.innerHTML = transactionsHtml;
     }
 
-    animateValue('todaySalesDisplay', 0, tSalesAmt, 1000);
-    animateValue('todayProfitDisplay', 0, tProfitAmt, 1000);
+    document.getElementById('todaySalesDisplay').innerText = "₹" + tSalesAmt;
+    document.getElementById('todayProfitDisplay').innerText = "₹" + tProfitAmt;
 }
 
 async function searchDashboardArticle() {
@@ -732,17 +676,6 @@ async function confirmSale() {
         document.getElementById('saleChips').innerHTML = '';
         renderCart();
         showBill(billData);
-        
-        // 🌟 Text-to-Speech (बोलणारं बिल)
-        if ('speechSynthesis' in window) {
-            setTimeout(() => {
-                const amountToSpeak = billData.total;
-                const msg = new SpeechSynthesisUtterance(`Total amount is ${amountToSpeak} rupees. Thank you!`);
-                msg.lang = 'en-IN';
-                msg.rate = 1; 
-                window.speechSynthesis.speak(msg);
-            }, 800); 
-        }
     } catch (err) { showToast("Error: " + err.message, true); }
     finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Confirm Sale'; }
 }
@@ -788,7 +721,9 @@ async function downloadAndShareBill(btn) {
     try {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
         btn.disabled = true;
+
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+
         const canvas = await html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' });
         canvas.toBlob(async function(blob) {
             const file = new File([blob], 'invoice.png', { type: 'image/png' });
@@ -987,13 +922,12 @@ function debounceStockSearch() { clearTimeout(stockSearchT); stockSearchT = setT
 function stockRowHtml(art) {
     let total = 0; const grouped = {};
     (art.stock_batches || []).forEach(b => {
-        const qty = Number(b.remaining_qty) || 0;
-        total += qty;
-        if (qty > 0) {
+        total += b.remaining_qty;
+        if (b.remaining_qty > 0) {
             let col = b.color || ''; if (col === 'Default') col = '';
             const s = String(b.size).trim();
             if (!grouped[col]) grouped[col] = {};
-            grouped[col][s] = (grouped[col][s] || 0) + qty;
+            grouped[col][s] = (grouped[col][s] || 0) + b.remaining_qty;
         }
     });
     const colors = Object.keys(grouped);
@@ -1008,19 +942,11 @@ function stockRowHtml(art) {
     });
     if (!detail) detail = '<p class="srow-out">Out of stock</p>';
     const status = total === 0 ? 'out' : (total <= 5 ? 'low' : 'ok');
-    const category = String(art.category || '');
-    const isLadies = category.toLowerCase().includes('ladies');
-    const isGirls = category.toLowerCase().includes('girls');
-    const isBoys = category.toLowerCase().includes('boys') || category === 'Kids';
-    const isKids = isBoys || isGirls;
-    const categoryIcon = isLadies ? 'fa-person-dress' : (isGirls ? 'fa-child-dress' : (isKids ? 'fa-child' : 'fa-person'));
-    const categoryLabel = isLadies ? 'Ladies' : (isGirls ? 'Girls' : (isBoys ? 'Boys' : (category ? 'Gents' : 'Uncategorized')));
     const del = isStaffMode ? '' : `<button class="srow-del" onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${esc(art.id)}'))"><i class="fa-solid fa-trash"></i> Delete article</button>`;
-    const sub = [category, colors.length > 1 ? colors.length + ' colors' : ''].filter(Boolean).map(esc).join(' • ');
+    const sub = [art.category, colors.length > 1 ? colors.length + ' colors' : ''].filter(Boolean).map(esc).join(' • ');
     return `<div class="srow ${status}">
         <div class="srow-main" onclick="this.parentElement.classList.toggle('open')">
-            <div class="srow-category-icon ${isLadies ? 'ladies' : (isKids ? 'kids' : 'gents')}" aria-hidden="true"><i class="fa-solid ${categoryIcon}"></i></div>
-            <div class="srow-info"><div class="srow-title"><b>${esc(art.article_no)}</b><span>${esc(art.name) || 'Unnamed'}</span></div><div class="srow-sub"><span class="srow-category-label">${categoryLabel}</span>${sub ? ' • ' + sub : ''}</div></div>
+            <div class="srow-info"><div class="srow-title"><b>${esc(art.article_no)}</b><span>${esc(art.name) || 'Unnamed'}</span></div><div class="srow-sub">${sub}</div></div>
             <div class="srow-qty ${status}">${total}<small>pairs</small></div>
             <i class="fa-solid fa-chevron-down srow-arrow"></i>
         </div>
@@ -1396,76 +1322,29 @@ async function resetStaffPin() {
     document.getElementById('displayStaffPin').innerText = '----'; showToast("Staff PIN Removed!", false);
 }
 
-// ---------- Super Admin Functions ----------
-function switchAdminTab(tabName, btnElement) {
-    currentAdminTab = tabName;
-    document.querySelectorAll('#superAdminScreen .hist-tab').forEach(t => t.classList.remove('active'));
-    btnElement.classList.add('active');
-    
-    document.getElementById('adminTab-shops').style.display = 'none';
-    document.getElementById('adminTab-payments').style.display = 'none';
-    document.getElementById('adminTab-comms').style.display = 'none';
-    document.getElementById('adminTab-logs').style.display = 'none';
-    
-    document.getElementById('adminTab-' + tabName).style.display = 'block';
-    
-    if (tabName === 'shops') loadSuperAdminData();
-    else if (tabName === 'payments') loadAdminPayments();
-    else if (tabName === 'comms') loadAdminAnnouncements();
-    else if (tabName === 'logs') loadAdminLogs();
-}
-
+// ---------- Super Admin / Labels / Closing Functions ----------
 async function loadSuperAdminData() {
     const list = document.getElementById('saOwnerList');
     const searchTerm = document.getElementById('saSearch').value.toLowerCase();
-    const { data: shops, error } = await supabaseClient.from('shops').select('*').order('created_at', { ascending: false });
+    const { data: shops, error } = await supabaseClient.from('shops').select('*');
     if (error) { list.innerHTML = "Error loading shops."; return; }
-    
-    const today = new Date();
-    let activeCount = 0, blockedCount = 0, expiringCount = 0, monthlyRev = 0;
-    
-    shops.forEach(s => {
-        if (s.status === 'active' && s.expiry_date && new Date(s.expiry_date) > today) {
-            activeCount++;
-            const daysLeft = (new Date(s.expiry_date) - today) / (1000 * 60 * 60 * 24);
-            if (daysLeft <= 7) expiringCount++;
-        } else if (s.status !== 'active') {
-            blockedCount++;
-        }
-        if (s.last_payment_date && new Date(s.last_payment_date).getMonth() === today.getMonth() && new Date(s.last_payment_date).getFullYear() === today.getFullYear()) {
-            monthlyRev += (s.last_payment_amount || 0);
-        }
-    });
-
-    document.getElementById('saStats').innerText = `Total: ${shops.length} | Active: ${activeCount} | Blocked: ${blockedCount}`;
-    document.getElementById('adminActiveShops').innerText = activeCount;
-    document.getElementById('adminExpiringShops').innerText = expiringCount;
-    document.getElementById('adminMonthlyRevenue').innerText = '₹' + monthlyRev;
-
     const filtered = shops.filter(s => (s.owner_name && s.owner_name.toLowerCase().includes(searchTerm)) || (s.shop_name && s.shop_name.toLowerCase().includes(searchTerm)));
-    
+    const today = new Date();
+    let activeCount = shops.filter(s => s.status === 'active' && new Date(s.expiry_date) > today).length;
+    document.getElementById('saStats').innerText = `Total Owners: ${shops.length} | Active: ${activeCount}`;
     list.innerHTML = '';
     if(filtered.length === 0) { list.innerHTML = '<p style="text-align:center; color:var(--text-muted);">No shops found.</p>'; return; }
-    
     filtered.forEach(s => {
         let isActive = s.status === 'active';
         let expiryStr = s.expiry_date ? new Date(s.expiry_date).toLocaleDateString('en-GB') : 'Not Set';
-        let isExpiring = false;
-        if (s.expiry_date) {
-            const daysLeft = (new Date(s.expiry_date) - today) / (1000 * 60 * 60 * 24);
-            if (daysLeft <= 7 && daysLeft > 0 && isActive) isExpiring = true;
-        }
-        
         list.innerHTML += `
-        <div class="sa-card" style="${isExpiring ? 'border-left: 4px solid var(--warning);' : ''}">
+        <div class="sa-card">
             <div class="sa-card-top">
                 <div class="sa-avatar">${esc((s.owner_name || 'S').charAt(0).toUpperCase())}</div>
                 <div class="sa-info">
-                    <h4>${esc(s.owner_name) || 'Unknown'} <span style="font-size: 10px; background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${s.subscription_plan || 'Basic'}</span></h4>
+                    <h4>${esc(s.owner_name) || 'Unknown'}</h4>
                     <p><i class="fa-solid fa-store"></i> ${esc(s.shop_name)} • <i class="fa-solid fa-phone"></i> ${esc(s.phone) || 'N/A'}</p>
-                    <div class="sa-valid" style="${isExpiring ? 'color: var(--warning);' : ''}">
-                        <i class="fa-regular fa-calendar-check"></i> Valid till: ${expiryStr} ${isExpiring ? '(Expiring Soon)' : ''}
-                    </div>
+                    <div class="sa-valid"><i class="fa-regular fa-calendar-check"></i> Valid till: ${expiryStr}</div>
                 </div>
                 <div class="sa-toggle ${isActive ? 'active' : ''}" onclick="toggleShopStatus('${s.id}', '${s.status}')"></div>
             </div>
@@ -1478,32 +1357,6 @@ async function loadSuperAdminData() {
             </div>
         </div>`;
     });
-}
-
-async function exportOwnersExcel() {
-    showToast("Generating Excel... ⏳", false);
-    try {
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-        const { data: shops, error } = await supabaseClient.from('shops').select('*');
-        if (error || !shops) throw new Error("Could not fetch data.");
-        
-        let data = shops.map(s => ({
-            "Owner Name": s.owner_name || '-',
-            "Shop Name": s.shop_name || '-',
-            "Phone": s.phone || '-',
-            "Status": s.status,
-            "Plan": s.subscription_plan || 'Basic',
-            "Expiry Date": s.expiry_date ? new Date(s.expiry_date).toLocaleDateString('en-GB') : '-'
-        }));
-        
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Owners List");
-        XLSX.writeFile(wb, `Owners_List_${new Date().toISOString().split('T')[0]}.xlsx`);
-        showToast("Excel Downloaded! 📥", false);
-    } catch(err) {
-        showToast("Error: " + err.message, true);
-    }
 }
 
 function openOwnerModal(mode) {
@@ -1530,7 +1383,6 @@ async function saveOwner() {
     if(pin.length < 6) { showToast("PIN must be at least 6 digits!", true); return; }
     if(id) {
         await supabaseClient.from('shops').update({ owner_name: name, shop_name: shopName, phone: phone, pin: pin }).eq('id', id);
-        await supabaseClient.from('admin_logs').insert([{ action: `Edited owner details for: ${shopName}` }]);
         showToast("Owner Updated!", false);
     } else {
         const auth_email = `${shopName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@shoeshop.com`;
@@ -1539,9 +1391,8 @@ async function saveOwner() {
         if (adminSession) { await supabaseClient.auth.setSession({ access_token: adminSession.access_token, refresh_token: adminSession.refresh_token }); }
         if(authError) { showToast("Error: " + authError.message, true); return; }
         const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        const { error: shopError } = await supabaseClient.from('shops').insert([{ owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry, subscription_plan: 'Basic' }]);
+        const { error: shopError } = await supabaseClient.from('shops').insert([{ owner_name: name, shop_name: shopName, phone: phone, pin: pin, auth_email: auth_email, status: 'active', expiry_date: expiry }]);
         if(shopError) { showToast("Error: " + shopError.message, true); return; }
-        await supabaseClient.from('admin_logs').insert([{ action: `Added new owner: ${shopName}` }]);
         showToast("Owner Added!", false);
     }
     document.getElementById('ownerModal').style.display = 'none'; loadSuperAdminData();
@@ -1550,99 +1401,22 @@ async function saveOwner() {
 async function toggleShopStatus(id, currentStatus) {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     await supabaseClient.from('shops').update({ status: newStatus }).eq('id', id);
-    await supabaseClient.from('admin_logs').insert([{ action: `Marked shop ID ${id} as ${newStatus}` }]);
     showToast(`Shop marked as ${newStatus}`, false); loadSuperAdminData();
 }
 
 async function add30Days(id, currentExpiry) {
-    askConfirm("Have you received the payment for +30 Days? (This will be recorded in revenue)", async () => {
-        let newDate = currentExpiry ? new Date(currentExpiry) : new Date();
-        if(newDate < new Date()) newDate = new Date();
-        newDate.setDate(newDate.getDate() + 30);
-        
-        await supabaseClient.from('admin_logs').insert([{ action: `Added +30 Days to shop ID: ${id}` }]);
-        await supabaseClient.from('shops').update({ 
-            expiry_date: newDate.toISOString(),
-            last_payment_amount: 500, 
-            last_payment_date: new Date().toISOString()
-        }).eq('id', id);
-        
-        showToast("+30 Days Added & Payment Recorded!", false); 
-        loadSuperAdminData();
-    });
+    let newDate = currentExpiry ? new Date(currentExpiry) : new Date();
+    if(newDate < new Date()) newDate = new Date();
+    newDate.setDate(newDate.getDate() + 30);
+    await supabaseClient.from('shops').update({ expiry_date: newDate.toISOString() }).eq('id', id);
+    showToast("+30 Days Added!", false); loadSuperAdminData();
 }
 
 async function deleteOwner(id) {
     await supabaseClient.from('shops').delete().eq('id', id);
-    await supabaseClient.from('admin_logs').insert([{ action: `Deleted shop ID: ${id}` }]);
     showToast("Shop Deleted!", false); loadSuperAdminData();
 }
 
-async function loadAdminPayments() {
-    const list = document.getElementById('adminPaymentList');
-    list.innerHTML = skeleton(3);
-    const { data: shops } = await supabaseClient.from('shops').select('*').gt('last_payment_amount', 0).order('last_payment_date', { ascending: false });
-    
-    if(!shops || shops.length === 0) { list.innerHTML = emptyState('fa-receipt', 'No payments recorded yet.'); return; }
-    
-    list.innerHTML = '';
-    shops.forEach(s => {
-        list.innerHTML += `
-        <div class="app-card" style="padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <strong style="font-size: 14px;">${esc(s.shop_name)}</strong><br>
-                <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-regular fa-calendar"></i> ${new Date(s.last_payment_date).toLocaleDateString('en-GB')} • ${s.subscription_plan || 'Basic'}</span>
-            </div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--success);">₹${s.last_payment_amount}</div>
-        </div>`;
-    });
-}
-
-async function sendAnnouncement() {
-    const msg = document.getElementById('adminAnnouncementText').value.trim();
-    if(!msg) { showToast("Please enter a message!", true); return; }
-    
-    await supabaseClient.from('announcements').insert([{ message: msg }]);
-    await supabaseClient.from('admin_logs').insert([{ action: `Sent announcement: "${msg.substring(0, 20)}..."` }]);
-    
-    document.getElementById('adminAnnouncementText').value = '';
-    showToast("Announcement Sent to All!", false);
-    loadAdminAnnouncements();
-}
-
-async function loadAdminAnnouncements() {
-    const list = document.getElementById('adminAnnouncementList');
-    const { data } = await supabaseClient.from('announcements').select('*').order('created_at', { ascending: false });
-    
-    if(!data || data.length === 0) { list.innerHTML = emptyState('fa-bullhorn', 'No announcements sent.'); return; }
-    
-    list.innerHTML = '';
-    data.forEach(a => {
-        list.innerHTML += `
-        <div class="app-card" style="padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary);">
-            <p style="margin: 0 0 8px 0; font-size: 14px;">${esc(a.message)}</p>
-            <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-solid fa-clock"></i> ${new Date(a.created_at).toLocaleString('en-IN')}</span>
-        </div>`;
-    });
-}
-
-async function loadAdminLogs() {
-    const list = document.getElementById('adminLogList');
-    const { data } = await supabaseClient.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50);
-    
-    if(!data || data.length === 0) { list.innerHTML = emptyState('fa-list-check', 'No activity logs found.'); return; }
-    
-    list.innerHTML = '';
-    data.forEach(l => {
-        list.innerHTML += `
-        <div style="font-size: 13px; padding: 10px; border-bottom: 1px dashed var(--border-color);">
-            <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-circle-info"></i></span> ${esc(l.action)}<br>
-            <span style="font-size: 11px; color: var(--text-muted);">${new Date(l.created_at).toLocaleString('en-IN')}</span>
-        </div>`;
-    });
-}
-
-// ---------- Closing, Labels, Excel, Bulk Import, WA, Hold ----------
 let closingNet = 0, closingData = {};
 async function loadClosing() {
     const r = dayRange(localDateStr(new Date()));
@@ -1662,13 +1436,16 @@ function calcClosing() {
     const open = parseInt(document.getElementById('clOpening').value) || 0;
     const cv = document.getElementById('clCounted').value;
     const box = document.getElementById('clDiff');
+    
     const expected = open + closingNet;
+    
     if (cv === '') {
         box.style.display = 'block';
         box.className = 'close-diff';
         box.innerHTML = `Expected in drawer: <b>₹${expected}</b>`;
         return;
     }
+    
     const diff = (parseInt(cv) || 0) - expected;
     box.style.display = 'block';
     box.className = 'close-diff ' + (diff === 0 ? 'ok' : (diff > 0 ? 'more' : 'less'));
@@ -1763,22 +1540,44 @@ function buildLabels() {
     const sheet = document.getElementById('labelSheet');
     sheet.className = 'label-sheet ' + size;
     sheet.innerHTML = html;
+    
     let ps = document.getElementById('labPageStyle');
     if (!ps) { ps = document.createElement('style'); ps.id = 'labPageStyle'; document.head.appendChild(ps); }
-    if (size === 'roll50') ps.textContent = '@media print { @page { size: 50mm 30mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
-    else if (size === 'roll38') ps.textContent = '@media print { @page { size: 38mm 25mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
-    else ps.textContent = '@media print { @page { size: A4; margin: 5mm; } body { margin: 0; } #labelSheet { position: static !important; } }';
+    
+    if (size === 'roll50') {
+        ps.textContent = '@media print { @page { size: 50mm 30mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
+    } else if (size === 'roll38') {
+        ps.textContent = '@media print { @page { size: 38mm 25mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
+    } else {
+        ps.textContent = '@media print { @page { size: A4; margin: 5mm; } body { margin: 0; } #labelSheet { position: static !important; } }';
+    }
     return items.length;
 }
-function clearLabelPreview() { document.getElementById('labelSheet').innerHTML = ''; showToast("Label Preview Cleared!", false); }
-function previewLabels() { const n = buildLabels(); if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); } }
-function printLabels() { if (buildLabels()) { setTimeout(() => { window.print(); }, 500); } }
 
+function clearLabelPreview() {
+    document.getElementById('labelSheet').innerHTML = '';
+    showToast("Label Preview Cleared!", false);
+}
+
+function previewLabels() {
+    const n = buildLabels();
+    if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); }
+}
+
+function printLabels() { 
+    if (buildLabels()) {
+        setTimeout(() => { window.print(); }, 500);
+    }
+}
+
+// ---------- Download Excel & Backup (Lazy Loading) ----------
 async function downloadExcel() {
     if(!currentShopId) return;
     showToast("Generating Excel... ⏳", false);
+    
     try {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
         const { data: allData } = await supabaseClient.from('sales').select(`sale_date, total_amount, total_profit, sale_items (quantity, size, selling_price, articles(article_no, name))`).eq('shop_id', currentShopId).order('sale_date', { ascending: false });
         let excelData = [];
         if(allData) {
@@ -1796,14 +1595,18 @@ async function downloadExcel() {
         XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
         XLSX.writeFile(wb, "Sales_Report.xlsx");
         showToast("Excel Downloaded! 📥", false);
-    } catch (err) { showToast("Error: " + err.message, true); }
+    } catch (err) {
+        showToast("Error: " + err.message, true);
+    }
 }
 
 async function downloadFullBackup() {
     if (!currentShopId) return;
     showToast("Preparing backup... ⏳", false);
+    
     try {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
         const [articlesRes, salesRes, returnsRes, expensesRes, creditsRes, purchasesRes] = await Promise.all([
             supabaseClient.from('articles').select('article_no, name, category, cost_price, mrp, stock_batches(color, size, initial_qty, remaining_qty)').eq('shop_id', currentShopId),
             supabaseClient.from('sales').select('sale_date, total_amount, total_profit, discount_amount, sale_items(quantity, size, selling_price, articles(article_no, name))').eq('shop_id', currentShopId),
@@ -1812,6 +1615,7 @@ async function downloadFullBackup() {
             supabaseClient.from('credits').select('created_at, customer_name, phone, amount, status').eq('shop_id', currentShopId),
             supabaseClient.from('purchases').select('purchase_date, quantity, cost_price, size, supplier_name, articles(article_no, name)').eq('shop_id', currentShopId)
         ]);
+
         const wb = XLSX.utils.book_new();
         let stockData = [];
         (articlesRes.data || []).forEach(art => {
@@ -1820,6 +1624,7 @@ async function downloadFullBackup() {
             });
         });
         if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Stock Details");
+
         let salesData = [];
         (salesRes.data || []).forEach(sale => {
             (sale.sale_items || []).forEach(item => {
@@ -1827,20 +1632,27 @@ async function downloadFullBackup() {
             });
         });
         if(salesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesData), "Sales History");
+
         let returnsData = (returnsRes.data || []).map(ret => ({ "Date": new Date(ret.return_date).toLocaleString(), "Article No": ret.articles?.article_no || 'DELETED', "Name": ret.articles?.name || '-', "Size": ret.size, "Qty": ret.quantity, "Refund Amount": ret.refund_amount }));
         if(returnsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(returnsData), "Returns");
+
         let expensesData = (expensesRes.data || []).map(exp => ({ "Date": new Date(exp.expense_date).toLocaleString(), "Reason": exp.reason, "Amount": exp.amount }));
         if(expensesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expensesData), "Expenses");
+
         let creditsData = (creditsRes.data || []).map(cred => ({ "Date": new Date(cred.created_at).toLocaleString(), "Customer": cred.customer_name, "Phone": cred.phone, "Amount": cred.amount, "Status": cred.status }));
         if(creditsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(creditsData), "Udhaar Khata");
+
         let purchasesData = (purchasesRes.data || []).map(pur => ({ "Date": new Date(pur.purchase_date).toLocaleString(), "Article No": pur.articles?.article_no || 'DELETED', "Name": pur.articles?.name || '-', "Size": pur.size, "Qty": pur.quantity, "Cost": pur.cost_price, "Supplier": pur.supplier_name }));
         if(purchasesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(purchasesData), "Purchases");
+
         if (wb.SheetNames.length === 0) { showToast("No data available for backup!", true); return; }
-        XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+        const dateStr = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${dateStr}.xlsx`);
         showToast("✅ Full Backup downloaded successfully!", false);
     } catch (err) { showToast("Backup error: " + err.message, true); }
 }
 
+// ---------- Bulk Import ----------
 function downloadImportTemplate() {
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(() => {
         const headers = [["Gender", "Type", "Article No", "Name", "Cost Price", "MRP", "Color", "Size", "Qty"]];
@@ -1856,8 +1668,10 @@ async function processExcelUpload(event) {
     if (!file) return;
     const statusDiv = document.getElementById('importStatus');
     statusDiv.innerHTML = '<span style="color:var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Reading Excel...</span>';
+    
     try {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
@@ -1874,6 +1688,7 @@ async function processExcelUpload(event) {
                     const qty = parseInt(row['Qty']) || 0;
                     if (!artNo || !size || qty <= 0) { errorCount++; continue; }
                     const gender = row['Gender'] || 'Men'; const type = row['Type'] || 'Formal'; const name = row['Name'] || 'Unnamed'; const cost = parseInt(row['Cost Price']) || 0; const mrp = parseInt(row['MRP']) || 0; const color = String(row['Color'] || '').trim(); const category = `${gender} - ${type}`;
+                    
                     let { data: artData } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).maybeSingle();
                     let articleId;
                     if (!artData) {
@@ -1881,11 +1696,16 @@ async function processExcelUpload(event) {
                         if (artErr) { errorCount++; continue; }
                         articleId = newArt[0].id;
                     } else { articleId = artData.id; }
+
                     let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', articleId).eq('size', size);
                     if(color) query = query.eq('color', color); else query = query.or('color.is.null,color.eq.Default,color.eq.');
                     const { data: batch } = await query.limit(1).maybeSingle();
-                    if (batch) { await supabaseClient.from('stock_batches').update({ remaining_qty: batch.remaining_qty + qty, initial_qty: batch.initial_qty + qty }).eq('id', batch.id); } 
-                    else { await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]); }
+                    
+                    if (batch) {
+                        await supabaseClient.from('stock_batches').update({ remaining_qty: batch.remaining_qty + qty, initial_qty: batch.initial_qty + qty }).eq('id', batch.id);
+                    } else {
+                        await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]);
+                    }
                     successCount++;
                 }
                 statusDiv.innerHTML = `<span style="color:var(--success);">✅ Success: ${successCount} rows added. ${errorCount > 0 ? '<br><span style="color:var(--danger);">Errors: ' + errorCount + ' (check data)</span>' : ''}</span>`;
@@ -1898,9 +1718,12 @@ async function processExcelUpload(event) {
             }
         };
         reader.readAsArrayBuffer(file);
-    } catch (error) { statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error loading library</span>`; }
+    } catch (error) {
+        statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error loading library</span>`;
+    }
 }
 
+// ---------- Low stock WA ----------
 async function shareLowStockWA() {
     const { data, error } = await supabaseClient.from('articles').select('article_no, name, stock_batches (remaining_qty)').eq('shop_id', currentShopId);
     if (error) { showToast('Error: ' + error.message, true); return; }
@@ -1912,6 +1735,7 @@ async function shareLowStockWA() {
     window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
 }
 
+// ---------- Hold Bill ----------
 function heldKey() { return 'heldBills_' + currentShopId; }
 function getHeld() { try { return JSON.parse(localStorage.getItem(heldKey()) || '[]'); } catch (e) { return []; } }
 function setHeld(a) { try { localStorage.setItem(heldKey(), JSON.stringify(a)); } catch (e) { showToast('Could not save held bill', true); } updateHeldCount(); }
@@ -1946,6 +1770,7 @@ function resumeHeld(i) {
 }
 function deleteHeld(i) { const held = getHeld(); held.splice(i, 1); setHeld(held); openHeld(); }
 
+// ---------- Auto logout after 10 min idle ----------
 let idleTimer;
 const IDLE_MS = 10 * 60 * 1000;
 function resetIdle() {
