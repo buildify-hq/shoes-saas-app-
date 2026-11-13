@@ -76,7 +76,6 @@ function initStockTab() {
     } else { loadMyStockList(); }
 }
 
-// 🌟 जुनी होल्ड बिल्स आपोआप डिलीट करण्यासाठी फंक्शन
 function cleanOldData() {
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     let held = getHeld();
@@ -143,7 +142,7 @@ document.getElementById('confirmYesBtn').onclick = () => {
 
 // ---------- Barcode Scanner ----------
 let scannerCams = [], scannerCamIdx = 0, scannerTarget = null, scannerBusy = false;
-let isTorchOn = false; // 🌟 फ्लॅशलाईट स्टेट
+let isTorchOn = false; 
 
 async function onScanSuccess(text) {
     const target = scannerTarget;
@@ -172,23 +171,15 @@ async function onScanSuccess(text) {
     showToast("Barcode Scanned!");
 }
 
-// 🌟 स्कॅनर वेगवान करण्यासाठी आणि फ्लॅशलाईटसाठी नवीन कोड
 async function beginScan(cameraConfig) {
     html5QrcodeScanner = new Html5Qrcode('reader', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
-    
-    // बारकोडसाठी लांब आणि रुंद बॉक्स
     const qrbox = (w, hgt) => {
         return { width: Math.floor(w * 0.8), height: Math.floor(hgt * 0.3) }; 
     };
-    
-    // FPS 30 (वेग वाढवण्यासाठी)
     await html5QrcodeScanner.start(cameraConfig, { fps: 30, qrbox: qrbox }, onScanSuccess, () => {});
-    
-    // कॅमेरा सुरू झाल्यावर १ सेकंदाने फ्लॅशलाईट तपासा
     setTimeout(checkTorchSupport, 1000);
 }
 
-// 🌟 फ्लॅशलाईट चालू/बंद करण्यासाठी
 async function toggleTorch() {
     const video = document.querySelector('#reader video');
     if (video && video.srcObject) {
@@ -202,7 +193,6 @@ async function toggleTorch() {
     }
 }
 
-// 🌟 फोनमध्ये फ्लॅशलाईटची सोय आहे का हे तपासण्यासाठी
 function checkTorchSupport() {
     const video = document.querySelector('#reader video');
     if (video && video.srcObject) {
@@ -260,7 +250,7 @@ async function switchScannerCamera() {
 function closeScanner() {
     document.getElementById('scannerModal').style.display = 'none';
     stopScannerInstance();
-    isTorchOn = false; // फ्लॅशलाईट बंद करा
+    isTorchOn = false;
     document.getElementById('torchBtn').style.display = 'none';
 }
 
@@ -721,9 +711,7 @@ async function downloadAndShareBill(btn) {
     try {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
         btn.disabled = true;
-
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-
         const canvas = await html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' });
         canvas.toBlob(async function(blob) {
             const file = new File([blob], 'invoice.png', { type: 'image/png' });
@@ -1331,29 +1319,54 @@ async function resetStaffPin() {
     document.getElementById('displayStaffPin').innerText = '----'; showToast("Staff PIN Removed!", false);
 }
 
-// ---------- Super Admin / Labels / Closing Functions ----------
+// ---------- Super Admin Functions ----------
 async function loadSuperAdminData() {
     const list = document.getElementById('saOwnerList');
     const searchTerm = document.getElementById('saSearch').value.toLowerCase();
     const { data: shops, error } = await supabaseClient.from('shops').select('*');
     if (error) { list.innerHTML = "Error loading shops."; return; }
-    const filtered = shops.filter(s => (s.owner_name && s.owner_name.toLowerCase().includes(searchTerm)) || (s.shop_name && s.shop_name.toLowerCase().includes(searchTerm)));
+    
     const today = new Date();
-    let activeCount = shops.filter(s => s.status === 'active' && new Date(s.expiry_date) > today).length;
+    let activeCount = 0;
+    let expiringCount = 0;
+    
+    shops.forEach(s => {
+        if (s.status === 'active' && s.expiry_date && new Date(s.expiry_date) > today) {
+            activeCount++;
+            const daysLeft = (new Date(s.expiry_date) - today) / (1000 * 60 * 60 * 24);
+            if (daysLeft <= 7) expiringCount++;
+        }
+    });
+
     document.getElementById('saStats').innerText = `Total Owners: ${shops.length} | Active: ${activeCount}`;
+    document.getElementById('adminTotalShops').innerText = shops.length;
+    document.getElementById('adminActiveShops').innerText = activeCount;
+    document.getElementById('adminExpiringShops').innerText = expiringCount;
+
+    const filtered = shops.filter(s => (s.owner_name && s.owner_name.toLowerCase().includes(searchTerm)) || (s.shop_name && s.shop_name.toLowerCase().includes(searchTerm)));
+    
     list.innerHTML = '';
     if(filtered.length === 0) { list.innerHTML = '<p style="text-align:center; color:var(--text-muted);">No shops found.</p>'; return; }
+    
     filtered.forEach(s => {
         let isActive = s.status === 'active';
         let expiryStr = s.expiry_date ? new Date(s.expiry_date).toLocaleDateString('en-GB') : 'Not Set';
+        let isExpiring = false;
+        if (s.expiry_date) {
+            const daysLeft = (new Date(s.expiry_date) - today) / (1000 * 60 * 60 * 24);
+            if (daysLeft <= 7 && daysLeft > 0 && isActive) isExpiring = true;
+        }
+        
         list.innerHTML += `
-        <div class="sa-card">
+        <div class="sa-card" style="${isExpiring ? 'border-left: 4px solid var(--warning);' : ''}">
             <div class="sa-card-top">
                 <div class="sa-avatar">${esc((s.owner_name || 'S').charAt(0).toUpperCase())}</div>
                 <div class="sa-info">
                     <h4>${esc(s.owner_name) || 'Unknown'}</h4>
                     <p><i class="fa-solid fa-store"></i> ${esc(s.shop_name)} • <i class="fa-solid fa-phone"></i> ${esc(s.phone) || 'N/A'}</p>
-                    <div class="sa-valid"><i class="fa-regular fa-calendar-check"></i> Valid till: ${expiryStr}</div>
+                    <div class="sa-valid" style="${isExpiring ? 'color: var(--warning);' : ''}">
+                        <i class="fa-regular fa-calendar-check"></i> Valid till: ${expiryStr} ${isExpiring ? '(Expiring Soon)' : ''}
+                    </div>
                 </div>
                 <div class="sa-toggle ${isActive ? 'active' : ''}" onclick="toggleShopStatus('${s.id}', '${s.status}')"></div>
             </div>
@@ -1366,6 +1379,31 @@ async function loadSuperAdminData() {
             </div>
         </div>`;
     });
+}
+
+async function exportOwnersExcel() {
+    showToast("Generating Excel... ⏳", false);
+    try {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+        const { data: shops, error } = await supabaseClient.from('shops').select('*');
+        if (error || !shops) throw new Error("Could not fetch data.");
+        
+        let data = shops.map(s => ({
+            "Owner Name": s.owner_name || '-',
+            "Shop Name": s.shop_name || '-',
+            "Phone": s.phone || '-',
+            "Status": s.status,
+            "Expiry Date": s.expiry_date ? new Date(s.expiry_date).toLocaleDateString('en-GB') : '-'
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Owners List");
+        XLSX.writeFile(wb, `Owners_List_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast("Excel Downloaded! 📥", false);
+    } catch(err) {
+        showToast("Error: " + err.message, true);
+    }
 }
 
 function openOwnerModal(mode) {
@@ -1426,6 +1464,7 @@ async function deleteOwner(id) {
     showToast("Shop Deleted!", false); loadSuperAdminData();
 }
 
+// ---------- Closing, Labels, Excel, Bulk Import, WA, Hold ----------
 let closingNet = 0, closingData = {};
 async function loadClosing() {
     const r = dayRange(localDateStr(new Date()));
@@ -1445,16 +1484,13 @@ function calcClosing() {
     const open = parseInt(document.getElementById('clOpening').value) || 0;
     const cv = document.getElementById('clCounted').value;
     const box = document.getElementById('clDiff');
-    
     const expected = open + closingNet;
-    
     if (cv === '') {
         box.style.display = 'block';
         box.className = 'close-diff';
         box.innerHTML = `Expected in drawer: <b>₹${expected}</b>`;
         return;
     }
-    
     const diff = (parseInt(cv) || 0) - expected;
     box.style.display = 'block';
     box.className = 'close-diff ' + (diff === 0 ? 'ok' : (diff > 0 ? 'more' : 'less'));
@@ -1549,44 +1585,22 @@ function buildLabels() {
     const sheet = document.getElementById('labelSheet');
     sheet.className = 'label-sheet ' + size;
     sheet.innerHTML = html;
-    
     let ps = document.getElementById('labPageStyle');
     if (!ps) { ps = document.createElement('style'); ps.id = 'labPageStyle'; document.head.appendChild(ps); }
-    
-    if (size === 'roll50') {
-        ps.textContent = '@media print { @page { size: 50mm 30mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
-    } else if (size === 'roll38') {
-        ps.textContent = '@media print { @page { size: 38mm 25mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
-    } else {
-        ps.textContent = '@media print { @page { size: A4; margin: 5mm; } body { margin: 0; } #labelSheet { position: static !important; } }';
-    }
+    if (size === 'roll50') ps.textContent = '@media print { @page { size: 50mm 30mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
+    else if (size === 'roll38') ps.textContent = '@media print { @page { size: 38mm 25mm; margin: 0; } body { margin: 0; } #labelSheet { position: static !important; gap: 0; } }';
+    else ps.textContent = '@media print { @page { size: A4; margin: 5mm; } body { margin: 0; } #labelSheet { position: static !important; } }';
     return items.length;
 }
+function clearLabelPreview() { document.getElementById('labelSheet').innerHTML = ''; showToast("Label Preview Cleared!", false); }
+function previewLabels() { const n = buildLabels(); if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); } }
+function printLabels() { if (buildLabels()) { setTimeout(() => { window.print(); }, 500); } }
 
-function clearLabelPreview() {
-    document.getElementById('labelSheet').innerHTML = '';
-    showToast("Label Preview Cleared!", false);
-}
-
-function previewLabels() {
-    const n = buildLabels();
-    if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); }
-}
-
-function printLabels() { 
-    if (buildLabels()) {
-        setTimeout(() => { window.print(); }, 500);
-    }
-}
-
-// ---------- Download Excel & Backup (Lazy Loading) ----------
 async function downloadExcel() {
     if(!currentShopId) return;
     showToast("Generating Excel... ⏳", false);
-    
     try {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-
         const { data: allData } = await supabaseClient.from('sales').select(`sale_date, total_amount, total_profit, sale_items (quantity, size, selling_price, articles(article_no, name))`).eq('shop_id', currentShopId).order('sale_date', { ascending: false });
         let excelData = [];
         if(allData) {
@@ -1604,18 +1618,14 @@ async function downloadExcel() {
         XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
         XLSX.writeFile(wb, "Sales_Report.xlsx");
         showToast("Excel Downloaded! 📥", false);
-    } catch (err) {
-        showToast("Error: " + err.message, true);
-    }
+    } catch (err) { showToast("Error: " + err.message, true); }
 }
 
 async function downloadFullBackup() {
     if (!currentShopId) return;
     showToast("Preparing backup... ⏳", false);
-    
     try {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-
         const [articlesRes, salesRes, returnsRes, expensesRes, creditsRes, purchasesRes] = await Promise.all([
             supabaseClient.from('articles').select('article_no, name, category, cost_price, mrp, stock_batches(color, size, initial_qty, remaining_qty)').eq('shop_id', currentShopId),
             supabaseClient.from('sales').select('sale_date, total_amount, total_profit, discount_amount, sale_items(quantity, size, selling_price, articles(article_no, name))').eq('shop_id', currentShopId),
@@ -1624,7 +1634,6 @@ async function downloadFullBackup() {
             supabaseClient.from('credits').select('created_at, customer_name, phone, amount, status').eq('shop_id', currentShopId),
             supabaseClient.from('purchases').select('purchase_date, quantity, cost_price, size, supplier_name, articles(article_no, name)').eq('shop_id', currentShopId)
         ]);
-
         const wb = XLSX.utils.book_new();
         let stockData = [];
         (articlesRes.data || []).forEach(art => {
@@ -1633,7 +1642,6 @@ async function downloadFullBackup() {
             });
         });
         if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Stock Details");
-
         let salesData = [];
         (salesRes.data || []).forEach(sale => {
             (sale.sale_items || []).forEach(item => {
@@ -1641,27 +1649,20 @@ async function downloadFullBackup() {
             });
         });
         if(salesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesData), "Sales History");
-
         let returnsData = (returnsRes.data || []).map(ret => ({ "Date": new Date(ret.return_date).toLocaleString(), "Article No": ret.articles?.article_no || 'DELETED', "Name": ret.articles?.name || '-', "Size": ret.size, "Qty": ret.quantity, "Refund Amount": ret.refund_amount }));
         if(returnsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(returnsData), "Returns");
-
         let expensesData = (expensesRes.data || []).map(exp => ({ "Date": new Date(exp.expense_date).toLocaleString(), "Reason": exp.reason, "Amount": exp.amount }));
         if(expensesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expensesData), "Expenses");
-
         let creditsData = (creditsRes.data || []).map(cred => ({ "Date": new Date(cred.created_at).toLocaleString(), "Customer": cred.customer_name, "Phone": cred.phone, "Amount": cred.amount, "Status": cred.status }));
         if(creditsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(creditsData), "Udhaar Khata");
-
         let purchasesData = (purchasesRes.data || []).map(pur => ({ "Date": new Date(pur.purchase_date).toLocaleString(), "Article No": pur.articles?.article_no || 'DELETED', "Name": pur.articles?.name || '-', "Size": pur.size, "Qty": pur.quantity, "Cost": pur.cost_price, "Supplier": pur.supplier_name }));
         if(purchasesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(purchasesData), "Purchases");
-
         if (wb.SheetNames.length === 0) { showToast("No data available for backup!", true); return; }
-        const dateStr = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${dateStr}.xlsx`);
+        XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
         showToast("✅ Full Backup downloaded successfully!", false);
     } catch (err) { showToast("Backup error: " + err.message, true); }
 }
 
-// ---------- Bulk Import ----------
 function downloadImportTemplate() {
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(() => {
         const headers = [["Gender", "Type", "Article No", "Name", "Cost Price", "MRP", "Color", "Size", "Qty"]];
@@ -1677,10 +1678,8 @@ async function processExcelUpload(event) {
     if (!file) return;
     const statusDiv = document.getElementById('importStatus');
     statusDiv.innerHTML = '<span style="color:var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Reading Excel...</span>';
-    
     try {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
@@ -1697,7 +1696,6 @@ async function processExcelUpload(event) {
                     const qty = parseInt(row['Qty']) || 0;
                     if (!artNo || !size || qty <= 0) { errorCount++; continue; }
                     const gender = row['Gender'] || 'Men'; const type = row['Type'] || 'Formal'; const name = row['Name'] || 'Unnamed'; const cost = parseInt(row['Cost Price']) || 0; const mrp = parseInt(row['MRP']) || 0; const color = String(row['Color'] || '').trim(); const category = `${gender} - ${type}`;
-                    
                     let { data: artData } = await supabaseClient.from('articles').select('id').eq('shop_id', currentShopId).eq('article_no', artNo).maybeSingle();
                     let articleId;
                     if (!artData) {
@@ -1705,16 +1703,11 @@ async function processExcelUpload(event) {
                         if (artErr) { errorCount++; continue; }
                         articleId = newArt[0].id;
                     } else { articleId = artData.id; }
-
                     let query = supabaseClient.from('stock_batches').select('id, remaining_qty, initial_qty').eq('shop_id', currentShopId).eq('article_id', articleId).eq('size', size);
                     if(color) query = query.eq('color', color); else query = query.or('color.is.null,color.eq.Default,color.eq.');
                     const { data: batch } = await query.limit(1).maybeSingle();
-                    
-                    if (batch) {
-                        await supabaseClient.from('stock_batches').update({ remaining_qty: batch.remaining_qty + qty, initial_qty: batch.initial_qty + qty }).eq('id', batch.id);
-                    } else {
-                        await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]);
-                    }
+                    if (batch) { await supabaseClient.from('stock_batches').update({ remaining_qty: batch.remaining_qty + qty, initial_qty: batch.initial_qty + qty }).eq('id', batch.id); } 
+                    else { await supabaseClient.from('stock_batches').insert([{ shop_id: currentShopId, article_id: articleId, size: size, color: color, initial_qty: qty, remaining_qty: qty, cost_price: cost }]); }
                     successCount++;
                 }
                 statusDiv.innerHTML = `<span style="color:var(--success);">✅ Success: ${successCount} rows added. ${errorCount > 0 ? '<br><span style="color:var(--danger);">Errors: ' + errorCount + ' (check data)</span>' : ''}</span>`;
@@ -1727,12 +1720,9 @@ async function processExcelUpload(event) {
             }
         };
         reader.readAsArrayBuffer(file);
-    } catch (error) {
-        statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error loading library</span>`;
-    }
+    } catch (error) { statusDiv.innerHTML = `<span style="color:var(--danger);">❌ Error loading library</span>`; }
 }
 
-// ---------- Low stock WA ----------
 async function shareLowStockWA() {
     const { data, error } = await supabaseClient.from('articles').select('article_no, name, stock_batches (remaining_qty)').eq('shop_id', currentShopId);
     if (error) { showToast('Error: ' + error.message, true); return; }
@@ -1744,7 +1734,6 @@ async function shareLowStockWA() {
     window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
 }
 
-// ---------- Hold Bill ----------
 function heldKey() { return 'heldBills_' + currentShopId; }
 function getHeld() { try { return JSON.parse(localStorage.getItem(heldKey()) || '[]'); } catch (e) { return []; } }
 function setHeld(a) { try { localStorage.setItem(heldKey(), JSON.stringify(a)); } catch (e) { showToast('Could not save held bill', true); } updateHeldCount(); }
@@ -1779,7 +1768,6 @@ function resumeHeld(i) {
 }
 function deleteHeld(i) { const held = getHeld(); held.splice(i, 1); setHeld(held); openHeld(); }
 
-// ---------- Auto logout after 10 min idle ----------
 let idleTimer;
 const IDLE_MS = 10 * 60 * 1000;
 function resetIdle() {
