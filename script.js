@@ -922,12 +922,13 @@ function debounceStockSearch() { clearTimeout(stockSearchT); stockSearchT = setT
 function stockRowHtml(art) {
     let total = 0; const grouped = {};
     (art.stock_batches || []).forEach(b => {
-        total += b.remaining_qty;
-        if (b.remaining_qty > 0) {
+        const qty = Number(b.remaining_qty) || 0;
+        total += qty;
+        if (qty > 0) {
             let col = b.color || ''; if (col === 'Default') col = '';
             const s = String(b.size).trim();
             if (!grouped[col]) grouped[col] = {};
-            grouped[col][s] = (grouped[col][s] || 0) + b.remaining_qty;
+            grouped[col][s] = (grouped[col][s] || 0) + qty;
         }
     });
     const colors = Object.keys(grouped);
@@ -942,11 +943,19 @@ function stockRowHtml(art) {
     });
     if (!detail) detail = '<p class="srow-out">Out of stock</p>';
     const status = total === 0 ? 'out' : (total <= 5 ? 'low' : 'ok');
+    const category = String(art.category || '');
+    const isLadies = category.toLowerCase().includes('ladies');
+    const isGirls = category.toLowerCase().includes('girls');
+    const isBoys = category.toLowerCase().includes('boys') || category === 'Kids';
+    const isKids = isBoys || isGirls;
+    const categoryIcon = isLadies ? 'fa-person-dress' : (isGirls ? 'fa-child-dress' : (isKids ? 'fa-child' : 'fa-person'));
+    const categoryLabel = isLadies ? 'Ladies' : (isGirls ? 'Girls' : (isBoys ? 'Boys' : (category ? 'Gents' : 'Uncategorized')));
     const del = isStaffMode ? '' : `<button class="srow-del" onclick="askConfirm('Delete this article permanently?', () => deleteArticle('${esc(art.id)}'))"><i class="fa-solid fa-trash"></i> Delete article</button>`;
-    const sub = [art.category, colors.length > 1 ? colors.length + ' colors' : ''].filter(Boolean).map(esc).join(' • ');
+    const sub = [category, colors.length > 1 ? colors.length + ' colors' : ''].filter(Boolean).map(esc).join(' • ');
     return `<div class="srow ${status}">
         <div class="srow-main" onclick="this.parentElement.classList.toggle('open')">
-            <div class="srow-info"><div class="srow-title"><b>${esc(art.article_no)}</b><span>${esc(art.name) || 'Unnamed'}</span></div><div class="srow-sub">${sub}</div></div>
+            <div class="srow-category-icon ${isLadies ? 'ladies' : (isKids ? 'kids' : 'gents')}" aria-hidden="true"><i class="fa-solid ${categoryIcon}"></i></div>
+            <div class="srow-info"><div class="srow-title"><b>${esc(art.article_no)}</b><span>${esc(art.name) || 'Unnamed'}</span></div><div class="srow-sub"><span class="srow-category-label">${categoryLabel}</span>${sub ? ' • ' + sub : ''}</div></div>
             <div class="srow-qty ${status}">${total}<small>pairs</small></div>
             <i class="fa-solid fa-chevron-down srow-arrow"></i>
         </div>
