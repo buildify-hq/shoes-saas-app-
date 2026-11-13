@@ -25,7 +25,6 @@
     <div id="toast">Message</div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleSidebar()"></div>
 
-    <!-- स्कॅनर मोडल -->
     <div id="scannerModal" class="sa-modal">
         <div class="sa-modal-content" style="text-align: center; max-width: 350px;">
             <h3 style="margin-top:0; margin-bottom: 15px; color: var(--primary);"><i class="fa-solid fa-barcode"></i> Scan Barcode</h3>
@@ -37,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Held Bills मोडल -->
     <div id="heldModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 style="margin-top:0; color: var(--text-light); text-align:center;"><i class="fa-solid fa-pause" style="color: var(--warning);"></i> Held Bills</h3>
@@ -46,7 +44,6 @@
         </div>
     </div>
 
-    <!-- प्रोफेशनल बिल मोडल -->
     <div id="billModal" class="sa-modal">
         <div class="sa-modal-content" style="max-width: 450px; padding: 0; background: #fff; color: #000; border-radius: 12px; overflow-y: auto;">
             <div id="invoiceCaptureArea" style="padding: 20px; font-family: Arial, sans-serif; background: #fff;">
@@ -119,7 +116,6 @@
         </div>
     </div>
 
-    <!-- साईड मेनू -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 style="margin: 0; color: var(--text-light); font-size: 18px; font-weight: 700;">SJ Digital Labs</h2>
@@ -193,7 +189,6 @@
             </div>
         </div>
 
-        <!-- 🌟 नवीन सुपर ॲडमिन डॅशबोर्ड -->
         <div id="superAdminScreen" class="fade-in" style="display: none;">
             <div class="sa-header">
                 <div>
@@ -225,7 +220,6 @@
                 <button class="hist-tab" onclick="switchAdminTab('logs', this)">Logs</button>
             </div>
 
-            <!-- १. शॉप्स टॅब -->
             <div id="adminTab-shops">
                 <div class="sa-search">
                     <span><i class="fa-solid fa-magnifying-glass"></i></span>
@@ -242,13 +236,11 @@
                 <div id="saOwnerList"></div>
             </div>
 
-            <!-- २. पेमेंट्स टॅब -->
             <div id="adminTab-payments" style="display: none;">
                 <h3 style="margin-bottom: 15px;">Recent Payments</h3>
                 <div id="adminPaymentList"></div>
             </div>
 
-            <!-- ३. कम्युनिकेशन्स टॅब -->
             <div id="adminTab-comms" style="display: none;">
                 <div class="app-card">
                     <h4 style="margin-top: 0;">Send Announcement</h4>
@@ -259,45 +251,52 @@
                 <div id="adminAnnouncementList"></div>
             </div>
 
-            <!-- ४. लॉग्स टॅब -->
             <div id="adminTab-logs" style="display: none;">
                 <h3 style="margin-bottom: 15px;">Admin Activity Log</h3>
                 <div id="adminLogList"></div>
             </div>
-
         </div>
 
-        <!-- डॅशबोर्ड -->
         <div id="dashboardScreen" class="fade-in" style="display: none;">
-            <section class="dashboard-welcome">
+            <section class="dashboard-welcome" style="min-height: auto; padding: 15px 18px; margin-bottom: 12px;">
                 <div class="welcome-copy">
-                    <span class="welcome-eyebrow"><i class="fa-solid fa-chart-line"></i> SHOP OVERVIEW</span>
-                    <h2>Welcome back!</h2>
-                    <p>Here’s what’s happening in your shop today.</p>
+                    <span class="welcome-eyebrow" id="dashGreeting" style="font-size: 11px; margin-bottom: 4px;">GOOD MORNING</span>
+                    <h2 id="dashUserName" style="font-size: 20px; margin-bottom: 2px;">Rohan</h2>
+                    <p style="font-size: 11px; opacity: 0.9;">Here’s your shop overview.</p>
                 </div>
-                <div class="welcome-mark" aria-hidden="true">
+                <div class="welcome-mark" style="width: 45px; height: 45px; flex-basis: 45px; font-size: 20px;">
                     <i class="fa-solid fa-store"></i>
                 </div>
             </section>
 
-            <div class="stats-grid">
-                <div class="stat-card dashboard-sales-card">
-                    <div class="stat-title">Today's Sales</div>
-                    <div class="stat-value" id="todaySalesDisplay">₹0</div>
-                    <div class="stat-sub" id="salesCompare"></div>
-                    <i class="fa-solid fa-indian-rupee-sign stat-watermark" aria-hidden="true"></i>
-                </div>
-                <div class="stat-card dashboard-profit-card">
-                    <div class="stat-title">Today's Profit</div>
-                    <div class="stat-value" id="todayProfitDisplay">₹0</div>
-                    <div class="stat-sub">Today's earnings</div>
-                    <i class="fa-solid fa-chart-pie stat-watermark" aria-hidden="true"></i>
+            <div id="udhaarAlertCard" class="app-card" style="display: none; border-left: 4px solid var(--danger); padding: 10px 15px; margin-bottom: 12px; cursor: pointer;" onclick="switchTab('credits')">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <b style="color: var(--danger); font-size: 13px;"><i class="fa-solid fa-book"></i> Udhaar Pending</b><br>
+                        <span style="font-size: 11px; color: var(--text-muted);">Click to view details</span>
+                    </div>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--danger);">₹<span id="dashUdhaarTotal">0</span></div>
                 </div>
             </div>
 
-            <div class="dashboard-primary-actions">
-                <button class="btn-success" onclick="switchTab('sale')"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
-                <button class="btn-warning" onclick="switchTab('return')"><i class="fa-solid fa-rotate-left"></i> Return</button>
+            <div class="stats-grid" style="gap: 10px; margin-bottom: 12px;">
+                <div class="stat-card dashboard-sales-card" style="padding: 15px 12px; min-height: 110px; text-align: left;">
+                    <div class="stat-title" style="font-size: 10px;">Today's Sales</div>
+                    <div class="stat-value" id="todaySalesDisplay" style="font-size: 22px; margin-top: 5px;">₹0</div>
+                    <div class="stat-sub" id="salesCompare" style="font-size: 10px;">Loading...</div>
+                    <i class="fa-solid fa-indian-rupee-sign stat-watermark" style="font-size: 35px; right: 10px; bottom: 10px; opacity: 0.15;"></i>
+                </div>
+                <div class="stat-card dashboard-profit-card" style="padding: 15px 12px; min-height: 110px; text-align: left;">
+                    <div class="stat-title" style="font-size: 10px;">Today's Profit</div>
+                    <div class="stat-value" id="todayProfitDisplay" style="font-size: 22px; margin-top: 5px;">₹0</div>
+                    <div class="stat-sub" style="font-size: 10px;">Today's earnings</div>
+                    <i class="fa-solid fa-chart-pie stat-watermark" style="font-size: 30px; right: 10px; bottom: 10px; opacity: 0.15;"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-primary-actions" style="margin-bottom: 15px;">
+                <button class="btn-success" onclick="switchTab('sale')" style="min-height: 48px;"><i class="fa-solid fa-cart-shopping"></i> New Sale</button>
+                <button class="btn-warning" onclick="switchTab('return')" style="min-height: 48px;"><i class="fa-solid fa-rotate-left"></i> Return</button>
             </div>
 
             <section class="dashboard-quick-actions">
@@ -306,7 +305,6 @@
                         <span class="section-kicker">SHORTCUTS</span>
                         <h3>Quick Actions</h3>
                     </div>
-                    <span class="section-heading-icon"><i class="fa-solid fa-bolt"></i></span>
                 </div>
                 <div class="dashboard-action-grid">
                     <button class="dashboard-action" onclick="switchTab('stock')">
@@ -328,18 +326,20 @@
                 </div>
             </section>
 
-            <div class="app-card dashboard-search-card">
-                <label>Quick Search Article</label>
-                <div class="dashboard-search-row">
-                    <input type="text" id="dashSearchArt" placeholder="Enter Article No." style="margin-bottom: 0;">
-                    <button class="btn-primary dashboard-icon-btn" onclick="startScanner('dashSearchArt')" aria-label="Scan article barcode"><i class="fa-solid fa-camera"></i></button>
-                    <button class="btn-primary dashboard-icon-btn" onclick="searchDashboardArticle()" aria-label="Search article"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <div class="app-card dashboard-search-card" style="padding: 12px;">
+                <label style="font-size: 12px;">Quick Search Article</label>
+                <div class="dashboard-search-row" style="gap: 6px;">
+                    <input type="text" id="dashSearchArt" placeholder="Article No." style="margin-bottom: 0; padding: 10px; font-size: 13px;">
+                    <button class="btn-primary dashboard-icon-btn" onclick="startScanner('dashSearchArt')" style="width: 42px; min-height: 42px; flex: 0 0 42px;"><i class="fa-solid fa-camera"></i></button>
+                    <button class="btn-primary dashboard-icon-btn" onclick="searchDashboardArticle()" style="width: 42px; min-height: 42px; flex: 0 0 42px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <!-- 🌟 Voice Search Mic -->
+                    <button class="btn-warning dashboard-icon-btn" onclick="startVoiceSearch('dashSearchArt')" style="width: 42px; min-height: 42px; flex: 0 0 42px;"><i class="fa-solid fa-microphone"></i></button>
                 </div>
-                <div id="dashSearchResult" style="margin-top: 15px;"></div>
+                <div id="dashSearchResult" style="margin-top: 10px;"></div>
             </div>
 
             <section class="dashboard-expenses-section">
-                <div class="section-heading">
+                <div class="section-heading" style="margin-bottom: 8px;">
                     <div>
                         <span class="section-kicker">DAILY COSTS</span>
                         <h3>Quick Expenses</h3>
@@ -361,24 +361,25 @@
                 </div>
             </section>
 
-            <div class="dashboard-transactions-heading">
+            <div class="dashboard-transactions-heading" style="margin-top: 15px;">
                 <div>
                     <span class="section-kicker">RECENT ACTIVITY</span>
                     <h3><i class="fa-solid fa-list-check"></i> Today's Transactions</h3>
                 </div>
             </div>
-            <div id="todayTransactions" class="app-card" style="padding: 15px;">
-                <p style="font-size: 14px; color: var(--text-muted); text-align: center;">No transactions today.</p>
+            <div id="todayTransactions" class="app-card" style="padding: 12px;">
+                <p style="font-size: 13px; color: var(--text-muted); text-align: center;">No transactions today.</p>
             </div>
         </div>
 
-        <!-- Stock Screen -->
         <div id="stockScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-stacked"></i> My Stock</h2>
             <div class="app-card" style="padding: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 99; background: var(--card-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" oninput="debounceStockSearch()" onkeyup="if(event.key === 'Enter') { clearTimeout(stockSearchT); searchStockArticle(); }">
+                    <input type="text" id="stockSearch" placeholder="Search Article No. or Name..." style="margin-bottom: 0; padding: 12px;" oninput="debounceStockSearch()">
                     <button class="btn-primary" onclick="searchStockArticle()" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <!-- 🌟 Voice Search Mic -->
+                    <button class="btn-warning" onclick="startVoiceSearch('stockSearch')" style="width: 50px; margin-bottom: 0; padding: 0;"><i class="fa-solid fa-microphone"></i></button>
                 </div>
             </div>
             <div class="stats-grid" style="margin-bottom: 20px;">
@@ -398,7 +399,6 @@
             <div id="stockList"></div>
         </div>
 
-        <!-- Bulk Import Screen -->
         <div id="bulkImportScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-file-import"></i> Bulk Import Stock</h2>
             <div class="app-card">
@@ -417,7 +417,6 @@
             </div>
         </div>
 
-        <!-- Low Stock Alert Screen -->
         <div id="lowStockAlertScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--danger) !important;"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alert</h2>
             <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Stock for these shoes is running low. Check which sizes are out and restock soon!</p>
@@ -425,7 +424,6 @@
             <div id="lowStockListContainer"></div>
         </div>
 
-        <!-- Staff Payment Screen -->
         <div id="staffScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-user-tie"></i> Staff Payment</h2>
             <div class="app-card">
@@ -447,7 +445,6 @@
             </div>
         </div>
 
-        <!-- Sale Screen -->
         <div id="saleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-cart-shopping"></i> New Sale</h2>
             <button id="staffReturnBtn" class="btn-warning" onclick="switchTab('return')" style="display:none; margin-bottom:15px;"><i class="fa-solid fa-rotate-left"></i> Return Item</button>
@@ -457,6 +454,8 @@
                     <input type="text" id="saleArtNo" placeholder="e.g., M-101">
                     <button class="btn-primary" onclick="startScanner('saleArtNo')" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-camera"></i></button>
                     <button class="btn-primary" onclick="searchSaleArticle()" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <!-- 🌟 Voice Search Mic -->
+                    <button class="btn-warning" onclick="startVoiceSearch('saleArtNo')" style="width: 50px; margin-bottom: 15px;"><i class="fa-solid fa-microphone"></i></button>
                 </div>
                 <div id="saleArticleDetails" class="sub-card" style="display: none;">
                     <h4 id="saleArtName" style="color: var(--primary); margin: 0 0 15px 0; font-size: 16px;"></h4>
@@ -495,7 +494,6 @@
             </div>
         </div>
 
-        <!-- Article Screen -->
         <div id="articleScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-plus"></i> Add Article</h2>
             <div class="app-card">
@@ -518,7 +516,6 @@
             </div>
         </div>
 
-        <!-- Purchase Screen -->
         <div id="purchaseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-boxes-packing"></i> Add Stock</h2>
             <div class="app-card">
@@ -541,7 +538,6 @@
             </div>
         </div>
 
-        <!-- Closing Screen -->
         <div id="closingScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-lock"></i> Day Closing</h2>
             <div class="app-card">
@@ -559,7 +555,6 @@
             </div>
         </div>
 
-        <!-- Labels Screen -->
         <div id="labelsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-qrcode"></i> Print Labels</h2>
             <div class="app-card">
@@ -592,7 +587,6 @@
             <div id="labelSheet" class="label-sheet"></div>
         </div>
 
-        <!-- History Screen -->
         <div id="historyScreen" class="fade-in" style="display: none;">
             <h2 class="page-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
             <div class="hist-nav" style="display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:8px; margin-bottom:12px; align-items:stretch;">
@@ -614,7 +608,6 @@
             <div id="historyList"></div>
         </div>
 
-        <!-- Return Screen -->
         <div id="returnScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-rotate-left"></i> Return Item</h2>
             <div class="app-card">
@@ -637,7 +630,6 @@
             </div>
         </div>
 
-        <!-- Expense Screen -->
         <div id="expenseScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-money-bill-transfer"></i> Add Expense</h2>
             <div class="app-card">
@@ -648,7 +640,6 @@
             </div>
         </div>
 
-        <!-- Udhaar Khata Screen -->
         <div id="creditsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-book"></i> Udhaar Khata</h2>
             <div class="app-card" style="padding: 20px;">
@@ -663,7 +654,6 @@
             <div id="creditsList"></div>
         </div>
 
-        <!-- Staff Pin Screen -->
         <div id="staffPinScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-users-gear"></i> Manage Staff PIN</h2>
             <div class="app-card" style="text-align: center;">
@@ -675,7 +665,6 @@
             </div>
         </div>
 
-        <!-- Shop Settings Screen -->
         <div id="shopSettingsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-store"></i> Shop Settings</h2>
             <div class="app-card">
@@ -692,7 +681,6 @@
             </div>
         </div>
 
-        <!-- Reports Screen -->
         <div id="reportsScreen" class="fade-in" style="display: none;">
             <h2 class="page-title" style="color: var(--text-light) !important;"><i class="fa-solid fa-chart-line"></i> Sales Report</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -722,7 +710,6 @@
 
     </div>
 
-    <!-- Owner Modal -->
     <div id="ownerModal" class="sa-modal">
         <div class="sa-modal-content">
             <h3 id="modalTitle" style="margin-top:0; margin-bottom: 20px;">Owner Details</h3>
@@ -736,7 +723,6 @@
         </div>
     </div>
 
-    <!-- Bottom Nav -->
     <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash">
             <i class="fa-solid fa-house nav-icon"></i> Home
