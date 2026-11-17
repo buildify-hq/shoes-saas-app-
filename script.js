@@ -866,6 +866,14 @@ async function saveExpense() {
     } catch (err) { showToast("Error: " + err.message, true); }
 }
 
+// Quick expense buttons (Tea/Snacks, Light Bill, Shop Rent): open Expense screen with reason pre-filled
+function quickExpense(reason) {
+    switchTab('expense');
+    const r = document.getElementById('expReason'), a = document.getElementById('expAmount');
+    if (r) r.value = reason;
+    if (a) { a.value = ''; setTimeout(() => a.focus(), 100); }
+}
+
 async function loadCredits() {
     const list = document.getElementById('creditsList');
     const { data: credits } = await supabaseClient.from('credits').select('*').eq('shop_id', currentShopId).order('created_at', { ascending: false });
