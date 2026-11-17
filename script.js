@@ -144,8 +144,11 @@ document.getElementById('confirmYesBtn').onclick = () => {
 // ---------- Barcode Scanner ----------
 let scannerCams = [], scannerCamIdx = 0, scannerTarget = null, scannerBusy = false;
 let isTorchOn = false; 
+let scanHandled = false;
 
 async function onScanSuccess(text) {
+    if (scanHandled) return; // camera fires many times per second; handle only the first read
+    scanHandled = true;
     const target = scannerTarget;
     closeScanner();
     if (!target) return;
@@ -175,7 +178,10 @@ async function onScanSuccess(text) {
 async function beginScan(cameraConfig) {
     html5QrcodeScanner = new Html5Qrcode('reader', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
     const qrbox = (w, hgt) => {
-        return { width: Math.floor(w * 0.8), height: Math.floor(hgt * 0.3) }; 
+        // Tall enough for a square QR, wide enough for a 1D barcode
+        const width = Math.floor(w * 0.85);
+        const height = Math.min(hgt, Math.max(Math.floor(hgt * 0.5), Math.floor(Math.min(w, hgt) * 0.8)));
+        return { width, height };
     };
     await html5QrcodeScanner.start(cameraConfig, { fps: 30, qrbox: qrbox }, onScanSuccess, () => {});
     setTimeout(checkTorchSupport, 1000);
@@ -186,8 +192,8 @@ async function toggleTorch() {
     if (video && video.srcObject) {
         const track = video.srcObject.getVideoTracks()[0];
         try {
+            await track.applyConstraints({ advanced: [{ torch: !isTorchOn }] });
             isTorchOn = !isTorchOn;
-            await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
         } catch (e) {
             showToast('Flashlight चालू होत नाहीये', true);
         }
@@ -199,7 +205,7 @@ function checkTorchSupport() {
     if (video && video.srcObject) {
         const track = video.srcObject.getVideoTracks()[0];
         if (track) {
-            const capabilities = track.getCapabilities();
+            const capabilities = (track.getCapabilities && track.getCapabilities()) || {};
             if (capabilities.torch) {
                 document.getElementById('torchBtn').style.display = 'flex'; 
             } else {
@@ -217,7 +223,7 @@ async function stopScannerInstance() {
 
 async function startScanner(targetInputId) {
     if (scannerBusy) return;
-    scannerBusy = true; scannerTarget = targetInputId;
+    scannerBusy = true; scannerTarget = targetInputId; scanHandled = false;
     document.getElementById('scannerModal').style.display = 'flex';
     try {
         await stopScannerInstance();
@@ -729,6 +735,7 @@ async function confirmSale() {
 // ---------- Bill Share (Tax Invoice) ----------
 function showBill(b) {
     currentBillData = b;
+    billImageFile = null; billImagePromise = null;
     
     document.getElementById('invShopName').innerText = currentShopDetails.name || 'SJ DIGITAL LABS';
     document.getElementById('invShopPhone').innerText = currentShopDetails.phone || 'Your Phone';
@@ -755,37 +762,97 @@ function showBill(b) {
     document.getElementById('invDiscount').innerText = `-₹${b.discount.toFixed(2)}`;
     document.getElementById('invNetTotal').innerText = `₹${b.total.toFixed(2)}`;
     document.getElementById('billModal').style.display = 'flex';
+    prepareBillImage(); // build the share image in the background so Share works instantly
 }
 
 function printBill() {
     setTimeout(() => { window.print(); }, 300);
 }
 
-async function downloadAndShareBill(btn) {
-    const captureArea = document.getElementById('invoiceCaptureArea');
-    const originalText = btn.innerHTML;
-    try {
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
-        btn.disabled = true;
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-        const canvas = await html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' });
-        canvas.toBlob(async function(blob) {
-            const file = new File([blob], 'invoice.png', { type: 'image/png' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file], title: 'Invoice', text: 'Thank you for your purchase!' });
-            } else {
-                const link = document.createElement('a');
-                link.download = `Invoice_${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                showToast("Image downloaded. Share manually.", false);
+let billImageFile = null, billImagePromise = null;
+const HTML2CANVAS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+
+function billNoText(b) { return b && b.id ? String(b.id).replace(/-/g, '').slice(-6).toUpperCase() : 'TEMP'; }
+
+// Builds the invoice image ahead of time (the Share button then has no waiting, which phones require)
+function prepareBillImage() {
+    const forBill = currentBillData;
+    billImagePromise = (async () => {
+        try {
+            await loadScript(HTML2CANVAS_URL);
+            const logo = document.getElementById('invShopLogo');
+            if (logo && !logo.complete) {
+                await Promise.race([new Promise(r => { logo.onload = logo.onerror = r; }), new Promise(r => setTimeout(r, 1500))]);
             }
-            btn.innerHTML = originalText; btn.disabled = false;
-        }, 'image/png');
+            await new Promise(r => setTimeout(r, 200));
+            const canvas = await html2canvas(document.getElementById('invoiceCaptureArea'), { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+            if (!blob) return null;
+            const file = new File([blob], `Invoice_${billNoText(forBill)}.png`, { type: 'image/png' });
+            if (currentBillData === forBill) billImageFile = file;
+            return file;
+        } catch (e) { console.log('Bill image error', e); return null; }
+    })();
+    return billImagePromise;
+}
+
+function saveFileToDevice(file) {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url; a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+
+async function downloadAndShareBill(btn) {
+    const original = btn.innerHTML;
+    try {
+        let file = billImageFile;
+        if (!file) { // image still being built: wait for it
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...'; btn.disabled = true;
+            file = await (billImagePromise || prepareBillImage());
+        }
+        if (!file) { showToast('Could not create bill image. Use "Send Text Bill" instead.', true); return; }
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: 'Invoice', text: 'Thank you for your purchase!' });
+            } catch (e) {
+                if (e && e.name === 'AbortError') return; // user closed the share sheet
+                saveFileToDevice(file);
+                showToast('Share was blocked. Image saved - send it from Gallery, or use "Send Text Bill".', true);
+            }
+        } else {
+            saveFileToDevice(file);
+            showToast('Image saved. Send it manually, or use "Send Text Bill".', false);
+        }
     } catch (error) {
-        showToast("Error generating image: " + error.message, true);
-        btn.innerHTML = originalText; btn.disabled = false;
-    }
+        showToast('Error: ' + error.message, true);
+    } finally { btn.innerHTML = original; btn.disabled = false; }
+}
+
+async function saveBillImage(btn) {
+    const original = btn.innerHTML;
+    try {
+        let file = billImageFile;
+        if (!file) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...'; btn.disabled = true; file = await (billImagePromise || prepareBillImage()); }
+        if (!file) { showToast('Could not create bill image', true); return; }
+        saveFileToDevice(file); showToast('Image saved', false);
+    } finally { btn.innerHTML = original; btn.disabled = false; }
+}
+
+// Opens WhatsApp chat of the customer (if phone entered) with the bill as text
+function sendBillText() {
+    const b = currentBillData; if (!b) return;
+    const shop = (currentShopDetails && currentShopDetails.name) || currentShopName || 'Our Shop';
+    const money = n => '₹' + (Math.round(Number(n) * 100) / 100);
+    let msg = `*${shop}*\nInvoice #${billNoText(b)} | ${new Date().toLocaleDateString('en-GB')}\n------------------------\n`;
+    b.items.forEach(i => { msg += `${i.artNo}${i.name ? ' ' + i.name : ''} (Size ${i.size}) x${i.qty} = ${money(i.qty * i.price)}\n`; });
+    msg += `------------------------\nSub Total: ${money(b.subTotal)}\n`;
+    if (b.discount > 0) msg += `Discount: -${money(b.discount)}\n`;
+    msg += `*Net Total: ${money(b.total)}*\n\nThank you for shopping with us! Visit again.`;
+    const d = String(b.phone || '').replace(/\D/g, '');
+    const to = d.length === 10 ? '91' + d : (d.length === 12 && d.startsWith('91') ? d : '');
+    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function closeBill() {
@@ -1757,6 +1824,7 @@ function shareClosingWA() {
 }
 
 async function loadLabels() {
+    loadScript(JSPDF_URL).catch(() => {}); // preload so PDF is quick
     document.getElementById('labList').innerHTML = skeleton(2);
     const { data, error } = await supabaseClient.from('articles').select('id, article_no, name, mrp, stock_batches (color, size, remaining_qty)').eq('shop_id', currentShopId).order('article_no');
     if (error) { document.getElementById('labList').innerHTML = `<div class="hist-empty">Error: ${esc(error.message)}</div>`; return; }
@@ -1801,7 +1869,7 @@ function labBarSvg(text) {
     svg.removeAttribute('width'); svg.removeAttribute('height');
     return svg.outerHTML;
 }
-function buildLabels() {
+function getLabelItems() {
     const type = document.getElementById('labType').value, size = document.getElementById('labSize').value;
     const mode = document.getElementById('labMode').value;
     const copies = Math.max(1, Math.min(100, parseInt(document.getElementById('labCopies').value) || 1));
@@ -1817,6 +1885,11 @@ function buildLabels() {
     });
     if (!items.length) { showToast('Select at least one article (with stock for "per pair" mode)', true); return false; }
     if (items.length > 500) { showToast('Too many labels (' + items.length + '). Select fewer articles.', true); return false; }
+    return { items, type, size, showMrp, showName };
+}
+function buildLabels() {
+    const cfg = getLabelItems(); if (!cfg) return false;
+    const { items, type, size, showMrp, showName } = cfg;
     const make = type === 'qr' ? labQrSvg : labBarSvg;
     const svgCache = {};
     let html = '';
@@ -1842,6 +1915,129 @@ function buildLabels() {
     else ps.textContent = '@media print { @page { size: A4; margin: 5mm; } body { margin: 0; } #labelSheet { position: static !important; } }';
     return items.length;
 }
+
+// ---------- Labels -> real PDF file (vector QR / barcode) ----------
+const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+// PDF built-in fonts cannot show Marathi / ₹, so keep plain characters only
+function pdfTxt(s) { return String(s == null ? '' : s).replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, ' ').trim(); }
+
+function pdfDrawQr(doc, text, x, y, size) {
+    const qr = qrcode(0, 'M'); qr.addData(String(text)); qr.make();
+    const n = qr.getModuleCount(), quiet = 2, u = size / (n + quiet * 2);
+    doc.setFillColor(0, 0, 0);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+        if (qr.isDark(r, c)) doc.rect(x + (c + quiet) * u, y + (r + quiet) * u, u + 0.01, u + 0.01, 'F');
+    }
+}
+
+function pdfDrawBar(doc, text, x, y, w, h) {
+    const o = {}; JsBarcode(o, String(text), { format: 'CODE128' });
+    const bits = o.encodings && o.encodings[0] && o.encodings[0].data;
+    if (!bits) throw new Error('Barcode could not be created for ' + text);
+    const quiet = 1.5, mw = (w - quiet * 2) / bits.length;
+    doc.setFillColor(0, 0, 0);
+    let i = 0;
+    while (i < bits.length) {
+        if (bits[i] === '1') { let j = i; while (j < bits.length && bits[j] === '1') j++; doc.rect(x + quiet + i * mw, y, (j - i) * mw + 0.005, h, 'F'); i = j; }
+        else i++;
+    }
+}
+
+function pdfDrawLabel(doc, cfg, it, x0, y0, w, h, border) {
+    const { type, size, showMrp, showName, shop } = cfg;
+    const small = size === 'roll38';
+    if (border) { doc.setDrawColor(170); doc.setLineWidth(0.15); doc.setLineDashPattern([0.8, 0.8], 0); doc.rect(x0, y0, w, h); doc.setLineDashPattern([], 0); }
+    const pad = 1.5;
+    const meta = [pdfTxt(it.color), it.size ? 'S' + pdfTxt(it.size) : ''].filter(Boolean).join(' / ');
+    const name = showName ? pdfTxt(it.a.name) : '';
+    const mrp = showMrp && it.a.mrp ? 'MRP Rs.' + it.a.mrp : '';
+    const lines = (availW, center) => {
+        const L = [];
+        const push = (txt, pt, bold, prio) => { if (txt) L.push({ txt, pt, bold, prio }); };
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(small ? 5 : 6);
+        push(doc.splitTextToSize(pdfTxt(shop).toUpperCase(), availW)[0], small ? 5 : 6, false, 1);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(small ? 6.5 : 8);
+        const nm = name ? doc.splitTextToSize(name, availW).slice(0, 2) : [];
+        nm.forEach((s, k) => push(s, small ? 6.5 : 8, true, k === 0 ? 4 : 2));
+        push('#' + pdfTxt(it.a.article_no), small ? 6.5 : 8, false, 5);
+        push(meta, small ? 6.5 : 8, true, 3);
+        push(mrp, small ? 8 : 10, true, 6);
+        return L;
+    };
+    const fit = (L, availH) => {
+        const hOf = l => l.pt * 0.3528 * 1.2;
+        let total = L.reduce((s, l) => s + hOf(l), 0);
+        while (total > availH && L.length > 1) {
+            let mi = 0; L.forEach((l, i) => { if (l.prio < L[mi].prio) mi = i; });
+            total -= hOf(L[mi]); L.splice(mi, 1);
+        }
+        return { L, total, hOf };
+    };
+    const draw = (L, total, hOf, x, y, align) => {
+        let cy = y;
+        L.forEach(l => { doc.setFont('helvetica', l.bold ? 'bold' : 'normal'); doc.setFontSize(l.pt); doc.setTextColor(0); doc.text(l.txt, x, cy, { baseline: 'top', align }); cy += hOf(l); });
+    };
+    if (type === 'qr') {
+        const q = small ? 18 : 24, qy = y0 + (h - q) / 2;
+        pdfDrawQr(doc, it.a.article_no, x0 + pad, qy, q);
+        const tx = x0 + pad + q + 1.5, tw = w - pad * 2 - q - 1.5;
+        const f = fit(lines(tw), h - pad * 2);
+        draw(f.L, f.total, f.hOf, tx, y0 + (h - f.total) / 2, 'left');
+    } else {
+        const bh = small ? 8 : 11;
+        pdfDrawBar(doc, it.a.article_no, x0 + pad, y0 + pad, w - pad * 2, bh);
+        const avail = h - pad * 2 - bh - 0.8;
+        const f = fit(lines(w - pad * 2), avail);
+        draw(f.L, f.total, f.hOf, x0 + w / 2, y0 + pad + bh + 0.8, 'center');
+    }
+}
+
+async function buildLabelsPdf() {
+    const cfg = getLabelItems(); if (!cfg) return null;
+    cfg.shop = currentShopName || '';
+    await loadScript(JSPDF_URL);
+    if (!window.jspdf) throw new Error('PDF library failed to load. Check internet and try again.');
+    const { jsPDF } = window.jspdf;
+    const { items, size } = cfg;
+    let doc;
+    if (size === 'a4') {
+        doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const cw = 60, ch = 30, gap = 2, cols = 3, rows = 8;
+        const x0 = (210 - (cols * cw + (cols - 1) * gap)) / 2, y0 = 8;
+        items.forEach((it, i) => {
+            const pos = i % (cols * rows);
+            if (i > 0 && pos === 0) doc.addPage('a4', 'portrait');
+            const r = Math.floor(pos / cols), c = pos % cols;
+            pdfDrawLabel(doc, cfg, it, x0 + c * (cw + gap), y0 + r * (ch + gap), cw, ch, true);
+        });
+    } else {
+        const w = size === 'roll38' ? 38 : 50, h = size === 'roll38' ? 25 : 30;
+        doc = new jsPDF({ unit: 'mm', format: [w, h], orientation: 'landscape' });
+        items.forEach((it, i) => { if (i > 0) doc.addPage([w, h], 'landscape'); pdfDrawLabel(doc, cfg, it, 0, 0, w, h, false); });
+    }
+    const name = `Labels_${new Date().toISOString().split('T')[0]}.pdf`;
+    return new File([doc.output('blob')], name, { type: 'application/pdf' });
+}
+
+async function labelsPdfAction(btn, share) {
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating PDF...'; btn.disabled = true;
+    try {
+        const file = await buildLabelsPdf();
+        if (!file) return;
+        if (share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title: 'Labels' }); }
+            catch (e) { if (e && e.name === 'AbortError') return; saveFileToDevice(file); showToast('Share blocked. PDF saved to device.', false); }
+        } else {
+            saveFileToDevice(file);
+            showToast(share ? 'Sharing not supported here. PDF saved to device.' : 'PDF saved to device', false);
+        }
+    } catch (err) { showToast('Error: ' + err.message, true); }
+    finally { btn.innerHTML = original; btn.disabled = false; }
+}
+function downloadLabelsPdf(btn) { return labelsPdfAction(btn, false); }
+function shareLabelsPdf(btn) { return labelsPdfAction(btn, true); }
+
 function clearLabelPreview() { document.getElementById('labelSheet').innerHTML = ''; showToast("Label Preview Cleared!", false); }
 function previewLabels() { const n = buildLabels(); if (n) { showToast(n + ' label(s) ready', false); document.getElementById('labelSheet').scrollIntoView({ behavior: 'smooth' }); } }
 function printLabels() { if (buildLabels()) { setTimeout(() => { window.print(); }, 500); } }

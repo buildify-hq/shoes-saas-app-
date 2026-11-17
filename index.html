@@ -99,6 +99,8 @@
             <div style="padding: 15px; background: var(--card-dark); border-top: 1px solid var(--border-color);">
                 <button class="btn-primary" onclick="printBill()" style="width: 100%; margin-bottom: 8px; background: #4B5563;"><i class="fa-solid fa-print"></i> Print Receipt</button>
                 <button class="btn-success" onclick="downloadAndShareBill(this)" style="background:#25D366; width: 100%; margin-bottom: 8px;"><i class="fa-brands fa-whatsapp"></i> Share Image on WhatsApp</button>
+                <button class="btn-success" onclick="sendBillText()" style="background:#128C7E; width: 100%; margin-bottom: 8px;"><i class="fa-brands fa-whatsapp"></i> Send Text Bill (Customer Chat)</button>
+                <button class="btn-primary" onclick="saveBillImage(this)" style="width: 100%; margin-bottom: 8px; background: #4B5563;"><i class="fa-solid fa-download"></i> Save Bill Image</button>
                 <button class="btn-primary" onclick="closeBill()" style="width: 100%; margin: 0;">Done</button>
             </div>
         </div>
@@ -591,7 +593,11 @@
             </div>
             <div class="lab-actions">
                 <button class="btn-primary" onclick="previewLabels()"><i class="fa-solid fa-eye"></i> Preview</button>
-                <button class="btn-success" onclick="printLabels()"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
+                <button class="btn-success" onclick="printLabels()"><i class="fa-solid fa-print"></i> Print</button>
+            </div>
+            <div class="lab-actions">
+                <button class="btn-primary" onclick="downloadLabelsPdf(this)"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
+                <button class="btn-success" onclick="shareLabelsPdf(this)" style="background:#25D366;"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
             </div>
             <div style="text-align: center; margin-bottom: 15px;">
                 <button class="btn-danger" onclick="clearLabelPreview()" style="width: auto; padding: 8px 16px; font-size: 13px; border-radius: 8px; margin: 0 auto;"><i class="fa-solid fa-trash"></i> Clear Preview</button>
