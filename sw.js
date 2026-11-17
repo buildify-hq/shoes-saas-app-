@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sj-labs-v54'; // 🌟 नवीन बदल केल्यावर हा नंबर वाढवा (v55, v56 ...)
+const CACHE_NAME = 'sj-labs-v55'; // 🌟 नवीन बदल केल्यावर हा नंबर वाढवा (v55, v56 ...)
 const urlsToCache = ['./', './index.html', './style.css', './script.js', './manifest.json'];
 
 // बाहेरच्या libraries - एकदा लोड झाल्यावर फोनमध्ये सेव्ह राहतात (offline साठी)

@@ -60,7 +60,7 @@
                     </div>
                 </div>
                 <div style="text-align: center; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; font-size: 14px; color: #000;">
-                    TAX INVOICE
+                    INVOICE
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 11px; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 10px; color: #000;">
                     <div>
@@ -102,6 +102,20 @@
                 <button class="btn-success" onclick="sendBillText()" style="background:#128C7E; width: 100%; margin-bottom: 8px;"><i class="fa-brands fa-whatsapp"></i> Send Text Bill (Customer Chat)</button>
                 <button class="btn-primary" onclick="saveBillImage(this)" style="width: 100%; margin-bottom: 8px; background: #4B5563;"><i class="fa-solid fa-download"></i> Save Bill Image</button>
                 <button class="btn-primary" onclick="closeBill()" style="width: 100%; margin: 0;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pinConfirmModal" class="sa-modal">
+        <div class="sa-modal-content" style="text-align: center;">
+            <div style="font-size: 40px; color: var(--warning); margin-bottom: 10px;"><i class="fa-solid fa-lock"></i></div>
+            <h3 style="margin-top:0; color: var(--text-light);">Owner PIN</h3>
+            <p id="pinConfirmMsg" style="font-size: 15px; margin-bottom: 12px; color: var(--text-muted); white-space: pre-line;"></p>
+            <input type="password" id="pinConfirmInput" inputmode="numeric" autocomplete="off" placeholder="Owner PIN" onkeydown="if(event.key==='Enter') submitOwnerPin()">
+            <p id="pinConfirmErr" style="font-size: 13px; color: var(--danger, #EF4444); min-height: 18px; margin: 6px 0 12px;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-outline" onclick="closePinModal()" style="flex: 1;">Cancel</button>
+                <button class="btn-danger" id="pinConfirmOk" onclick="submitOwnerPin()" style="flex: 1;">Delete</button>
             </div>
         </div>
     </div>
@@ -694,6 +708,7 @@
                 <textarea id="setShopAddress" rows="3" placeholder="Shop Address..."></textarea>
                 <label>Logo Image URL</label>
                 <input type="text" id="setShopLogo" placeholder="https://example.com/logo.png">
+                <label class="chk"><input type="checkbox" id="setSpeakBill" onchange="localStorage.setItem('speakBill', this.checked ? 'on' : 'off')"> Speak bill total aloud after sale</label>
                 <button class="btn-primary" onclick="saveShopSettings()" style="margin-top: 15px;"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
                 <button class="btn-outline" onclick="switchTab('dashboard')"><i class="fa-solid fa-arrow-left"></i> Back</button>
             </div>

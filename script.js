@@ -316,6 +316,7 @@ async function handleLogin() {
 }
 
 async function loadShopSettings() {
+    const sp = document.getElementById('setSpeakBill'); if (sp) sp.checked = localStorage.getItem('speakBill') !== 'off';
     const { data } = await supabaseClient.from('shops').select('shop_name, phone, address, logo_url').eq('id', currentShopId).single();
     if(data) {
         document.getElementById('setShopName').value = data.shop_name || '';
@@ -381,7 +382,18 @@ function showOwnerDashboard() {
         document.getElementById('nav-stock').style.display = 'flex';
         document.getElementById('nav-sale').style.display = 'flex';
         switchTab('dashboard');
+        backupReminder();
     }
+}
+
+// Remind the owner (once a day) if no backup was taken in the last 7 days
+function backupReminder() {
+    if (isStaffMode) return;
+    const DAY = 24 * 60 * 60 * 1000, now = Date.now();
+    const last = Number(localStorage.getItem('lastBackup')) || 0, asked = Number(localStorage.getItem('lastBackupAsk')) || 0;
+    if (now - last < 7 * DAY || now - asked < DAY) return;
+    localStorage.setItem('lastBackupAsk', String(now));
+    setTimeout(() => askConfirm('No backup in the last 7 days. Download a full backup now?', downloadFullBackup), 1500);
 }
 
 function switchTab(tabName) {
@@ -719,7 +731,7 @@ async function confirmSale() {
         showBill(billData);
         
         // 🌟 Text-to-Speech (बोलणारं बिल)
-        if ('speechSynthesis' in window) {
+        if ('speechSynthesis' in window && localStorage.getItem('speakBill') !== 'off') {
             setTimeout(() => {
                 const amountToSpeak = billData.total;
                 const msg = new SpeechSynthesisUtterance(`Total amount is ${amountToSpeak} rupees. Thank you!`);
@@ -1298,9 +1310,41 @@ function setHistFilter(f, el) {
 function delBtn(kind, id) {
     return isStaffMode ? '' : `<button class="hist-del" onclick="deleteHistory('${kind}','${id}')"><i class="fa-solid fa-trash"></i></button>`;
 }
+
+// ---------- Owner PIN check (for deleting history) ----------
+let pinCallback = null;
+async function verifyOwnerPin(pin) {
+    let email = currentUser && currentUser.email;
+    if (!email) { const { data } = await supabaseClient.auth.getUser(); email = data && data.user && data.user.email; }
+    if (!email) return false;
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pin });
+    return !error;
+}
+function askOwnerPin(msg, callback) {
+    document.getElementById('pinConfirmMsg').innerText = msg;
+    document.getElementById('pinConfirmErr').innerText = '';
+    const inp = document.getElementById('pinConfirmInput'); inp.value = '';
+    document.getElementById('pinConfirmModal').style.display = 'flex';
+    pinCallback = callback;
+    setTimeout(() => inp.focus(), 100);
+}
+function closePinModal() { document.getElementById('pinConfirmModal').style.display = 'none'; pinCallback = null; }
+async function submitOwnerPin() {
+    const pin = document.getElementById('pinConfirmInput').value.trim();
+    const err = document.getElementById('pinConfirmErr'), btn = document.getElementById('pinConfirmOk');
+    if (!pin) { err.innerText = 'Enter owner PIN'; return; }
+    btn.disabled = true; err.innerText = 'Checking...';
+    let ok = false;
+    try { ok = await verifyOwnerPin(pin); } catch (e) { ok = false; }
+    btn.disabled = false;
+    if (!ok) { err.innerText = 'Wrong PIN. Try again.'; return; }
+    const cb = pinCallback; closePinModal();
+    if (cb) cb();
+}
+
 function deleteHistory(kind, id) {
     const msg = kind === 'sale' ? 'Delete this bill? (Stock will be added back)' : kind === 'return' ? 'Delete this return entry? (Stock will be reduced)' : 'Delete this expense?';
-    askConfirm(msg, async () => {
+    askOwnerPin(msg + '\nEnter owner PIN to continue.', async () => {
         const fn = { sale: 'delete_sale', return: 'delete_return', expense: 'delete_expense' }[kind];
         const { error } = await supabaseClient.rpc(fn, { p_id: String(id) });
         if (error) { showToast('Error: ' + error.message, true); return; }
@@ -1310,7 +1354,7 @@ function deleteHistory(kind, id) {
 function clearHistory() {
     const dateEl = document.getElementById('histDate');
     const d = (dateEl && dateEl.value) || localDateStr(new Date());
-    askConfirm(`Delete ALL history (Sales, Returns, Expenses) for ${d}? Stock will not change.`, async () => {
+    askOwnerPin(`Delete ALL history (Sales, Returns, Expenses) for ${d}? Stock will not change.\nEnter owner PIN to continue.`, async () => {
         const r = dayRange(d);
         const { error } = await supabaseClient.rpc('clear_history', { p_from: r[0], p_to: r[1] });
         if (error) { showToast('Error: ' + error.message, true); return; }
@@ -2105,6 +2149,7 @@ async function downloadFullBackup() {
         if(purchasesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(purchasesData), "Purchases");
         if (wb.SheetNames.length === 0) { showToast("No data available for backup!", true); return; }
         XLSX.writeFile(wb, `SJ_Labs_Full_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+        localStorage.setItem('lastBackup', String(Date.now()));
         showToast("✅ Full Backup downloaded successfully!", false);
     } catch (err) { showToast("Backup error: " + err.message, true); }
 }
